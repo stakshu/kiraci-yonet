@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@latest"></script>
 
   <style>
     :root {
@@ -2083,8 +2083,24 @@
         return;
       }
 
+      /* SDK yüklü mü kontrol et */
+      if (!window.supabase || !window.supabase.createClient) {
+        console.error('[KiracıYönet] Supabase SDK yüklenemedi!');
+        banner.className = 'conn-banner error';
+        icon.textContent = '✗';
+        text.textContent = 'Supabase SDK yüklenemedi. Sayfa yenilensin.';
+        return;
+      }
+
       try {
         supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        console.log('[KiracıYönet] Supabase client oluşturuldu:', supabase);
+
+        /* Client oluştu mu doğrula */
+        if (!supabase || !supabase.auth) {
+          throw new Error('Supabase client başlatılamadı — API key formatını kontrol edin.');
+        }
+
         banner.className = 'conn-banner ok';
         icon.textContent = '✓';
         text.textContent = 'Supabase bağlantısı başarıyla kuruldu.';
@@ -2110,6 +2126,7 @@
         });
 
       } catch(e) {
+        console.error('[KiracıYönet] Supabase hata:', e);
         banner.className = 'conn-banner error';
         icon.textContent = '✗';
         text.textContent = 'Bağlantı hatası: ' + e.message;
