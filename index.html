@@ -1829,7 +1829,7 @@
       anonKey: 'sb_publishable_UaED7l8Echf4kqfQASSOEg_cfrnFGl6',
     };
 
-    let supabase = null;
+    let supabaseClient = null;
 
     /* ── DOM referansları ── */
     const $  = (id) => document.getElementById(id);
@@ -1972,7 +1972,7 @@
       e.preventDefault();
       clearAuthMsg();
 
-      if (!supabase) {
+      if (!supabaseClient) {
         showAuthMsg('Supabase bağlantısı kurulamadı. Lütfen yapılandırmayı kontrol edin.');
         return;
       }
@@ -1985,7 +1985,7 @@
       btn.textContent = 'Giriş yapılıyor…';
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
         if (error) {
           /* Türkçe hata mesajları */
@@ -2010,7 +2010,7 @@
       e.preventDefault();
       clearAuthMsg();
 
-      if (!supabase) {
+      if (!supabaseClient) {
         showAuthMsg('Supabase bağlantısı kurulamadı. Lütfen yapılandırmayı kontrol edin.');
         return;
       }
@@ -2030,7 +2030,7 @@
       btn.textContent = 'Kayıt yapılıyor…';
 
       try {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
         if (error) {
           const msgs = {
@@ -2055,10 +2055,10 @@
 
     /* ── Çıkış işlemi ── */
     async function handleLogout() {
-      if (!supabase) return;
+      if (!supabaseClient) return;
 
       try {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabaseClient.auth.signOut();
         if (error) {
           showToast('Çıkış hatası: ' + error.message, 'error');
         } else {
@@ -2093,11 +2093,11 @@
       }
 
       try {
-        supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-        console.log('[KiracıYönet] Supabase client oluşturuldu:', supabase);
+        supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        console.log('[KiracıYönet] Supabase client oluşturuldu:', supabaseClient);
 
         /* Client oluştu mu doğrula */
-        if (!supabase || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
           throw new Error('Supabase client başlatılamadı — API key formatını kontrol edin.');
         }
 
@@ -2107,7 +2107,7 @@
         console.log('[KiracıYönet] Supabase hazır.');
 
         /* Auth durum değişikliklerini dinle (session korunması) */
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
           console.log('[KiracıYönet] Auth event:', event);
           if (session?.user) {
             onUserLoggedIn(session.user);
@@ -2117,7 +2117,7 @@
         });
 
         /* Mevcut oturumu kontrol et */
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
           if (session?.user) {
             onUserLoggedIn(session.user);
           } else {
