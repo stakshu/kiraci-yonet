@@ -249,6 +249,72 @@
 
   </div>
 
+  <!-- ═══ Daire Ekle/Duzenle Popup ═══ -->
+  <div class="popup-overlay" id="aptModal" onclick="if(event.target===this)closeApartmentModal()">
+    <div class="popup">
+      <div class="popup-header">
+        <h3 class="popup-title" id="aptModalTitle">Yeni Daire Ekle</h3>
+        <button class="popup-close" onclick="closeApartmentModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="aptForm" onsubmit="saveApartment(event)">
+        <input type="hidden" id="aptId" />
+        <div class="popup-body">
+          <div class="popup-grid">
+            <div class="form-group">
+              <label class="form-label" for="aptBuilding">Bina Adi *</label>
+              <input class="form-input" id="aptBuilding" type="text" placeholder="Gunes Apt." required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptUnitNo">Daire No *</label>
+              <input class="form-input" id="aptUnitNo" type="text" placeholder="D-001" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptCity">Sehir</label>
+              <input class="form-input" id="aptCity" type="text" placeholder="Istanbul" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptDistrict">Ilce</label>
+              <input class="form-input" id="aptDistrict" type="text" placeholder="Kadikoy" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptTenant">Kiraci Adi</label>
+              <input class="form-input" id="aptTenant" type="text" placeholder="Bos birakilabilir" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptRent">Aylik Kira (&#8378;)</label>
+              <input class="form-input" id="aptRent" type="number" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptLeaseEnd">Sozlesme Bitis</label>
+              <input class="form-input" id="aptLeaseEnd" type="date" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="aptStatus">Durum</label>
+              <select class="form-input" id="aptStatus">
+                <option value="vacant">Bos</option>
+                <option value="occupied">Dolu</option>
+                <option value="expiring">Sure Doluyor</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label" for="aptNotes">Notlar</label>
+            <textarea class="form-input" id="aptNotes" rows="2" placeholder="Opsiyonel notlar..."></textarea>
+          </div>
+        </div>
+        <div class="popup-footer">
+          <button type="button" class="btn btn-outline" onclick="closeApartmentModal()">Iptal</button>
+          <button type="submit" class="btn btn-primary" id="aptSaveBtn">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
   <script src="/js/config.js"></script>
   <script src="/js/auth.js"></script>

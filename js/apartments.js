@@ -102,21 +102,19 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ── Drawer ac/kapat ── */
+/* ── Popup ac/kapat ── */
 function openApartmentModal(mode, data) {
-  const drawer   = document.getElementById('aptModal');
-  const title    = document.getElementById('aptModalTitle');
-  const subtitle = drawer ? drawer.querySelector('.drawer-subtitle') : null;
-  const form     = document.getElementById('aptForm');
-  const idField  = document.getElementById('aptId');
-  if (!drawer) return;
+  const popup   = document.getElementById('aptModal');
+  const title   = document.getElementById('aptModalTitle');
+  const form    = document.getElementById('aptForm');
+  const idField = document.getElementById('aptId');
+  if (!popup) return;
 
   form.reset();
   idField.value = '';
 
   if (mode === 'edit' && data) {
     title.textContent = 'Daire Duzenle';
-    if (subtitle) subtitle.textContent = data.building + ' — ' + data.unit_no;
     idField.value              = data.id;
     document.getElementById('aptBuilding').value   = data.building || '';
     document.getElementById('aptUnitNo').value      = data.unit_no || '';
@@ -129,15 +127,14 @@ function openApartmentModal(mode, data) {
     document.getElementById('aptNotes').value        = data.notes || '';
   } else {
     title.textContent = 'Yeni Daire Ekle';
-    if (subtitle) subtitle.textContent = 'Daire bilgilerini doldurun';
   }
 
-  drawer.classList.add('show');
+  popup.classList.add('show');
 }
 
 function closeApartmentModal() {
-  const drawer = document.getElementById('aptModal');
-  if (drawer) drawer.classList.remove('show');
+  const popup = document.getElementById('aptModal');
+  if (popup) popup.classList.remove('show');
 }
 
 /* ── Daire kaydet (ekle veya guncelle) ── */
