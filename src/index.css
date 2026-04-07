@@ -1135,13 +1135,10 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 .toast.success { background: #15803D; }
 .toast.error   { background: #B91C1C; }
 
-/* SPA Sayfa Bölümleri */
-.page-section {
-  display: none;
+/* Sayfa gecis animasyonu */
+.page-content {
   animation: pageIn 0.25s ease both;
 }
-
-.page-section.active { display: block; }
 
 @keyframes pageIn {
   from { opacity: 0; }
@@ -1199,14 +1196,12 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
+  animation: fadeIn 0.2s ease;
 }
 
-.popup-overlay.show {
-  opacity: 1;
-  visibility: visible;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .popup {
@@ -1217,12 +1212,12 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   border-radius: 14px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.35);
   overflow: hidden;
-  transform: scale(0.96);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: popIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.popup-overlay.show .popup {
-  transform: scale(1);
+@keyframes popIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .popup-header {
@@ -1250,7 +1245,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   transition: all 0.12s;
 }
 
-.popup-close:hover { background: var(--hover); color: var(--text); }
+.popup-close:hover { background: var(--bg); color: var(--text); }
 
 .popup-close svg {
   width: 16px; height: 16px;

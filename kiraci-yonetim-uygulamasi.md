@@ -16,15 +16,15 @@ Bu proje, gayrimenkul sahipleri ve küçük/orta ölçekli mülk yönetim firmal
 
 | Katman | Teknoloji | Açıklama |
 |--------|-----------|----------|
-| **Frontend** | HTML5 + CSS3 + Vanilla JavaScript | Tek sayfa yapı (SPA mantığı, ama sade). İlk aşamada framework yok. |
-| **Stil** | TailwindCSS (CDN) veya saf CSS | Modern, simetrik, responsive tasarım için |
+| **Frontend** | React 19 + Vite + CSS3 | SPA yapı, component tabanlı mimari. React Router ile sayfa yönetimi. |
+| **Stil** | Saf CSS (index.css) | Modern, simetrik, responsive tasarım için |
 | **Backend** | **Supabase** | PostgreSQL veritabanı + Auth + Storage + Realtime |
 | **Auth** | Supabase Auth | E-posta + şifre ile giriş |
 | **Storage** | Supabase Storage | Doküman/dosya yükleme için |
 | **E-posta** | Supabase Edge Functions + Resend / SendGrid | Otomatik mail gönderimi için |
-| **Hosting** | Vercel / Netlify / GitHub Pages | Statik HTML hosting |
+| **Hosting** | Vercel | Vite build + SPA routing |
 
-> **Not:** İlk fazda her şey tek bir `index.html` dosyası içinde olacak. İlerleyen fazlarda modüler dosya yapısına geçilebilir.
+> **Not:** Proje React + Vite ile geliştirilmektedir. Her modül ayrı component/sayfa olarak yapılandırılmıştır.
 
 ---
 
@@ -537,27 +537,33 @@ Standart Supabase auth tablosu kullanılır.
 
 ## 7. Dosya Yapısı (Önerilen)
 
-İlk fazlarda her şey `index.html` içinde olabilir. İlerleyen fazlarda şu yapıya geçilebilir:
+React + Vite component tabanlı yapı:
 
 ```
 /proje
-├── index.html
-├── /css
-│   └── style.css
-├── /js
-│   ├── config.js          (Supabase URL/key)
-│   ├── auth.js            (Giriş/kayıt fonksiyonları)
-│   ├── apartments.js      (Daire CRUD)
-│   ├── tenants.js         (Kiracı CRUD)
-│   ├── payments.js        (Ödeme takibi)
-│   ├── costs.js           (İşletme giderleri)
-│   ├── accounting.js      (Muhasebe)
-│   ├── documents.js       (Belge yönetimi)
-│   ├── sites.js           (Site yönetimi)
-│   ├── dashboard.js       (Ana sayfa)
-│   └── utils.js           (Yardımcı fonksiyonlar)
-└── /assets
-    └── logo.svg
+├── index.html              (Vite entry point)
+├── package.json
+├── vite.config.js
+├── vercel.json
+├── /src
+│   ├── main.jsx            (React mount)
+│   ├── App.jsx             (Router + Auth wrapper)
+│   ├── index.css           (Tüm stiller)
+│   ├── /lib
+│   │   └── supabase.js     (Supabase client)
+│   ├── /context
+│   │   └── AuthContext.jsx  (Auth state yönetimi)
+│   ├── /components
+│   │   ├── Layout.jsx      (Sidebar + Topbar + Outlet)
+│   │   ├── Sidebar.jsx     (Sol menü)
+│   │   ├── Topbar.jsx      (Üst bar)
+│   │   ├── AuthOverlay.jsx (Giriş/kayıt ekranı)
+│   │   └── Toast.jsx       (Bildirim sistemi)
+│   └── /pages
+│       ├── ApartmentsList.jsx  (Daire CRUD)
+│       └── EmptyPage.jsx       (Placeholder sayfalar)
+└── /supabase
+    └── 001_apartments.sql
 ```
 
 ---
@@ -605,4 +611,4 @@ Kullanıcının (proje sahibi) önce yapması gerekenler:
 
 **Doküman versiyonu:** 1.0
 **Hazırlanma tarihi:** 2026
-**Hedef platform:** Web (HTML + Supabase)
+**Hedef platform:** Web (React + Vite + Supabase)
