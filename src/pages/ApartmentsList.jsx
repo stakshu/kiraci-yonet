@@ -38,11 +38,7 @@ export default function ApartmentsList() {
   /* Action menu state */
   const [openMenu, setOpenMenu] = useState(null)
 
-  /* Connection banner */
-  const [connOk, setConnOk] = useState(false)
-
   useEffect(() => {
-    if (supabase?.auth) setConnOk(true)
     loadApartments()
   }, [])
 
@@ -173,14 +169,6 @@ export default function ApartmentsList() {
 
   return (
     <>
-      {/* Connection Banner */}
-      {connOk && (
-        <div className="conn-banner ok">
-          <span>&#10003;</span>
-          <span>Supabase baglantisi basariyla kuruldu.</span>
-        </div>
-      )}
-
       {/* Stat Cards */}
       <div className="stat-grid">
         <div className="stat-card">
