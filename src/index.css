@@ -454,6 +454,9 @@ body.collapsed .main { margin-left: var(--sb-w-col); }
 /* Content */
 .content {
   padding: 24px 32px;
+  flex: 1;
+  overflow: visible;
+  padding-bottom: 80px;
 }
 
 /* Tabs */
@@ -1329,7 +1332,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 .action-dropdown {
   position: absolute;
   right: 0;
-  bottom: 100%;
+  top: 100%;
   min-width: 140px;
   background: var(--card);
   border: 1px solid var(--border);
@@ -1339,7 +1342,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   z-index: 50;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(4px);
+  transform: translateY(-4px);
   transition: all 0.15s;
 }
 
