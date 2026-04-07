@@ -92,7 +92,7 @@ async function navigate(route, pushState = true) {
     if (pageCache[file]) {
       html = pageCache[file];
     } else {
-      const res = await fetch('pages/' + file + '.html');
+      const res = await fetch('/pages/' + file + '.html');
       if (!res.ok) throw new Error('Sayfa bulunamadi: ' + file);
       html = await res.text();
       pageCache[file] = html;
