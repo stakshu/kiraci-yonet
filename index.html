@@ -109,7 +109,7 @@
     <nav class="sb-nav">
       <!-- Ana -->
       <div class="nav-section">
-        <a class="nav-item active" data-tooltip="Ana Sayfa" data-page="daireler" onclick="showPage('daireler', 'Daireler', this)">
+        <a class="nav-item active" data-tooltip="Ana Sayfa" data-route="/apartments/list" onclick="goTo('/apartments/list', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
           <span class="nav-item-text">Ana Sayfa</span>
         </a>
@@ -119,27 +119,27 @@
       <div class="nav-section">
         <div class="nav-label">Mulkler</div>
         <div class="nav-group open">
-          <a class="nav-item" data-tooltip="Daireler" data-page="daireler" onclick="toggleGroup(this)">
+          <a class="nav-item" data-tooltip="Daireler" onclick="toggleGroup(this)">
             <span class="nav-item-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="9" y1="13" x2="9" y2="13.01"/><line x1="9" y1="17" x2="9" y2="17.01"/></svg></span>
             <span class="nav-item-text">Daireler</span>
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item active" data-page="daireler" onclick="showPage('daireler', 'Daireler', this)">Daire Listesi</a>
-            <a class="nav-sub-item" data-page="daireler" onclick="showPage('daireler', 'Bina Yonetimi', this)">Bina Yonetimi</a>
+            <a class="nav-sub-item active" data-route="/apartments/list" onclick="goTo('/apartments/list', this)">Daire Listesi</a>
+            <a class="nav-sub-item" data-route="/apartments/buildings" onclick="goTo('/apartments/buildings', this)">Bina Yonetimi</a>
           </div>
         </div>
 
         <div class="nav-group">
-          <a class="nav-item" data-tooltip="Kiracilar" data-page="kiracilar" onclick="toggleGroup(this)">
+          <a class="nav-item" data-tooltip="Kiracilar" onclick="toggleGroup(this)">
             <span class="nav-item-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             <span class="nav-item-text">Kiracilar</span>
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Kiraci Listesi', this)">Kiraci Listesi</a>
-            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Sozlesmeler', this)">Sozlesmeler</a>
-            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Tahliye Takibi', this)">Tahliye Takibi</a>
+            <a class="nav-sub-item" data-route="/tenants/list" onclick="goTo('/tenants/list', this)">Kiraci Listesi</a>
+            <a class="nav-sub-item" data-route="/tenants/contracts" onclick="goTo('/tenants/contracts', this)">Sozlesmeler</a>
+            <a class="nav-sub-item" data-route="/tenants/evictions" onclick="goTo('/tenants/evictions', this)">Tahliye Takibi</a>
           </div>
         </div>
       </div>
@@ -148,33 +148,33 @@
       <div class="nav-section">
         <div class="nav-label">Finans</div>
         <div class="nav-group">
-          <a class="nav-item" data-tooltip="Odemeler" data-page="odemeler" onclick="toggleGroup(this)">
+          <a class="nav-item" data-tooltip="Odemeler" onclick="toggleGroup(this)">
             <span class="nav-item-icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
             <span class="nav-item-text">Odemeler</span>
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Kira Odemeleri', this)">Kira Odemeleri</a>
-            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Geciken Odemeler', this)">Geciken Odemeler</a>
-            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Odeme Gecmisi', this)">Odeme Gecmisi</a>
+            <a class="nav-sub-item" data-route="/payments/rent" onclick="goTo('/payments/rent', this)">Kira Odemeleri</a>
+            <a class="nav-sub-item" data-route="/payments/overdue" onclick="goTo('/payments/overdue', this)">Geciken Odemeler</a>
+            <a class="nav-sub-item" data-route="/payments/history" onclick="goTo('/payments/history', this)">Odeme Gecmisi</a>
           </div>
         </div>
 
-        <a class="nav-item" data-tooltip="Giderler" data-page="giderler" onclick="showPage('giderler', 'Giderler', this)">
+        <a class="nav-item" data-tooltip="Giderler" data-route="/expenses" onclick="goTo('/expenses', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
           <span class="nav-item-text">Giderler</span>
         </a>
 
-        <a class="nav-item" data-tooltip="Muhasebe" data-page="muhasebe" onclick="showPage('muhasebe', 'Muhasebe', this)">
+        <a class="nav-item" data-tooltip="Muhasebe" data-route="/accounting" onclick="goTo('/accounting', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
           <span class="nav-item-text">Muhasebe</span>
         </a>
       </div>
 
-      <!-- Belgeler -->
+      <!-- Diger -->
       <div class="nav-section">
         <div class="nav-label">Diger</div>
-        <a class="nav-item" data-tooltip="Belgeler" data-page="belgeler" onclick="showPage('belgeler', 'Belgeler', this)">
+        <a class="nav-item" data-tooltip="Belgeler" data-route="/documents" onclick="goTo('/documents', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
           <span class="nav-item-text">Belgeler</span>
         </a>
@@ -184,7 +184,7 @@
     <!-- Bottom -->
     <div class="sb-bottom">
       <div class="nav-section" style="padding-bottom: 4px;">
-        <a class="nav-item" data-tooltip="Ayarlar" data-page="ayarlar" onclick="showPage('ayarlar', 'Ayarlar', this)">
+        <a class="nav-item" data-tooltip="Ayarlar" data-route="/settings" onclick="goTo('/settings', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           <span class="nav-item-text">Ayarlar</span>
         </a>
@@ -252,6 +252,7 @@
   <!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/apartments.js"></script>
   <script src="js/app.js"></script>
 
 </body>

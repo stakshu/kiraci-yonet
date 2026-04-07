@@ -1,21 +1,28 @@
-/* ── KiraciYonet — Ana Uygulama (Faz 0-2) ── */
+/* ── KiraciYonet — Ana Uygulama (History API Router) ── */
 
 /* ── DOM yardimcilari ── */
 const $ = (id) => document.getElementById(id);
 
-/* ── Sayfa cache (ayni sayfayi tekrar fetch etmesin) ── */
+/* ── Sayfa cache ── */
 const pageCache = {};
-let currentPage = null;
+let currentRoute = null;
 
-/* ── Sayfa-baslik eslesmesi ── */
-const PAGE_TITLES = {
-  daireler:  'Daireler',
-  kiracilar: 'Kiracilar',
-  odemeler:  'Odemeler',
-  giderler:  'Giderler',
-  muhasebe:  'Muhasebe',
-  belgeler:  'Belgeler',
-  ayarlar:   'Ayarlar'
+/* ── Route Tablosu ── */
+/* path → { file: pages/ altindaki HTML dosyasi, title: Turkce baslik, parent: sidebar grubu } */
+const ROUTES = {
+  '/':                        { file: 'apartments-list',       title: 'Daire Listesi',     parent: 'apartments' },
+  '/apartments/list':         { file: 'apartments-list',       title: 'Daire Listesi',     parent: 'apartments' },
+  '/apartments/buildings':    { file: 'apartments-buildings',  title: 'Bina Yonetimi',     parent: 'apartments' },
+  '/tenants/list':            { file: 'tenants-list',          title: 'Kiraci Listesi',    parent: 'tenants' },
+  '/tenants/contracts':       { file: 'tenants-contracts',     title: 'Sozlesmeler',       parent: 'tenants' },
+  '/tenants/evictions':       { file: 'tenants-evictions',     title: 'Tahliye Takibi',    parent: 'tenants' },
+  '/payments/rent':           { file: 'payments-rent',         title: 'Kira Odemeleri',    parent: 'payments' },
+  '/payments/overdue':        { file: 'payments-overdue',      title: 'Geciken Odemeler',  parent: 'payments' },
+  '/payments/history':        { file: 'payments-history',      title: 'Odeme Gecmisi',     parent: 'payments' },
+  '/expenses':                { file: 'expenses',              title: 'Giderler',          parent: null },
+  '/accounting':              { file: 'accounting',            title: 'Muhasebe',          parent: null },
+  '/documents':               { file: 'documents',             title: 'Belgeler',          parent: null },
+  '/settings':                { file: 'settings',              title: 'Ayarlar',           parent: null }
 };
 
 /* ── Sidebar collapse ── */
@@ -30,95 +37,100 @@ function toggleGroup(el) {
 }
 
 /* ── Sidebar aktif durumunu guncelle ── */
-function updateSidebarActive(pageId, clickedEl) {
+function updateSidebarActive(route) {
   document.querySelectorAll('.nav-item, .nav-sub-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('open'));
 
-  if (clickedEl) {
-    clickedEl.classList.add('active');
-    if (clickedEl.classList.contains('nav-sub-item')) {
-      const parentGroup = clickedEl.closest('.nav-group');
-      if (parentGroup) {
-        const parentItem = parentGroup.querySelector('.nav-item');
-        if (parentItem) parentItem.classList.add('active');
-      }
+  /* data-route ile eslesen ogeyi bul */
+  const subItem = document.querySelector('.nav-sub-item[data-route="' + route + '"]');
+  if (subItem) {
+    subItem.classList.add('active');
+    const parentGroup = subItem.closest('.nav-group');
+    if (parentGroup) {
+      parentGroup.classList.add('open');
+      const parentItem = parentGroup.querySelector('.nav-item');
+      if (parentItem) parentItem.classList.add('active');
     }
-  } else {
-    /* Hash'ten geldiyse, data-page ile eslesen nav-item'i bul */
-    const navItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
-    if (navItem) navItem.classList.add('active');
-    const subItem = document.querySelector('.nav-sub-item[data-page="' + pageId + '"]');
-    if (subItem) {
-      subItem.classList.add('active');
-      const parentGroup = subItem.closest('.nav-group');
-      if (parentGroup) {
-        parentGroup.classList.add('open');
-        const parentItem = parentGroup.querySelector('.nav-item');
-        if (parentItem) parentItem.classList.add('active');
-      }
-    }
+    return;
   }
+
+  const navItem = document.querySelector('.nav-item[data-route="' + route + '"]');
+  if (navItem) navItem.classList.add('active');
 }
 
-/* ── SPA Sayfa Gecisi — fetch ile dinamik yukleme ── */
-async function showPage(pageId, title, clickedEl) {
+/* ── Navigate — ana yonlendirme fonksiyonu ── */
+async function navigate(route, pushState = true) {
+  const routeInfo = ROUTES[route];
+  if (!routeInfo) {
+    /* Bilinmeyen route → ana sayfaya yonlendir */
+    navigate('/apartments/list', true);
+    return;
+  }
+
+  /* Ayni route tekrar tiklandiysa bir sey yapma */
+  if (currentRoute === route) return;
+  currentRoute = route;
+
   const pageContent = $('pageContent');
   const pageTitle = $('pageTitle');
 
-  /* Baslik: parametre veya esleme tablosundan */
-  title = title || PAGE_TITLES[pageId] || pageId;
+  /* Baslik guncelle */
+  if (pageTitle) pageTitle.textContent = routeInfo.title;
 
-  /* Topbar basligini guncelle */
-  if (pageTitle) pageTitle.textContent = title;
+  /* Sidebar guncelle */
+  updateSidebarActive(route);
 
-  /* Sidebar aktif durumunu guncelle */
-  updateSidebarActive(pageId, clickedEl);
-
-  /* URL hash'i guncelle (pushState yerine hash kullaniyoruz) */
-  if (window.location.hash !== '#' + pageId) {
-    history.replaceState(null, '', '#' + pageId);
+  /* URL guncelle */
+  if (pushState && window.location.pathname !== route) {
+    history.pushState({ route: route }, '', route);
   }
-
-  /* Ayni sayfa tekrar tiklandiysa bir sey yapma */
-  if (currentPage === pageId) return;
-  currentPage = pageId;
 
   /* Sayfa icerigi yukle */
   try {
     let html;
-    if (pageCache[pageId]) {
-      html = pageCache[pageId];
+    const file = routeInfo.file;
+    if (pageCache[file]) {
+      html = pageCache[file];
     } else {
-      const res = await fetch('pages/' + pageId + '.html');
-      if (!res.ok) throw new Error('Sayfa bulunamadi: ' + pageId);
+      const res = await fetch('pages/' + file + '.html');
+      if (!res.ok) throw new Error('Sayfa bulunamadi: ' + file);
       html = await res.text();
-      pageCache[pageId] = html;
+      pageCache[file] = html;
     }
 
-    /* Animasyon icin once gizle, sonra goster */
     pageContent.style.animation = 'none';
     pageContent.innerHTML = html;
     void pageContent.offsetWidth;
     pageContent.style.animation = '';
 
-    /* Daireler sayfasi yuklendiginde Supabase banner'i guncelle */
-    if (pageId === 'daireler' && supabaseClient) {
+    /* Daireler sayfasinda Supabase banner guncelle */
+    if (file === 'apartments-list' && supabaseClient) {
       updateConnBanner();
     }
 
-    console.log('[KiraciYonet] Sayfa:', pageId, '—', title);
+    console.log('[KiraciYonet] Route:', route, '—', routeInfo.title);
   } catch (err) {
     pageContent.innerHTML = '<div class="empty-state"><h3 class="empty-state-title">Sayfa yuklenemedi</h3><p class="empty-state-desc">' + err.message + '</p></div>';
     console.error('[KiraciYonet] Sayfa yukleme hatasi:', err);
   }
 }
 
-/* ── Hash degisikligini dinle (geri/ileri butonlari) ── */
-window.addEventListener('hashchange', () => {
-  const pageId = window.location.hash.slice(1) || 'daireler';
-  if (PAGE_TITLES[pageId]) {
-    currentPage = null; /* force reload */
-    showPage(pageId);
+/* ── Eski showPage fonksiyonunu kaldir, navigate kullan ── */
+/* Sidebar onclick'lerinden cagrilan wrapper */
+function goTo(route, el) {
+  /* Eger bir nav-group icindeki parent item tiklandiysa, sadece toggle yap */
+  if (el && el.classList.contains('nav-item') && el.closest('.nav-group') && el.querySelector('.nav-group-arrow')) {
+    toggleGroup(el);
+    return;
   }
+  navigate(route);
+}
+
+/* ── Tarayici geri/ileri butonlari ── */
+window.addEventListener('popstate', (e) => {
+  const route = window.location.pathname || '/';
+  currentRoute = null; /* force reload */
+  navigate(route, false);
 });
 
 /* ── Toast bildirimi ── */
@@ -191,8 +203,8 @@ function initSupabase() {
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
 
-  /* URL hash'inden sayfa belirle, yoksa daireler */
-  const hash = window.location.hash.slice(1);
-  const startPage = PAGE_TITLES[hash] ? hash : 'daireler';
-  showPage(startPage);
+  /* URL path'inden route belirle */
+  const path = window.location.pathname || '/';
+  const startRoute = ROUTES[path] ? path : '/apartments/list';
+  navigate(startRoute, startRoute !== path);
 });
