@@ -1010,6 +1010,8 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   background: var(--bg);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
+  width: 100%;
 }
 
 .form-input:focus {
@@ -1268,7 +1270,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 
 .popup-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 14px;
 }
 
