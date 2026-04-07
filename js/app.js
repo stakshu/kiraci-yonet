@@ -95,7 +95,10 @@ async function navigate(route, pushState = true) {
       const res = await fetch('/pages/' + file + '.html');
       if (!res.ok) throw new Error('Sayfa bulunamadi: ' + file);
       html = await res.text();
-      pageCache[file] = html;
+      /* Dinamik icerigi olan sayfalar cache'lenmez */
+      if (file !== 'apartments-list') {
+        pageCache[file] = html;
+      }
     }
 
     pageContent.style.animation = 'none';
@@ -103,9 +106,12 @@ async function navigate(route, pushState = true) {
     void pageContent.offsetWidth;
     pageContent.style.animation = '';
 
-    /* Daireler sayfasinda Supabase banner guncelle */
-    if (file === 'apartments-list' && supabaseClient) {
-      updateConnBanner();
+    /* Sayfa yuklendikten sonra init fonksiyonlarini cagir */
+    if (supabaseClient) {
+      if (file === 'apartments-list') {
+        updateConnBanner();
+        loadApartments();
+      }
     }
 
     console.log('[KiraciYonet] Route:', route, '—', routeInfo.title);
