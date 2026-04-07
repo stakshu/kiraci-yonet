@@ -353,6 +353,7 @@ body.collapsed .sb-user { padding: 16px 14px; justify-content: center; }
   margin-left: var(--sb-w);
   flex: 1;
   min-height: 100vh;
+  background: var(--bg);
   transition: margin-left 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
@@ -1193,7 +1194,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  z-index: 250;
+  z-index: 1000;
   background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
