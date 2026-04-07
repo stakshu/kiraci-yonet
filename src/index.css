@@ -33,6 +33,12 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+#root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
