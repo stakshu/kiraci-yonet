@@ -125,8 +125,8 @@
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item active" onclick="showPage('daireler', 'Daireler', this)">Daire Listesi</a>
-            <a class="nav-sub-item" onclick="showPage('daireler', 'Bina Yonetimi', this)">Bina Yonetimi</a>
+            <a class="nav-sub-item active" data-page="daireler" onclick="showPage('daireler', 'Daireler', this)">Daire Listesi</a>
+            <a class="nav-sub-item" data-page="daireler" onclick="showPage('daireler', 'Bina Yonetimi', this)">Bina Yonetimi</a>
           </div>
         </div>
 
@@ -137,9 +137,9 @@
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item" onclick="showPage('kiracilar', 'Kiraci Listesi', this)">Kiraci Listesi</a>
-            <a class="nav-sub-item" onclick="showPage('kiracilar', 'Sozlesmeler', this)">Sozlesmeler</a>
-            <a class="nav-sub-item" onclick="showPage('kiracilar', 'Tahliye Takibi', this)">Tahliye Takibi</a>
+            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Kiraci Listesi', this)">Kiraci Listesi</a>
+            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Sozlesmeler', this)">Sozlesmeler</a>
+            <a class="nav-sub-item" data-page="kiracilar" onclick="showPage('kiracilar', 'Tahliye Takibi', this)">Tahliye Takibi</a>
           </div>
         </div>
       </div>
@@ -154,9 +154,9 @@
             <svg class="nav-group-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </a>
           <div class="nav-sub">
-            <a class="nav-sub-item" onclick="showPage('odemeler', 'Kira Odemeleri', this)">Kira Odemeleri</a>
-            <a class="nav-sub-item" onclick="showPage('odemeler', 'Geciken Odemeler', this)">Geciken Odemeler</a>
-            <a class="nav-sub-item" onclick="showPage('odemeler', 'Odeme Gecmisi', this)">Odeme Gecmisi</a>
+            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Kira Odemeleri', this)">Kira Odemeleri</a>
+            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Geciken Odemeler', this)">Geciken Odemeler</a>
+            <a class="nav-sub-item" data-page="odemeler" onclick="showPage('odemeler', 'Odeme Gecmisi', this)">Odeme Gecmisi</a>
           </div>
         </div>
 
@@ -184,7 +184,7 @@
     <!-- Bottom -->
     <div class="sb-bottom">
       <div class="nav-section" style="padding-bottom: 4px;">
-        <a class="nav-item" data-tooltip="Ayarlar" onclick="showPage('ayarlar', 'Ayarlar', this)">
+        <a class="nav-item" data-tooltip="Ayarlar" data-page="ayarlar" onclick="showPage('ayarlar', 'Ayarlar', this)">
           <span class="nav-item-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           <span class="nav-item-text">Ayarlar</span>
         </a>

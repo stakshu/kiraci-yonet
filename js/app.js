@@ -7,6 +7,17 @@ const $ = (id) => document.getElementById(id);
 const pageCache = {};
 let currentPage = null;
 
+/* ── Sayfa-baslik eslesmesi ── */
+const PAGE_TITLES = {
+  daireler:  'Daireler',
+  kiracilar: 'Kiracilar',
+  odemeler:  'Odemeler',
+  giderler:  'Giderler',
+  muhasebe:  'Muhasebe',
+  belgeler:  'Belgeler',
+  ayarlar:   'Ayarlar'
+};
+
 /* ── Sidebar collapse ── */
 document.getElementById('collapseBtn').addEventListener('click', () => {
   document.body.classList.toggle('collapsed');
@@ -18,19 +29,12 @@ function toggleGroup(el) {
   if (group) group.classList.toggle('open');
 }
 
-/* ── SPA Sayfa Gecisi — fetch ile dinamik yukleme ── */
-async function showPage(pageId, title, clickedEl) {
-  const pageContent = $('pageContent');
-  const pageTitle = $('pageTitle');
+/* ── Sidebar aktif durumunu guncelle ── */
+function updateSidebarActive(pageId, clickedEl) {
+  document.querySelectorAll('.nav-item, .nav-sub-item').forEach(el => el.classList.remove('active'));
 
-  /* Topbar basligini guncelle */
-  if (pageTitle) pageTitle.textContent = title;
-
-  /* Sidebar aktif durumunu guncelle */
   if (clickedEl) {
-    document.querySelectorAll('.nav-item, .nav-sub-item').forEach(el => el.classList.remove('active'));
     clickedEl.classList.add('active');
-
     if (clickedEl.classList.contains('nav-sub-item')) {
       const parentGroup = clickedEl.closest('.nav-group');
       if (parentGroup) {
@@ -38,6 +42,40 @@ async function showPage(pageId, title, clickedEl) {
         if (parentItem) parentItem.classList.add('active');
       }
     }
+  } else {
+    /* Hash'ten geldiyse, data-page ile eslesen nav-item'i bul */
+    const navItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+    if (navItem) navItem.classList.add('active');
+    const subItem = document.querySelector('.nav-sub-item[data-page="' + pageId + '"]');
+    if (subItem) {
+      subItem.classList.add('active');
+      const parentGroup = subItem.closest('.nav-group');
+      if (parentGroup) {
+        parentGroup.classList.add('open');
+        const parentItem = parentGroup.querySelector('.nav-item');
+        if (parentItem) parentItem.classList.add('active');
+      }
+    }
+  }
+}
+
+/* ── SPA Sayfa Gecisi — fetch ile dinamik yukleme ── */
+async function showPage(pageId, title, clickedEl) {
+  const pageContent = $('pageContent');
+  const pageTitle = $('pageTitle');
+
+  /* Baslik: parametre veya esleme tablosundan */
+  title = title || PAGE_TITLES[pageId] || pageId;
+
+  /* Topbar basligini guncelle */
+  if (pageTitle) pageTitle.textContent = title;
+
+  /* Sidebar aktif durumunu guncelle */
+  updateSidebarActive(pageId, clickedEl);
+
+  /* URL hash'i guncelle (pushState yerine hash kullaniyoruz) */
+  if (window.location.hash !== '#' + pageId) {
+    history.replaceState(null, '', '#' + pageId);
   }
 
   /* Ayni sayfa tekrar tiklandiysa bir sey yapma */
@@ -74,6 +112,15 @@ async function showPage(pageId, title, clickedEl) {
   }
 }
 
+/* ── Hash degisikligini dinle (geri/ileri butonlari) ── */
+window.addEventListener('hashchange', () => {
+  const pageId = window.location.hash.slice(1) || 'daireler';
+  if (PAGE_TITLES[pageId]) {
+    currentPage = null; /* force reload */
+    showPage(pageId);
+  }
+});
+
 /* ── Toast bildirimi ── */
 function showToast(message, type = 'success') {
   const toast = $('toast');
@@ -98,13 +145,11 @@ function updateConnBanner() {
 
 /* ── Supabase baslat + Auth dinle ── */
 function initSupabase() {
-  /* Yapilandirma kontrolu */
   if (SUPABASE_CONFIG.url.includes('PROJENIZ') || SUPABASE_CONFIG.anonKey.includes('ANON_KEY')) {
     console.warn('[KiraciYonet] Supabase yapilandirmasi eksik.');
     return;
   }
 
-  /* SDK yuklu mu kontrol et */
   if (!window.supabase || !window.supabase.createClient) {
     console.error('[KiraciYonet] Supabase SDK yuklenemedi!');
     return;
@@ -120,7 +165,6 @@ function initSupabase() {
 
     console.log('[KiraciYonet] Supabase hazir.');
 
-    /* Auth durum degisikliklerini dinle */
     supabaseClient.auth.onAuthStateChange((event, session) => {
       console.log('[KiraciYonet] Auth event:', event);
       if (session?.user) {
@@ -130,7 +174,6 @@ function initSupabase() {
       }
     });
 
-    /* Mevcut oturumu kontrol et */
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         onUserLoggedIn(session.user);
@@ -147,6 +190,9 @@ function initSupabase() {
 /* ── Uygulama baslatma ── */
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
-  /* Varsayilan sayfa: daireler */
-  showPage('daireler', 'Daireler', document.querySelector('[data-page="daireler"]'));
+
+  /* URL hash'inden sayfa belirle, yoksa daireler */
+  const hash = window.location.hash.slice(1);
+  const startPage = PAGE_TITLES[hash] ? hash : 'daireler';
+  showPage(startPage);
 });
