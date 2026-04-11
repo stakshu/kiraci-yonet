@@ -1434,3 +1434,135 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* ═══════════ Bina Yonetimi ═══════════ */
+
+.building-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.building-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.building-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.building-card-header:hover {
+  background: var(--bg);
+}
+
+.building-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.building-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--blue-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.building-icon-box svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--blue);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.building-card-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.building-card-location {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.building-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.building-mini-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.building-mini-num {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.building-mini-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.building-chevron {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s;
+  margin-left: 8px;
+}
+
+.building-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.building-card-body {
+  border-top: 1px solid var(--border);
+  padding: 0;
+}
+
+.building-card-body .data-table {
+  border: none;
+  border-radius: 0;
+}
+
+.building-card-body .data-table thead th {
+  background: var(--bg);
+}
+
+@media (max-width: 768px) {
+  .building-card-stats {
+    gap: 12px;
+  }
+  .building-mini-stat:nth-child(4) {
+    display: none;
+  }
+}

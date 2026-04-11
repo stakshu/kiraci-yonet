@@ -7,6 +7,9 @@ import AuthOverlay from './components/AuthOverlay'
 import ApartmentsList from './pages/ApartmentsList'
 import TenantsList from './pages/TenantsList'
 import RentPayments from './pages/RentPayments'
+import BuildingsList from './pages/BuildingsList'
+import OverduePayments from './pages/OverduePayments'
+import PaymentHistory from './pages/PaymentHistory'
 import EmptyPage from './pages/EmptyPage'
 
 /* ── Auth korumasi ── */
@@ -22,13 +25,13 @@ function ProtectedApp() {
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/apartments/list" replace />} />
         <Route path="/apartments/list" element={<ApartmentsList />} />
-        <Route path="/apartments/buildings" element={<EmptyPage path="/apartments/buildings" />} />
+        <Route path="/apartments/buildings" element={<BuildingsList />} />
         <Route path="/tenants/list" element={<TenantsList />} />
         <Route path="/tenants/contracts" element={<EmptyPage path="/tenants/contracts" />} />
         <Route path="/tenants/evictions" element={<EmptyPage path="/tenants/evictions" />} />
         <Route path="/payments/rent" element={<RentPayments />} />
-        <Route path="/payments/overdue" element={<EmptyPage path="/payments/overdue" />} />
-        <Route path="/payments/history" element={<EmptyPage path="/payments/history" />} />
+        <Route path="/payments/overdue" element={<OverduePayments />} />
+        <Route path="/payments/history" element={<PaymentHistory />} />
         <Route path="/expenses" element={<EmptyPage path="/expenses" />} />
         <Route path="/accounting" element={<EmptyPage path="/accounting" />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />

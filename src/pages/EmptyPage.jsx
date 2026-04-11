@@ -1,13 +1,8 @@
 /* ── KiraciYonet — Bos Sayfa Placeholder ── */
 
 const PAGE_INFO = {
-  '/apartments/buildings': { title: 'Bina Yonetimi', phase: 'Faz 3', icon: 'building', color: 'blue' },
-  '/tenants/list':         { title: 'Kiraci Listesi', phase: 'Faz 4', icon: 'users', color: 'green' },
   '/tenants/contracts':    { title: 'Sozlesmeler', phase: 'Faz 5', icon: 'file', color: 'blue' },
   '/tenants/evictions':    { title: 'Tahliye Takibi', phase: 'Faz 5', icon: 'alert', color: 'red' },
-  '/payments/rent':        { title: 'Kira Odemeleri', phase: 'Faz 6', icon: 'card', color: 'green' },
-  '/payments/overdue':     { title: 'Geciken Odemeler', phase: 'Faz 6', icon: 'clock', color: 'red' },
-  '/payments/history':     { title: 'Odeme Gecmisi', phase: 'Faz 6', icon: 'list', color: 'blue' },
   '/expenses':             { title: 'Giderler', phase: 'Faz 8', icon: 'dollar', color: 'amber' },
   '/accounting':           { title: 'Muhasebe', phase: 'Faz 10', icon: 'chart', color: 'blue' },
   '/documents':            { title: 'Belgeler', phase: 'Faz 12', icon: 'folder', color: 'amber' },
