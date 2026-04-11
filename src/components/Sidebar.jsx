@@ -8,34 +8,12 @@ const NAV_SECTIONS = [
   {
     label: null,
     items: [
-      { text: 'Ana Sayfa', icon: 'dashboard', route: '/properties', tooltip: 'Ana Sayfa' }
-    ]
-  },
-  {
-    label: 'Mulkler',
-    items: [
+      { text: 'Ana Sayfa', icon: 'dashboard', route: '/properties', tooltip: 'Ana Sayfa' },
       { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
-      { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' }
-    ]
-  },
-  {
-    label: 'Finans',
-    items: [
-      {
-        text: 'Odemeler', icon: 'card', tooltip: 'Odemeler',
-        children: [
-          { text: 'Kira Odemeleri', route: '/payments/rent' },
-          { text: 'Geciken Odemeler', route: '/payments/overdue' },
-          { text: 'Odeme Gecmisi', route: '/payments/history' }
-        ]
-      },
+      { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' },
+      { text: 'Odemeler', icon: 'card', route: '/payments/rent', tooltip: 'Odemeler' },
       { text: 'Giderler', icon: 'dollar', route: '/expenses', tooltip: 'Giderler' },
-      { text: 'Muhasebe', icon: 'chart', route: '/accounting', tooltip: 'Muhasebe' }
-    ]
-  },
-  {
-    label: 'Diger',
-    items: [
+      { text: 'Muhasebe', icon: 'chart', route: '/accounting', tooltip: 'Muhasebe' },
       { text: 'Belgeler', icon: 'file', route: '/documents', tooltip: 'Belgeler' }
     ]
   }
