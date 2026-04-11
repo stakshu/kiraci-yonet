@@ -5,9 +5,7 @@ import { useToast } from './Toast'
 /* ── Route baslik eslestirmesi ── */
 const ROUTE_TITLES = {
   '/properties': 'Mulklerim',
-  '/tenants/list': 'Kiraci Listesi',
-  '/tenants/contracts': 'Sozlesmeler',
-  '/tenants/evictions': 'Tahliye Takibi',
+  '/tenants/list': 'Kiracilar',
   '/payments/rent': 'Kira Odemeleri',
   '/payments/overdue': 'Geciken Odemeler',
   '/payments/history': 'Odeme Gecmisi',

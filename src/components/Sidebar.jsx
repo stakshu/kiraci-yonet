@@ -15,14 +15,7 @@ const NAV_SECTIONS = [
     label: 'Mulkler',
     items: [
       { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
-      {
-        text: 'Kiracilar', icon: 'users', tooltip: 'Kiracilar',
-        children: [
-          { text: 'Kiraci Listesi', route: '/tenants/list' },
-          { text: 'Sozlesmeler', route: '/tenants/contracts' },
-          { text: 'Tahliye Takibi', route: '/tenants/evictions' }
-        ]
-      }
+      { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' }
     ]
   },
   {

@@ -28,8 +28,6 @@ function ProtectedApp() {
         <Route path="/properties/:id" element={<PropertyDetail />} />
         <Route path="/apartments/list" element={<Navigate to="/properties" replace />} />
         <Route path="/tenants/list" element={<TenantsList />} />
-        <Route path="/tenants/contracts" element={<EmptyPage path="/tenants/contracts" />} />
-        <Route path="/tenants/evictions" element={<EmptyPage path="/tenants/evictions" />} />
         <Route path="/payments/rent" element={<RentPayments />} />
         <Route path="/payments/overdue" element={<OverduePayments />} />
         <Route path="/payments/history" element={<PaymentHistory />} />

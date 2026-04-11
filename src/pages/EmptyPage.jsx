@@ -1,8 +1,6 @@
 /* ── KiraciYonet — Bos Sayfa Placeholder ── */
 
 const PAGE_INFO = {
-  '/tenants/contracts':    { title: 'Sozlesmeler', phase: 'Faz 5', icon: 'file', color: 'blue' },
-  '/tenants/evictions':    { title: 'Tahliye Takibi', phase: 'Faz 5', icon: 'alert', color: 'red' },
   '/expenses':             { title: 'Giderler', phase: 'Faz 8', icon: 'dollar', color: 'amber' },
   '/accounting':           { title: 'Muhasebe', phase: 'Faz 10', icon: 'chart', color: 'blue' },
   '/documents':            { title: 'Belgeler', phase: 'Faz 12', icon: 'folder', color: 'amber' },
