@@ -341,12 +341,10 @@ export default function RentPayments() {
                               {group.overduePayments.slice(1).map(p => {
                                 const d = daysDiff(p.due_date)
                                 return (
-                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 13 }}>
-                                      <span>{formatDate(p.due_date)}</span>
-                                      <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
-                                      <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 12 }}>{Math.abs(d)} gun gecikti</span>
-                                    </div>
+                                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '140px 100px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                                    <span>{formatDate(p.due_date)}</span>
+                                    <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
+                                    <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 12 }}>{Math.abs(d)} gun gecikti</span>
                                     <div style={{ display: 'flex', gap: 6 }}>
                                       <button className="btn btn-primary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsPaid(e, p.id)}>Odendi</button>
                                       <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => { e.stopPropagation(); sendReminder(p) }}>Hatirla</button>
@@ -366,17 +364,15 @@ export default function RentPayments() {
                               {group.paidPayments.map(p => {
                                 const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
                                 return (
-                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 13 }}>
-                                      <span>{formatDate(p.due_date)}</span>
-                                      <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
-                                      <span className={`status-badge ${paidLate ? 'pending' : 'active'}`} style={{ fontSize: 11 }}>
-                                        {paidLate ? 'Gec Odendi' : 'Zamaninda'}
-                                      </span>
-                                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                                        {p.paid_date ? formatDate(p.paid_date) : ''}
-                                      </span>
-                                    </div>
+                                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                                    <span>{formatDate(p.due_date)}</span>
+                                    <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
+                                    <span className={`status-badge ${paidLate ? 'pending' : 'active'}`} style={{ fontSize: 11 }}>
+                                      {paidLate ? 'Gec Odendi' : 'Zamaninda'}
+                                    </span>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                      {p.paid_date ? formatDate(p.paid_date) : ''}
+                                    </span>
                                     <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsUnpaid(e, p.id)}>Geri Al</button>
                                   </div>
                                 )
