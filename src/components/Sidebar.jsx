@@ -6,12 +6,17 @@ import { useAuth } from '../context/AuthContext'
 /* ── Nav yapilandirmasi ── */
 const NAV_SECTIONS = [
   {
-    label: null,
+    label: 'GENEL',
     items: [
       { text: 'Ozet', icon: 'dashboard', route: '/dashboard', tooltip: 'Ozet' },
       { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
       { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' },
-      { text: 'Odemeler', icon: 'card', route: '/payments/rent', tooltip: 'Odemeler' },
+      { text: 'Odemeler', icon: 'card', route: '/payments/rent', tooltip: 'Odemeler' }
+    ]
+  },
+  {
+    label: 'YONETIM',
+    items: [
       { text: 'Giderler', icon: 'dollar', route: '/expenses', tooltip: 'Giderler' },
       { text: 'Muhasebe', icon: 'chart', route: '/accounting', tooltip: 'Muhasebe' },
       { text: 'Belgeler', icon: 'file', route: '/documents', tooltip: 'Belgeler' }

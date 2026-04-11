@@ -1,4 +1,4 @@
-/* ── KiraciYonet — Ozet (Dashboard) ── */
+/* ── KiraciYonet — Ozet (Dashboard) — Sequence Theme ── */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -77,6 +77,9 @@ export default function Dashboard() {
   const vacantApartments = totalApartments - occupiedApartments
   const totalTenants = tenants.length
 
+  const totalExpected = collectedThisMonth + pendingThisMonth
+  const collectionRate = totalExpected > 0 ? ((collectedThisMonth / totalExpected) * 100).toFixed(1) : 0
+
   /* ── Son hareketler ── */
   const recentPaid = payments
     .filter(p => p.status === 'paid' && p.paid_date)
@@ -110,66 +113,71 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stat Cards — beyaz kartlar, sol renkli cizgi */}
-      <div className="dash-stats">
-        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
-          <div className="dash-stat-accent" style={{ background: 'var(--green)' }} />
-          <div className="dash-stat-body">
-            <div className="dash-stat-top">
-              <span className="dash-stat-label">Tahsil Edilen</span>
-              <div className="dash-stat-icon-wrap" style={{ background: 'var(--green-bg)' }}>
-                <svg viewBox="0 0 24 24" style={{ stroke: 'var(--green)' }}><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-            </div>
-            <div className="dash-stat-value">{collectedThisMonth.toLocaleString('tr-TR')} {'\u20BA'}</div>
-            <div className="dash-stat-sub">Bu ay — {paidCount} odeme</div>
+      {/* Hero Card — Sequence style */}
+      <div className="dash-hero">
+        <div className="dash-hero-content">
+          <span className="dash-hero-label">Bu Ay Toplam Tahsilat</span>
+          <div className="dash-hero-value">
+            {collectedThisMonth.toLocaleString('tr-TR')} {'\u20BA'}
+            <span className="dash-hero-badge">{collectionRate}%</span>
           </div>
         </div>
-
-        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
-          <div className="dash-stat-accent" style={{ background: 'var(--amber)' }} />
-          <div className="dash-stat-body">
-            <div className="dash-stat-top">
-              <span className="dash-stat-label">Bekleyen</span>
-              <div className="dash-stat-icon-wrap" style={{ background: 'var(--amber-bg)' }}>
-                <svg viewBox="0 0 24 24" style={{ stroke: 'var(--amber)' }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-            </div>
-            <div className="dash-stat-value">{pendingThisMonth.toLocaleString('tr-TR')} {'\u20BA'}</div>
-            <div className="dash-stat-sub">Bu ay — {unpaidCount} odeme</div>
-          </div>
-        </div>
-
-        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
-          <div className="dash-stat-accent" style={{ background: 'var(--red)' }} />
-          <div className="dash-stat-body">
-            <div className="dash-stat-top">
-              <span className="dash-stat-label">Geciken</span>
-              <div className="dash-stat-icon-wrap" style={{ background: 'var(--red-bg)' }}>
-                <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-              </div>
-            </div>
-            <div className="dash-stat-value">{overdueTotal.toLocaleString('tr-TR')} {'\u20BA'}</div>
-            <div className="dash-stat-sub">Toplam — {overdueAll.length} odeme</div>
-          </div>
-        </div>
-
-        <div className="dash-stat-card" onClick={() => navigate('/properties')}>
-          <div className="dash-stat-accent" style={{ background: 'var(--blue)' }} />
-          <div className="dash-stat-body">
-            <div className="dash-stat-top">
-              <span className="dash-stat-label">Mulkler</span>
-              <div className="dash-stat-icon-wrap" style={{ background: 'var(--blue-bg)' }}>
-                <svg viewBox="0 0 24 24" style={{ stroke: 'var(--blue)' }}><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-              </div>
-            </div>
-            <div className="dash-stat-value">{totalApartments}</div>
-            <div className="dash-stat-sub">{occupiedApartments} kirada — {vacantApartments} bosta</div>
-          </div>
+        <div className="dash-hero-actions">
+          <button className="dash-hero-btn primary" onClick={() => navigate('/payments/rent')}>
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tahsilat
+          </button>
+          <button className="dash-hero-btn" onClick={() => navigate('/tenants/list')}>
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Kiracilar
+          </button>
+          <button className="dash-hero-btn" onClick={() => navigate('/properties')}>
+            <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+            Mulkler
+          </button>
         </div>
       </div>
 
-      {/* Orta kisim: Hareket + Mulk Dagilimi */}
+      {/* Stat Cards — 3 kolon */}
+      <div className="dash-stats">
+        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
+          <div className="dash-stat-top">
+            <span className="dash-stat-label">Bekleyen Odeme</span>
+            <span className="dash-stat-period">Bu Ay</span>
+          </div>
+          <div className="dash-stat-value">
+            {pendingThisMonth.toLocaleString('tr-TR')} {'\u20BA'}
+            <span className="dash-stat-change down">{unpaidCount} odeme</span>
+          </div>
+          <div className="dash-stat-sub">{paidCount + unpaidCount} odemeden {unpaidCount} bekliyor</div>
+        </div>
+
+        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
+          <div className="dash-stat-top">
+            <span className="dash-stat-label">Geciken Odeme</span>
+            <span className="dash-stat-period">Toplam</span>
+          </div>
+          <div className="dash-stat-value">
+            {overdueTotal.toLocaleString('tr-TR')} {'\u20BA'}
+            {overdueAll.length > 0 && <span className="dash-stat-change down">{overdueAll.length} gecikme</span>}
+          </div>
+          <div className="dash-stat-sub">Vadesi gecen odemeler toplami</div>
+        </div>
+
+        <div className="dash-stat-card" onClick={() => navigate('/properties')}>
+          <div className="dash-stat-top">
+            <span className="dash-stat-label">Mulk Durumu</span>
+            <span className="dash-stat-period">{totalApartments} mulk</span>
+          </div>
+          <div className="dash-stat-value">
+            {occupiedPct}%
+            <span className="dash-stat-change up">Doluluk</span>
+          </div>
+          <div className="dash-stat-sub">{occupiedApartments} dolu — {vacantApartments} bos</div>
+        </div>
+      </div>
+
+      {/* Orta kisim: Hareket + Sag kolon */}
       <div className="dash-row">
         {/* Hareket Akisi */}
         <div className="dash-card dash-activity">
@@ -187,11 +195,11 @@ export default function Dashboard() {
                 <div className="dash-activity-dot" />
                 <div className="dash-activity-content">
                   <div className="dash-activity-title">
-                    {p.tenants?.full_name || '—'}
+                    {p.tenants?.full_name || '\u2014'}
                     <span className="dash-activity-amount">{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
                   </div>
                   <div className="dash-activity-desc">
-                    {p.apartments ? `${p.apartments.building} — No: ${p.apartments.unit_no}` : '—'}
+                    {p.apartments ? `${p.apartments.building} \u2014 No: ${p.apartments.unit_no}` : '\u2014'}
                   </div>
                 </div>
                 <div className="dash-activity-time">{timeAgo(p.paid_date)}</div>
@@ -200,7 +208,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Sag kolon: Mulk Dagilimi + Sozlesme uyarilari */}
+        {/* Sag kolon */}
         <div className="dash-side">
           {/* Mulk Dagilimi */}
           <div className="dash-card">
@@ -213,7 +221,7 @@ export default function Dashboard() {
                   className="dash-donut"
                   style={{
                     background: totalApartments > 0
-                      ? `conic-gradient(var(--green) 0deg ${(occupiedApartments / totalApartments) * 360}deg, #e5e7eb ${(occupiedApartments / totalApartments) * 360}deg 360deg)`
+                      ? `conic-gradient(#025864 0deg ${(occupiedApartments / totalApartments) * 360}deg, #e5e7eb ${(occupiedApartments / totalApartments) * 360}deg 360deg)`
                       : 'var(--border)'
                   }}
                 >
@@ -225,7 +233,7 @@ export default function Dashboard() {
               </div>
               <div className="dash-donut-legend">
                 <div className="dash-legend-row">
-                  <span className="dash-legend-dot" style={{ background: 'var(--green)' }} />
+                  <span className="dash-legend-dot" style={{ background: '#025864' }} />
                   <span className="dash-legend-text">Kirada</span>
                   <span className="dash-legend-val">{occupiedApartments}</span>
                   <span className="dash-legend-pct">{occupiedPct}%</span>
@@ -240,7 +248,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Ozet bilgiler */}
+          {/* Hizli Bakis */}
           <div className="dash-card">
             <div className="dash-card-header">
               <h3 className="dash-card-title">Hizli Bakis</h3>
