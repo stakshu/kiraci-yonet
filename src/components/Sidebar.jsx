@@ -8,7 +8,7 @@ const NAV_SECTIONS = [
   {
     label: null,
     items: [
-      { text: 'Ana Sayfa', icon: 'dashboard', route: '/properties', tooltip: 'Ana Sayfa' },
+      { text: 'Ozet', icon: 'dashboard', route: '/dashboard', tooltip: 'Ozet' },
       { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
       { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' },
       { text: 'Odemeler', icon: 'card', route: '/payments/rent', tooltip: 'Odemeler' },

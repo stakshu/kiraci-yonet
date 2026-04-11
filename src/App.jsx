@@ -10,6 +10,7 @@ import TenantsList from './pages/TenantsList'
 import RentPayments from './pages/RentPayments'
 import OverduePayments from './pages/OverduePayments'
 import PaymentHistory from './pages/PaymentHistory'
+import Dashboard from './pages/Dashboard'
 import EmptyPage from './pages/EmptyPage'
 
 /* ── Auth korumasi ── */
@@ -23,7 +24,8 @@ function ProtectedApp() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/properties" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/properties" element={<Properties />} />
         <Route path="/properties/:id" element={<PropertyDetail />} />
         <Route path="/apartments/list" element={<Navigate to="/properties" replace />} />
@@ -35,7 +37,7 @@ function ProtectedApp() {
         <Route path="/accounting" element={<EmptyPage path="/accounting" />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />
         <Route path="/settings" element={<EmptyPage path="/settings" />} />
-        <Route path="*" element={<Navigate to="/properties" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
   )
