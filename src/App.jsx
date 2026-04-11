@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import AuthOverlay from './components/AuthOverlay'
 import ApartmentsList from './pages/ApartmentsList'
+import TenantsList from './pages/TenantsList'
 import EmptyPage from './pages/EmptyPage'
 
 /* ── Auth korumasi ── */
@@ -21,7 +22,7 @@ function ProtectedApp() {
         <Route path="/" element={<Navigate to="/apartments/list" replace />} />
         <Route path="/apartments/list" element={<ApartmentsList />} />
         <Route path="/apartments/buildings" element={<EmptyPage path="/apartments/buildings" />} />
-        <Route path="/tenants/list" element={<EmptyPage path="/tenants/list" />} />
+        <Route path="/tenants/list" element={<TenantsList />} />
         <Route path="/tenants/contracts" element={<EmptyPage path="/tenants/contracts" />} />
         <Route path="/tenants/evictions" element={<EmptyPage path="/tenants/evictions" />} />
         <Route path="/payments/rent" element={<EmptyPage path="/payments/rent" />} />
