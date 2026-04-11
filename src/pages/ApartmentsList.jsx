@@ -38,6 +38,9 @@ export default function ApartmentsList() {
   /* Action menu state */
   const [openMenu, setOpenMenu] = useState(null)
 
+  /* Detail modal state */
+  const [detailApt, setDetailApt] = useState(null)
+
   useEffect(() => {
     loadApartments()
   }, [])
@@ -57,7 +60,7 @@ export default function ApartmentsList() {
     setError(null)
     const { data, error: err } = await supabase
       .from('apartments')
-      .select('*')
+      .select('*, tenants(id, full_name, email, phone, lease_start, lease_end, deposit)')
       .order('created_at', { ascending: false })
 
     if (err) {
@@ -258,11 +261,12 @@ export default function ApartmentsList() {
               const st = STATUS_MAP[apt.status] || STATUS_MAP.vacant
               const rent = apt.rent ? Number(apt.rent).toLocaleString('tr-TR') : '—'
               const leaseEnd = apt.lease_end ? formatDate(apt.lease_end) : '—'
-              const tenant = apt.tenant_name || '—'
+              const tenantObj = apt.tenants?.[0]
+              const tenantName = tenantObj?.full_name || apt.tenant_name || '—'
 
               return (
-                <tr key={apt.id}>
-                  <td className="td-check"><input type="checkbox" /></td>
+                <tr key={apt.id} onClick={() => setDetailApt(apt)} style={{ cursor: 'pointer' }}>
+                  <td className="td-check"><input type="checkbox" onClick={e => e.stopPropagation()} /></td>
                   <td>
                     <div className="tenant-cell">
                       <span className="tenant-name">{apt.building}</span>
@@ -270,11 +274,11 @@ export default function ApartmentsList() {
                     </div>
                   </td>
                   <td className="td-id">{apt.unit_no}</td>
-                  <td>{tenant}</td>
+                  <td>{tenantName}</td>
                   <td>{rent}</td>
                   <td>{leaseEnd}</td>
-                  <td><span className={`status-badge ${st.css}`}>{st.label}</span></td>
-                  <td className="td-actions">
+                  <td><span className={`status-badge ${st.css}`}>{st.label}{tenantObj && apt.status === 'occupied' ? ` — ${tenantObj.full_name}` : ''}</span></td>
+                  <td className="td-actions" onClick={e => e.stopPropagation()}>
                     <div className="action-menu">
                       <button className="action-menu-btn" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === apt.id ? null : apt.id) }}>
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
@@ -375,6 +379,99 @@ export default function ApartmentsList() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      {detailApt && (() => {
+        const t = detailApt.tenants?.[0]
+        const st = STATUS_MAP[detailApt.status] || STATUS_MAP.vacant
+        return (
+          <div className="popup-overlay" onClick={(e) => { if (e.target === e.currentTarget) setDetailApt(null) }}>
+            <div className="popup">
+              <div className="popup-header">
+                <h3 className="popup-title">{detailApt.building} — {detailApt.unit_no}</h3>
+                <button className="popup-close" onClick={() => setDetailApt(null)}>
+                  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div className="popup-body">
+                <div className="detail-section">
+                  <h4 className="detail-section-title">Daire Bilgileri</h4>
+                  <div className="detail-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Bina</span>
+                      <span className="detail-value">{detailApt.building}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Daire No</span>
+                      <span className="detail-value">{detailApt.unit_no}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Sehir</span>
+                      <span className="detail-value">{detailApt.city || '—'}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Ilce</span>
+                      <span className="detail-value">{detailApt.district || '—'}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Kira</span>
+                      <span className="detail-value">{detailApt.rent ? Number(detailApt.rent).toLocaleString('tr-TR') + ' ₺' : '—'}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Durum</span>
+                      <span className={`status-badge ${st.css}`}>{st.label}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {t ? (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">Kiraci Bilgileri</h4>
+                    <div className="detail-grid">
+                      <div className="detail-item">
+                        <span className="detail-label">Ad Soyad</span>
+                        <span className="detail-value">{t.full_name}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">E-posta</span>
+                        <span className="detail-value">{t.email || '—'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Telefon</span>
+                        <span className="detail-value">{t.phone || '—'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Sozlesme Baslangic</span>
+                        <span className="detail-value">{t.lease_start ? formatDate(t.lease_start) : '—'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Sozlesme Bitis</span>
+                        <span className="detail-value">{t.lease_end ? formatDate(t.lease_end) : '—'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Depozito</span>
+                        <span className="detail-value">{t.deposit ? Number(t.deposit).toLocaleString('tr-TR') + ' ₺' : '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="detail-section">
+                    <h4 className="detail-section-title">Kiraci Bilgileri</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Bu dairede kiraci bulunmuyor.</p>
+                  </div>
+                )}
+              </div>
+              <div className="popup-footer">
+                <button className="btn btn-outline" onClick={() => setDetailApt(null)}>Kapat</button>
+                <button className="btn btn-primary" onClick={() => { setDetailApt(null); openEdit(detailApt.id) }}>
+                  <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Duzenle
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </>
   )
 }
