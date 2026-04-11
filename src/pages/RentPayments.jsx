@@ -1,5 +1,5 @@
 /* ── KiraciYonet — Kira Odemeleri ── */
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 
@@ -33,6 +33,7 @@ export default function RentPayments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
+  const [expandedTenant, setExpandedTenant] = useState(null)
 
   useEffect(() => { loadPayments() }, [])
 
@@ -49,39 +50,53 @@ export default function RentPayments() {
     setLoading(false)
   }
 
-  /* ── Her kiraci icin sadece guncel odemeyi goster ── */
-  /* Geciken odemeler + en yakin 1 bekleyen odeme per kiraci */
-  const getVisiblePayments = () => {
-    const overduePayments = payments.filter(p => realStatus(p) === 'overdue')
-
-    /* Her kiraci icin en yakin bekleyen odemeyi bul */
-    const pendingByTenant = {}
-    payments
-      .filter(p => realStatus(p) === 'pending')
-      .forEach(p => {
-        const key = p.tenant_id
-        if (!pendingByTenant[key]) pendingByTenant[key] = p
-        /* zaten due_date'e gore sirali, ilk gelen en yakin */
-      })
-    const nextPending = Object.values(pendingByTenant)
-
-    /* Odenmis — sadece bu ay odeenenler */
-    const now = new Date()
-    const paidThisMonth = payments.filter(p => {
-      if (p.status !== 'paid') return false
-      const d = new Date(p.paid_date || p.due_date)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  /* ── Kiracilara gore grupla ── */
+  const getTenantGroups = () => {
+    const groups = {}
+    payments.forEach(p => {
+      const key = p.tenant_id
+      if (!key) return
+      if (!groups[key]) {
+        groups[key] = {
+          tenantId: key,
+          tenantName: p.tenants?.full_name || '—',
+          tenantEmail: p.tenants?.email || '',
+          aptName: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
+          currentPayment: null,
+          overduePayments: [],
+          paidPayments: []
+        }
+      }
+      const st = realStatus(p)
+      if (st === 'overdue') groups[key].overduePayments.push(p)
+      else if (st === 'paid') groups[key].paidPayments.push(p)
+      else if (!groups[key].currentPayment) groups[key].currentPayment = p
     })
 
-    return [...overduePayments, ...nextPending, ...paidThisMonth]
+    /* Odenmisleri tarihe gore sirala (en yeni en ustte) */
+    Object.values(groups).forEach(g => {
+      g.paidPayments.sort((a, b) => new Date(b.paid_date || b.due_date) - new Date(a.paid_date || a.due_date))
+    })
+
+    return Object.values(groups)
   }
 
-  const visiblePayments = loading ? [] : getVisiblePayments()
+  const tenantGroups = loading ? [] : getTenantGroups()
 
-  /* ── Filtreleme ── */
-  const filtered = visiblePayments.filter(p => {
+  /* Filtrele */
+  const filtered = tenantGroups.filter(g => {
     if (!filter) return true
-    return realStatus(p) === filter
+    if (filter === 'overdue') return g.overduePayments.length > 0
+    if (filter === 'pending') return g.currentPayment
+    if (filter === 'paid') return g.paidPayments.length > 0 && !g.currentPayment && g.overduePayments.length === 0
+    return true
+  })
+
+  /* Geciken en ustte */
+  const sorted = [...filtered].sort((a, b) => {
+    const aHasOverdue = a.overduePayments.length > 0 ? 0 : 1
+    const bHasOverdue = b.overduePayments.length > 0 ? 0 : 1
+    return aHasOverdue - bHasOverdue
   })
 
   /* ── Istatistikler ── */
@@ -119,7 +134,6 @@ export default function RentPayments() {
         })
       })
       const result = await res.json()
-
       await supabase.from('email_logs').insert({
         user_id: session.user.id, tenant_id: payment.tenant_id,
         payment_id: payment.id, email_type: type, recipient: tenantEmail,
@@ -127,7 +141,6 @@ export default function RentPayments() {
         status: result.success ? 'sent' : 'failed',
         error_message: result.error || null
       })
-
       if (result.success) { showToast(`Mail gonderildi: ${tenantEmail}`, 'success'); return true }
       showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error')
       return false
@@ -138,7 +151,8 @@ export default function RentPayments() {
     await sendEmail(payment, realStatus(payment) === 'overdue' ? 'overdue' : 'reminder')
   }
 
-  const markAsPaid = async (id) => {
+  const markAsPaid = async (e, id) => {
+    e.stopPropagation()
     const today = new Date().toISOString().split('T')[0]
     const { error: err } = await supabase.from('rent_payments').update({ status: 'paid', paid_date: today }).eq('id', id)
     if (err) { showToast('Hata: ' + err.message, 'error'); return }
@@ -148,20 +162,23 @@ export default function RentPayments() {
     loadPayments()
   }
 
-  const markAsUnpaid = async (id) => {
+  const markAsUnpaid = async (e, id) => {
+    e.stopPropagation()
     const { error: err } = await supabase.from('rent_payments').update({ status: 'pending', paid_date: null }).eq('id', id)
     if (err) { showToast('Hata: ' + err.message, 'error'); return }
     showToast('Odeme geri alindi.', 'success')
     loadPayments()
   }
 
-  /* ── Siralamada geciken en ustte ── */
-  const sorted = [...filtered].sort((a, b) => {
-    const sa = realStatus(a), sb = realStatus(b)
-    const order = { overdue: 0, pending: 1, paid: 2 }
-    if (order[sa] !== order[sb]) return order[sa] - order[sb]
-    return new Date(a.due_date) - new Date(b.due_date)
-  })
+  const toggleExpand = (tenantId) => {
+    setExpandedTenant(prev => prev === tenantId ? null : tenantId)
+  }
+
+  /* Ana odemeyi bul (geciken varsa ilk geciken, yoksa bekleyen) */
+  const getMainPayment = (group) => {
+    if (group.overduePayments.length > 0) return group.overduePayments[0]
+    return group.currentPayment
+  }
 
   return (
     <>
@@ -227,6 +244,7 @@ export default function RentPayments() {
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: 28 }}></th>
               <th>Kiraci</th>
               <th>Daire</th>
               <th>Vade Tarihi</th>
@@ -238,61 +256,142 @@ export default function RentPayments() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
             ) : error ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
             ) : sorted.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
                 {filter ? 'Bu filtreye uygun odeme bulunamadi.' : 'Henuz odeme kaydi yok. Kiraci eklediginizde otomatik olusturulacak.'}
               </td></tr>
-            ) : sorted.map(p => {
-              const st = realStatus(p)
+            ) : sorted.map(group => {
+              const mainPayment = getMainPayment(group)
+              const isExpanded = expandedTenant === group.tenantId
+              const hasPaidHistory = group.paidPayments.length > 0
+              const hasExtraOverdue = group.overduePayments.length > 1
+
+              /* Ana satir icin bilgiler */
+              const st = mainPayment ? realStatus(mainPayment) : 'paid'
               const cfg = STATUS_CONFIG[st]
-              const diff = daysDiff(p.due_date)
-              const tenantName = p.tenants?.full_name || '—'
-              const aptName = p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—'
+              const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
 
               let dayLabel = ''
-              if (st === 'paid') dayLabel = p.paid_date ? formatDate(p.paid_date) : '—'
+              if (!mainPayment) dayLabel = '—'
               else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gun gecikti'
               else if (diff === 0) dayLabel = 'Bugun'
               else if (diff === 1) dayLabel = 'Yarin'
               else dayLabel = diff + ' gun kaldi'
 
+              const overdueExtra = group.overduePayments.length > 1 ? group.overduePayments.length - 1 : 0
+
               return (
-                <tr key={p.id}>
-                  <td>
-                    <div className="tenant-cell">
-                      <span className="tenant-name">{tenantName}</span>
-                      <span className="tenant-email">{p.tenants?.email || ''}</span>
-                    </div>
-                  </td>
-                  <td>{aptName}</td>
-                  <td>{formatDate(p.due_date)}</td>
-                  <td>{Number(p.amount).toLocaleString('tr-TR')}</td>
-                  <td><span className={`status-badge ${cfg.css}`}>{cfg.label}</span></td>
-                  <td style={{ color: st === 'overdue' ? 'var(--red)' : st === 'pending' && diff <= 3 ? 'var(--amber)' : 'var(--text-muted)', fontWeight: st === 'overdue' ? 600 : 400 }}>
-                    {dayLabel}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {st === 'paid' ? (
-                        <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsUnpaid(p.id)}>Geri Al</button>
-                      ) : (
-                        <>
-                          <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsPaid(p.id)}>
+                <React.Fragment key={group.tenantId}>
+                  {/* Ana satir */}
+                  <tr
+                    onClick={() => (hasPaidHistory || hasExtraOverdue) && toggleExpand(group.tenantId)}
+                    style={{ cursor: (hasPaidHistory || hasExtraOverdue) ? 'pointer' : 'default' }}
+                  >
+                    <td style={{ width: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                      {(hasPaidHistory || hasExtraOverdue) && (
+                        <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      )}
+                    </td>
+                    <td>
+                      <div className="tenant-cell">
+                        <span className="tenant-name">{group.tenantName}</span>
+                        <span className="tenant-email">{group.tenantEmail}</span>
+                      </div>
+                    </td>
+                    <td>{group.aptName}</td>
+                    <td>{mainPayment ? formatDate(mainPayment.due_date) : '—'}</td>
+                    <td>{mainPayment ? Number(mainPayment.amount).toLocaleString('tr-TR') : '—'}</td>
+                    <td>
+                      <span className={`status-badge ${cfg.css}`}>{cfg.label}</span>
+                      {overdueExtra > 0 && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>+{overdueExtra} geciken</span>}
+                    </td>
+                    <td style={{ color: st === 'overdue' ? 'var(--red)' : st === 'pending' && diff <= 3 ? 'var(--amber)' : 'var(--text-muted)', fontWeight: st === 'overdue' ? 600 : 400 }}>
+                      {dayLabel}
+                    </td>
+                    <td>
+                      {mainPayment && st !== 'paid' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => markAsPaid(e, mainPayment.id)}>
                             <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
                             Odendi
                           </button>
-                          <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => sendReminder(p)} title="Hatirlatma maili gonder">
+                          <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }} title="Hatirlatma maili gonder">
                             <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                             Hatirla
                           </button>
-                        </>
+                        </div>
                       )}
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+
+                  {/* Genisletilmis gecmis */}
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={8} style={{ padding: 0, background: 'var(--bg-secondary, #f8f9fa)' }}>
+                        <div style={{ padding: '12px 16px 12px 44px' }}>
+                          {/* Diger geciken odemeler */}
+                          {group.overduePayments.length > 1 && (
+                            <>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red)', marginBottom: 8 }}>Geciken Odemeler</div>
+                              {group.overduePayments.slice(1).map(p => {
+                                const d = daysDiff(p.due_date)
+                                return (
+                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                                    <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 13 }}>
+                                      <span>{formatDate(p.due_date)}</span>
+                                      <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
+                                      <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 12 }}>{Math.abs(d)} gun gecikti</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                      <button className="btn btn-primary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsPaid(e, p.id)}>Odendi</button>
+                                      <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => { e.stopPropagation(); sendReminder(p) }}>Hatirla</button>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </>
+                          )}
+
+                          {/* Odeme gecmisi */}
+                          {group.paidPayments.length > 0 && (
+                            <>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: group.overduePayments.length > 1 ? 16 : 0 }}>
+                                Odeme Gecmisi ({group.paidPayments.length})
+                              </div>
+                              {group.paidPayments.map(p => {
+                                const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
+                                return (
+                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                                    <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 13 }}>
+                                      <span>{formatDate(p.due_date)}</span>
+                                      <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
+                                      <span className={`status-badge ${paidLate ? 'pending' : 'active'}`} style={{ fontSize: 11 }}>
+                                        {paidLate ? 'Gec Odendi' : 'Zamaninda'}
+                                      </span>
+                                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                        {p.paid_date ? formatDate(p.paid_date) : ''}
+                                      </span>
+                                    </div>
+                                    <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsUnpaid(e, p.id)}>Geri Al</button>
+                                  </div>
+                                )
+                              })}
+                            </>
+                          )}
+
+                          {group.paidPayments.length === 0 && group.overduePayments.length <= 1 && (
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Henuz odeme gecmisi yok.</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               )
             })}
           </tbody>
