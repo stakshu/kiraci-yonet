@@ -51,7 +51,7 @@ export default function PropertyDetail() {
     setLoading(true)
     const { data, error } = await supabase
       .from('apartments')
-      .select('*, tenants(id, full_name, email, phone, tc_no, lease_start, lease_end, deposit, notes)')
+      .select('*, tenants(id, full_name, email, phone, tc_no, lease_start, lease_end, rent, deposit, notes)')
       .eq('id', id)
       .single()
 
@@ -103,9 +103,9 @@ export default function PropertyDetail() {
   if (!apt) return null
 
   const tenant = apt.tenants?.[0]
-  const isOccupied = apt.status === 'occupied'
-  const statusLabel = isOccupied ? 'Kirada' : apt.status === 'expiring' ? 'Sure Doluyor' : 'Bosta'
-  const statusCss = isOccupied ? 'active' : apt.status === 'expiring' ? 'pending' : 'inactive'
+  const isOccupied = !!tenant
+  const statusLabel = isOccupied ? 'Kirada' : 'Bosta'
+  const statusCss = isOccupied ? 'active' : 'inactive'
   const location = [apt.district, apt.city].filter(Boolean).join(', ')
 
   /* Odeme istatistikleri */
@@ -133,7 +133,7 @@ export default function PropertyDetail() {
           <div className="pd-quick-stats">
             <div className="pd-quick-stat">
               <span className="pd-quick-label">Guncel Kira</span>
-              <span className="pd-quick-value">{apt.rent ? Number(apt.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
+              <span className="pd-quick-value">{tenant?.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
             </div>
             <div className="pd-quick-stat">
               <span className="pd-quick-label">Depozito</span>
@@ -240,10 +240,6 @@ export default function PropertyDetail() {
                   <span className="detail-value">{apt.building_age != null ? apt.building_age : '—'}</span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-label">Kira</span>
-                  <span className="detail-value">{apt.rent ? Number(apt.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                </div>
-                <div className="detail-item">
                   <span className="detail-label">Depozito</span>
                   <span className="detail-value">{apt.deposit ? Number(apt.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
                 </div>
@@ -337,6 +333,10 @@ export default function PropertyDetail() {
                 <div className="detail-item">
                   <span className="detail-label">Sozlesme Bitis</span>
                   <span className="detail-value">{tenant.lease_end ? formatDate(tenant.lease_end) : '—'}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Aylik Kira</span>
+                  <span className="detail-value">{tenant.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
                 </div>
                 <div className="detail-item">
                   <span className="detail-label">Depozito</span>

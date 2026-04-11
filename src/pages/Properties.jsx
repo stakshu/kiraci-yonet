@@ -20,7 +20,7 @@ const EMPTY_FORM = {
   building: '', unit_no: '', city: '', district: '', address: '',
   property_type: 'daire', room_count: '', floor_no: '',
   m2_gross: '', m2_net: '', furnished: false, building_age: '',
-  rent: '', deposit: '', lease_end: '', status: 'vacant', notes: ''
+  deposit: '', notes: ''
 }
 
 export default function Properties() {
@@ -47,7 +47,7 @@ export default function Properties() {
     setError(null)
     const { data, error: err } = await supabase
       .from('apartments')
-      .select('*, tenants(id, full_name, email, lease_start, lease_end)')
+      .select('*, tenants(id, full_name, email, lease_start, lease_end, rent)')
       .order('created_at', { ascending: false })
 
     if (err) {
@@ -61,13 +61,14 @@ export default function Properties() {
 
   /* ── Istatistikler ── */
   const total = apartments.length
-  const occupied = apartments.filter(a => a.status === 'occupied').length
-  const vacant = apartments.filter(a => a.status === 'vacant').length
-  const totalRent = apartments.filter(a => a.status === 'occupied').reduce((s, a) => s + Number(a.rent || 0), 0)
+  const occupied = apartments.filter(a => a.tenants?.[0]).length
+  const vacant = apartments.filter(a => !a.tenants?.[0]).length
+  const totalRent = apartments.reduce((s, a) => s + Number(a.tenants?.[0]?.rent || 0), 0)
 
   /* ── Filtreleme ── */
   const filtered = apartments.filter(a => {
-    if (statusFilter && a.status !== statusFilter) return false
+    const derivedStatus = a.tenants?.[0] ? 'occupied' : 'vacant'
+    if (statusFilter && derivedStatus !== statusFilter) return false
     if (search) {
       const q = search.toLowerCase()
       return (a.building || '').toLowerCase().includes(q) ||
@@ -98,9 +99,7 @@ export default function Properties() {
       room_count: data.room_count || '', floor_no: data.floor_no || '',
       m2_gross: data.m2_gross || '', m2_net: data.m2_net || '',
       furnished: data.furnished || false, building_age: data.building_age || '',
-      rent: data.rent || '', deposit: data.deposit || '',
-      lease_end: data.lease_end || '', status: data.status || 'vacant',
-      notes: data.notes || ''
+      deposit: data.deposit || '', notes: data.notes || ''
     })
     setShowPopup(true)
   }
@@ -123,10 +122,8 @@ export default function Properties() {
       m2_net: parseFloat(form.m2_net) || null,
       furnished: form.furnished,
       building_age: parseInt(form.building_age) || null,
-      rent: parseFloat(form.rent) || 0,
       deposit: parseFloat(form.deposit) || 0,
-      lease_end: form.lease_end || null,
-      status: form.status, notes: form.notes.trim()
+      notes: form.notes.trim()
     }
 
     let result
@@ -209,7 +206,6 @@ export default function Properties() {
             <option value="">Tum Durumlar</option>
             <option value="occupied">Kirada</option>
             <option value="vacant">Bosta</option>
-            <option value="expiring">Sure Doluyor</option>
           </select>
           <button className="btn btn-primary" onClick={openAdd}>
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -231,9 +227,9 @@ export default function Properties() {
         <div className="property-list">
           {filtered.map(apt => {
             const tenant = apt.tenants?.[0]
-            const isOccupied = apt.status === 'occupied'
-            const statusLabel = isOccupied ? 'Kirada' : apt.status === 'expiring' ? 'Sure Doluyor' : 'Bosta'
-            const statusCss = isOccupied ? 'active' : apt.status === 'expiring' ? 'pending' : 'inactive'
+            const isOccupied = !!tenant
+            const statusLabel = isOccupied ? 'Kirada' : 'Bosta'
+            const statusCss = isOccupied ? 'active' : 'inactive'
             const location = [apt.district, apt.city].filter(Boolean).join(', ')
             const fullAddress = apt.address
               ? `${apt.address}${location ? ', ' + location : ''}`
@@ -263,10 +259,6 @@ export default function Properties() {
 
                 <div className="property-card-details">
                   <div className="property-card-detail">
-                    <span className="property-detail-label">Kira</span>
-                    <span className="property-detail-value">{apt.rent ? Number(apt.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                  </div>
-                  <div className="property-card-detail">
                     <span className="property-detail-label">Depozito</span>
                     <span className="property-detail-value">{apt.deposit ? Number(apt.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
                   </div>
@@ -277,6 +269,10 @@ export default function Properties() {
                       <div className="property-card-detail">
                         <span className="property-detail-label">Kiraci</span>
                         <span className="property-detail-value">{tenant.full_name}</span>
+                      </div>
+                      <div className="property-card-detail">
+                        <span className="property-detail-label">Kira</span>
+                        <span className="property-detail-value">{tenant.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
                       </div>
                       <div className="property-card-detail">
                         <span className="property-detail-label">Sozlesme Baslangic</span>
@@ -367,26 +363,8 @@ export default function Properties() {
                     <input className="form-input" type="number" min="0" placeholder="5" value={form.building_age} onChange={e => updateForm('building_age', e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Aylik Kira ({'\u20BA'})</label>
-                    <input className="form-input" type="number" min="0" step="0.01" placeholder="0" value={form.rent} onChange={e => updateForm('rent', e.target.value)} />
-                  </div>
-                  <div className="form-group">
                     <label className="form-label">Depozito ({'\u20BA'})</label>
                     <input className="form-input" type="number" min="0" step="0.01" placeholder="0" value={form.deposit} onChange={e => updateForm('deposit', e.target.value)} />
-                  </div>
-                </div>
-                <div className="popup-grid" style={{ marginTop: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label">Sozlesme Bitis</label>
-                    <input className="form-input" type="date" value={form.lease_end} onChange={e => updateForm('lease_end', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Durum</label>
-                    <select className="form-input" value={form.status} onChange={e => updateForm('status', e.target.value)}>
-                      <option value="vacant">Bosta</option>
-                      <option value="occupied">Kirada</option>
-                      <option value="expiring">Sure Doluyor</option>
-                    </select>
                   </div>
                   <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
                     <input type="checkbox" id="furnished" checked={form.furnished} onChange={e => updateForm('furnished', e.target.checked)} style={{ width: 16, height: 16 }} />

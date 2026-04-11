@@ -14,7 +14,7 @@ function formatDate(dateStr) {
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', tc_no: '',
   apartment_id: '', lease_start: '', lease_end: '',
-  deposit: '', notes: ''
+  rent: '', deposit: '', notes: ''
 }
 
 export default function TenantsList() {
@@ -72,13 +72,13 @@ export default function TenantsList() {
   const loadApartments = async () => {
     const { data } = await supabase
       .from('apartments')
-      .select('id, building, unit_no, status, rent')
+      .select('id, building, unit_no, tenants(id)')
       .order('building', { ascending: true })
     setApartments(data || [])
   }
 
-  /* ── Bos daireler (sadece popup dropdown'unda gosterilecek) ── */
-  const vacantApartments = apartments.filter(a => a.status === 'vacant')
+  /* ── Bos daireler (kiracisi olmayan) ── */
+  const vacantApartments = apartments.filter(a => !a.tenants?.[0])
 
   /* ── Istatistikler ── */
   const total = tenants.length
@@ -123,6 +123,7 @@ export default function TenantsList() {
       apartment_id: data.apartment_id || '',
       lease_start: data.lease_start || '',
       lease_end: data.lease_end || '',
+      rent: data.rent || '',
       deposit: data.deposit || '',
       notes: data.notes || ''
     })
@@ -141,13 +142,6 @@ export default function TenantsList() {
       return
     }
 
-    /* Onceki daire id'sini bul (edit modunda daire degisirse eski daireyi bos yap) */
-    let prevApartmentId = null
-    if (editId) {
-      const existing = tenants.find(t => t.id === editId)
-      if (existing) prevApartmentId = existing.apartment_id
-    }
-
     const record = {
       user_id: session.user.id,
       full_name: form.full_name.trim(),
@@ -157,6 +151,7 @@ export default function TenantsList() {
       apartment_id: form.apartment_id || null,
       lease_start: form.lease_start || null,
       lease_end: form.lease_end || null,
+      rent: parseFloat(form.rent) || 0,
       deposit: parseFloat(form.deposit) || 0,
       notes: form.notes.trim()
     }
@@ -174,20 +169,10 @@ export default function TenantsList() {
       return
     }
 
-    /* Daire durumunu guncelle */
-    if (record.apartment_id) {
-      await supabase.from('apartments').update({ status: 'occupied', tenant_name: record.full_name }).eq('id', record.apartment_id)
-    }
-    /* Eski daire bos birakildi ise */
-    if (prevApartmentId && prevApartmentId !== record.apartment_id) {
-      await supabase.from('apartments').update({ status: 'vacant', tenant_name: '' }).eq('id', prevApartmentId)
-    }
-
     /* Yeni kiraci eklendiyse ve daire secildiyse → 12 aylik odeme kaydi olustur */
     if (!editId && record.apartment_id && result.data?.[0]) {
       const tenantId = result.data[0].id
-      const apt = apartments.find(a => a.id === record.apartment_id)
-      const rentAmount = apt ? Number(apt.rent) || 0 : 0
+      const rentAmount = Number(record.rent) || 0
 
       if (rentAmount > 0) {
         const paymentRecords = []
@@ -218,12 +203,6 @@ export default function TenantsList() {
   const handleDelete = async (id, name) => {
     setOpenMenu(null)
     if (!confirm(name + ' silinsin mi? Bu islem geri alinamaz.')) return
-
-    /* Silinecek kiracinin dairesini bos yap */
-    const tenant = tenants.find(t => t.id === id)
-    if (tenant?.apartment_id) {
-      await supabase.from('apartments').update({ status: 'vacant', tenant_name: '' }).eq('id', tenant.apartment_id)
-    }
 
     const { error: err } = await supabase.from('tenants').delete().eq('id', id)
     if (err) {
@@ -310,22 +289,24 @@ export default function TenantsList() {
               <th>Telefon</th>
               <th>Daire</th>
               <th>Sozlesme Bitis</th>
+              <th>Kira</th>
               <th>Depozito</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
             ) : error ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
                 {search ? 'Arama sonucu bulunamadi.' : 'Henuz kiraci eklenmemis. "Yeni Kiraci" butonuna tiklayin.'}
               </td></tr>
             ) : filtered.map(t => {
               const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
               const leaseEnd = t.lease_end ? formatDate(t.lease_end) : '—'
+              const rentVal = t.rent ? Number(t.rent).toLocaleString('tr-TR') + ' ₺' : '—'
               const deposit = t.deposit ? Number(t.deposit).toLocaleString('tr-TR') + ' ₺' : '—'
 
               return (
@@ -341,6 +322,7 @@ export default function TenantsList() {
                   <td>{t.phone || '—'}</td>
                   <td>{apt}</td>
                   <td>{leaseEnd}</td>
+                  <td>{rentVal}</td>
                   <td>{deposit}</td>
                   <td className="td-actions">
                     <div className="action-menu">
@@ -407,7 +389,7 @@ export default function TenantsList() {
                       value={form.apartment_id} onChange={e => updateForm('apartment_id', e.target.value)}>
                       <option value="">Daire secin...</option>
                       {/* Edit modunda mevcut daireyi de goster */}
-                      {(editId ? apartments.filter(a => a.status === 'vacant' || a.id === form.apartment_id) : vacantApartments).map(a => (
+                      {(editId ? apartments.filter(a => !a.tenants?.[0] || a.id === form.apartment_id) : vacantApartments).map(a => (
                         <option key={a.id} value={a.id}>{a.building} — {a.unit_no}</option>
                       ))}
                     </select>
@@ -421,6 +403,11 @@ export default function TenantsList() {
                     <label className="form-label">Sozlesme Bitis</label>
                     <input className="form-input" type="date"
                       value={form.lease_end} onChange={e => updateForm('lease_end', e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Aylik Kira (&#8378;)</label>
+                    <input className="form-input" type="number" min="0" step="0.01" placeholder="0"
+                      value={form.rent} onChange={e => updateForm('rent', e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Depozito (&#8378;)</label>
