@@ -35,7 +35,56 @@ export default function RentPayments() {
   const [filter, setFilter] = useState('')
   const [expandedTenant, setExpandedTenant] = useState(null)
 
-  useEffect(() => { loadPayments() }, [])
+  useEffect(() => { loadPayments(); checkMissingPayments() }, [])
+
+  /* ── Eksik odemeleri otomatik olustur ── */
+  const checkMissingPayments = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    /* Kiracilari ve mevcut odemelerini al */
+    const { data: tenants } = await supabase
+      .from('tenants')
+      .select('id, apartment_id, lease_start, rent')
+      .eq('user_id', session.user.id)
+      .not('apartment_id', 'is', null)
+
+    if (!tenants || tenants.length === 0) return
+
+    const { data: existingPayments } = await supabase
+      .from('rent_payments')
+      .select('tenant_id')
+      .eq('user_id', session.user.id)
+
+    /* Hangi kiracilarin odeme kaydi var */
+    const tenantsWithPayments = new Set((existingPayments || []).map(p => p.tenant_id))
+
+    /* Eksik olanlar icin olustur */
+    const newPayments = []
+    for (const t of tenants) {
+      if (tenantsWithPayments.has(t.id)) continue
+      const rentAmount = Number(t.rent) || 0
+      if (rentAmount <= 0 || !t.apartment_id) continue
+
+      const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
+      for (let i = 0; i < 12; i++) {
+        const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+        newPayments.push({
+          user_id: session.user.id,
+          tenant_id: t.id,
+          apartment_id: t.apartment_id,
+          due_date: dueDate.toISOString().split('T')[0],
+          amount: rentAmount,
+          status: 'pending'
+        })
+      }
+    }
+
+    if (newPayments.length > 0) {
+      await supabase.from('rent_payments').insert(newPayments)
+      loadPayments()
+    }
+  }
 
   const loadPayments = async () => {
     setLoading(true)
