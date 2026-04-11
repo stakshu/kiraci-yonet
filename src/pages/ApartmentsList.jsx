@@ -72,6 +72,15 @@ export default function ApartmentsList() {
     setLoading(false)
   }
 
+  /* ── Bekleyen odeme sayisi ── */
+  const [pendingPayments, setPendingPayments] = useState(0)
+  useEffect(() => {
+    supabase.from('rent_payments').select('id', { count: 'exact', head: true })
+      .in('status', ['pending'])
+      .lte('due_date', new Date().toISOString().split('T')[0])
+      .then(({ count }) => setPendingPayments(count || 0))
+  }, [])
+
   /* ── Istatistikler ── */
   const total = apartments.length
   const occupied = apartments.filter(d => d.status === 'occupied').length
@@ -209,8 +218,8 @@ export default function ApartmentsList() {
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div className="stat-info">
-            <div className="stat-number"><span>--</span></div>
-            <div className="stat-label">Bekleyen Odeme</div>
+            <div className="stat-number"><span>{pendingPayments}</span></div>
+            <div className="stat-label">Geciken Odeme</div>
           </div>
         </div>
       </div>

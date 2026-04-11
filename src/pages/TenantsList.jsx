@@ -72,7 +72,7 @@ export default function TenantsList() {
   const loadApartments = async () => {
     const { data } = await supabase
       .from('apartments')
-      .select('id, building, unit_no, status')
+      .select('id, building, unit_no, status, rent')
       .order('building', { ascending: true })
     setApartments(data || [])
   }
@@ -163,9 +163,9 @@ export default function TenantsList() {
 
     let result
     if (editId) {
-      result = await supabase.from('tenants').update(record).eq('id', editId)
+      result = await supabase.from('tenants').update(record).eq('id', editId).select()
     } else {
-      result = await supabase.from('tenants').insert(record)
+      result = await supabase.from('tenants').insert(record).select()
     }
 
     if (result.error) {
@@ -181,6 +181,30 @@ export default function TenantsList() {
     /* Eski daire bos birakildi ise */
     if (prevApartmentId && prevApartmentId !== record.apartment_id) {
       await supabase.from('apartments').update({ status: 'vacant', tenant_name: '' }).eq('id', prevApartmentId)
+    }
+
+    /* Yeni kiraci eklendiyse ve daire secildiyse → 12 aylik odeme kaydi olustur */
+    if (!editId && record.apartment_id && result.data?.[0]) {
+      const tenantId = result.data[0].id
+      const apt = apartments.find(a => a.id === record.apartment_id)
+      const rentAmount = apt ? Number(apt.rent) || 0 : 0
+
+      if (rentAmount > 0) {
+        const paymentRecords = []
+        const startDate = record.lease_start ? new Date(record.lease_start) : new Date()
+        for (let i = 0; i < 12; i++) {
+          const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+          paymentRecords.push({
+            user_id: session.user.id,
+            tenant_id: tenantId,
+            apartment_id: record.apartment_id,
+            due_date: dueDate.toISOString().split('T')[0],
+            amount: rentAmount,
+            status: 'pending'
+          })
+        }
+        await supabase.from('rent_payments').insert(paymentRecords)
+      }
     }
 
     setSaving(false)

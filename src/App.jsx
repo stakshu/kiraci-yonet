@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import AuthOverlay from './components/AuthOverlay'
 import ApartmentsList from './pages/ApartmentsList'
 import TenantsList from './pages/TenantsList'
+import RentPayments from './pages/RentPayments'
 import EmptyPage from './pages/EmptyPage'
 
 /* ── Auth korumasi ── */
@@ -25,7 +26,7 @@ function ProtectedApp() {
         <Route path="/tenants/list" element={<TenantsList />} />
         <Route path="/tenants/contracts" element={<EmptyPage path="/tenants/contracts" />} />
         <Route path="/tenants/evictions" element={<EmptyPage path="/tenants/evictions" />} />
-        <Route path="/payments/rent" element={<EmptyPage path="/payments/rent" />} />
+        <Route path="/payments/rent" element={<RentPayments />} />
         <Route path="/payments/overdue" element={<EmptyPage path="/payments/overdue" />} />
         <Route path="/payments/history" element={<EmptyPage path="/payments/history" />} />
         <Route path="/expenses" element={<EmptyPage path="/expenses" />} />
