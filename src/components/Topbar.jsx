@@ -4,8 +4,7 @@ import { useToast } from './Toast'
 
 /* ── Route baslik eslestirmesi ── */
 const ROUTE_TITLES = {
-  '/apartments/list': 'Daire Listesi',
-  '/apartments/buildings': 'Bina Yonetimi',
+  '/properties': 'Mulklerim',
   '/tenants/list': 'Kiraci Listesi',
   '/tenants/contracts': 'Sozlesmeler',
   '/tenants/evictions': 'Tahliye Takibi',
@@ -22,7 +21,7 @@ export default function Topbar({ pathname }) {
   const { user, signOut } = useAuth()
   const { showToast } = useToast()
 
-  const title = ROUTE_TITLES[pathname] || 'Daireler'
+  const title = ROUTE_TITLES[pathname] || (pathname.startsWith('/properties/') ? 'Mulk Detay' : 'Mulklerim')
 
   const handleLogout = async () => {
     try {

@@ -8,19 +8,13 @@ const NAV_SECTIONS = [
   {
     label: null,
     items: [
-      { text: 'Ana Sayfa', icon: 'dashboard', route: '/apartments/list', tooltip: 'Ana Sayfa' }
+      { text: 'Ana Sayfa', icon: 'dashboard', route: '/properties', tooltip: 'Ana Sayfa' }
     ]
   },
   {
     label: 'Mulkler',
     items: [
-      {
-        text: 'Daireler', icon: 'building', tooltip: 'Daireler',
-        children: [
-          { text: 'Daire Listesi', route: '/apartments/list' },
-          { text: 'Bina Yonetimi', route: '/apartments/buildings' }
-        ]
-      },
+      { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
       {
         text: 'Kiracilar', icon: 'users', tooltip: 'Kiracilar',
         children: [
@@ -79,7 +73,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-  const [openGroups, setOpenGroups] = useState({ Daireler: true })
+  const [openGroups, setOpenGroups] = useState({})
 
   const currentPath = location.pathname
 
