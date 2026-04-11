@@ -61,6 +61,68 @@ export default function RentPayments() {
     setLoading(false)
   }
 
+  /* ── Mail gonder ── */
+  const sendEmail = async (payment, type) => {
+    const tenantName = payment.tenants?.full_name
+    const tenantEmail = payment.tenants?.email
+    if (!tenantEmail) {
+      showToast('Kiracinin e-posta adresi bulunamadi.', 'error')
+      return false
+    }
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const landlordName = session?.user?.email?.split('@')[0] || 'Mulk Sahibi'
+    const diff = daysDiff(payment.due_date)
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          tenantName,
+          tenantEmail,
+          amount: payment.amount,
+          dueDate: formatDate(payment.due_date),
+          paidDate: formatDate(new Date().toISOString()),
+          daysLate: Math.abs(diff),
+          landlordName
+        })
+      })
+      const result = await res.json()
+
+      /* Log kaydet */
+      await supabase.from('email_logs').insert({
+        user_id: session.user.id,
+        tenant_id: payment.tenant_id,
+        payment_id: payment.id,
+        email_type: type,
+        recipient: tenantEmail,
+        subject: type === 'reminder' ? 'Kira Hatirlatmasi' : type === 'overdue' ? 'Geciken Odeme' : type === 'payment_received' ? 'Odeme Onay' : 'Kira Bildirimi',
+        status: result.success ? 'sent' : 'failed',
+        error_message: result.error || null
+      })
+
+      if (result.success) {
+        showToast(`Mail gonderildi: ${tenantEmail}`, 'success')
+        return true
+      } else {
+        showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error')
+        return false
+      }
+    } catch (err) {
+      showToast('Mail gonderilemedi: ' + err.message, 'error')
+      return false
+    }
+  }
+
+  /* ── Hatirlatma gonder ── */
+  const sendReminder = async (payment) => {
+    const st = realStatus(payment)
+    const type = st === 'overdue' ? 'overdue' : 'reminder'
+    await sendEmail(payment, type)
+  }
+
   /* ── Odendi olarak isaretle ── */
   const markAsPaid = async (id) => {
     const today = new Date().toISOString().split('T')[0]
@@ -74,6 +136,13 @@ export default function RentPayments() {
       return
     }
     showToast('Odeme kaydedildi.', 'success')
+
+    /* Tesekkur maili gonder */
+    const payment = payments.find(p => p.id === id)
+    if (payment?.tenants?.email) {
+      sendEmail(payment, 'payment_received')
+    }
+
     loadPayments()
   }
 
@@ -242,16 +311,24 @@ export default function RentPayments() {
                     {dayLabel}
                   </td>
                   <td>
-                    {st === 'paid' ? (
-                      <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsUnpaid(p.id)}>
-                        Geri Al
-                      </button>
-                    ) : (
-                      <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsPaid(p.id)}>
-                        <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
-                        Odendi
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {st === 'paid' ? (
+                        <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsUnpaid(p.id)}>
+                          Geri Al
+                        </button>
+                      ) : (
+                        <>
+                          <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsPaid(p.id)}>
+                            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
+                            Odendi
+                          </button>
+                          <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => sendReminder(p)} title="Hatirlatma maili gonder">
+                            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            Hatirla
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
