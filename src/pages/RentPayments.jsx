@@ -1,9 +1,13 @@
-/* ── KiraciYonet — Kira Odemeleri ── */
+/* ── KiraciYonet — Kira Odemeleri — Lucide + Motion ── */
 import React, { useState, useEffect } from 'react'
+import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import {
+  DollarSign, Clock, XCircle, CreditCard, Search,
+  ChevronDown, Check, Mail
+} from 'lucide-react'
 
-/* ── Tarih formatlama ── */
 function formatDate(dateStr) {
   const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
   const d = new Date(dateStr)
@@ -22,10 +26,13 @@ function realStatus(payment) {
 }
 
 const STATUS_CONFIG = {
-  paid:    { label: 'Odendi', css: 'active' },
+  paid: { label: 'Odendi', css: 'active' },
   pending: { label: 'Bekliyor', css: 'pending' },
   overdue: { label: 'Gecikti', css: 'inactive' }
 }
+
+const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }
 
 export default function RentPayments() {
   const { showToast } = useToast()
@@ -37,69 +44,42 @@ export default function RentPayments() {
 
   useEffect(() => { loadPayments(); checkMissingPayments() }, [])
 
-  /* ── Eksik odemeleri otomatik olustur ── */
   const checkMissingPayments = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
-
-    /* Kiracilari ve mevcut odemelerini al */
     const { data: tenants } = await supabase
-      .from('tenants')
-      .select('id, apartment_id, lease_start, rent')
-      .eq('user_id', session.user.id)
-      .not('apartment_id', 'is', null)
-
+      .from('tenants').select('id, apartment_id, lease_start, rent')
+      .eq('user_id', session.user.id).not('apartment_id', 'is', null)
     if (!tenants || tenants.length === 0) return
-
     const { data: existingPayments } = await supabase
-      .from('rent_payments')
-      .select('tenant_id')
-      .eq('user_id', session.user.id)
-
-    /* Hangi kiracilarin odeme kaydi var */
+      .from('rent_payments').select('tenant_id').eq('user_id', session.user.id)
     const tenantsWithPayments = new Set((existingPayments || []).map(p => p.tenant_id))
-
-    /* Eksik olanlar icin olustur */
     const newPayments = []
     for (const t of tenants) {
       if (tenantsWithPayments.has(t.id)) continue
       const rentAmount = Number(t.rent) || 0
       if (rentAmount <= 0 || !t.apartment_id) continue
-
       const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
       for (let i = 0; i < 12; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
         newPayments.push({
-          user_id: session.user.id,
-          tenant_id: t.id,
-          apartment_id: t.apartment_id,
-          due_date: dueDate.toISOString().split('T')[0],
-          amount: rentAmount,
-          status: 'pending'
+          user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+          due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
         })
       }
     }
-
-    if (newPayments.length > 0) {
-      await supabase.from('rent_payments').insert(newPayments)
-      loadPayments()
-    }
+    if (newPayments.length > 0) { await supabase.from('rent_payments').insert(newPayments); loadPayments() }
   }
 
   const loadPayments = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     const { data, error: err } = await supabase
-      .from('rent_payments')
-      .select('*, tenants(full_name, email), apartments(building, unit_no)')
+      .from('rent_payments').select('*, tenants(full_name, email), apartments(building, unit_no)')
       .order('due_date', { ascending: true })
-
     if (err) { setError(err.message); setLoading(false); return }
-    setPayments(data || [])
-    setLoading(false)
+    setPayments(data || []); setLoading(false)
   }
 
-  /* ── Kiracilara gore grupla ── */
   const getTenantGroups = () => {
     const groups = {}
     payments.forEach(p => {
@@ -107,13 +87,10 @@ export default function RentPayments() {
       if (!key) return
       if (!groups[key]) {
         groups[key] = {
-          tenantId: key,
-          tenantName: p.tenants?.full_name || '—',
+          tenantId: key, tenantName: p.tenants?.full_name || '—',
           tenantEmail: p.tenants?.email || '',
           aptName: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
-          currentPayment: null,
-          overduePayments: [],
-          paidPayments: []
+          currentPayment: null, overduePayments: [], paidPayments: []
         }
       }
       const st = realStatus(p)
@@ -121,18 +98,13 @@ export default function RentPayments() {
       else if (st === 'paid') groups[key].paidPayments.push(p)
       else if (!groups[key].currentPayment) groups[key].currentPayment = p
     })
-
-    /* Odenmisleri tarihe gore sirala (en yeni en ustte) */
     Object.values(groups).forEach(g => {
       g.paidPayments.sort((a, b) => new Date(b.paid_date || b.due_date) - new Date(a.paid_date || a.due_date))
     })
-
     return Object.values(groups)
   }
 
   const tenantGroups = loading ? [] : getTenantGroups()
-
-  /* Filtrele */
   const filtered = tenantGroups.filter(g => {
     if (!filter) return true
     if (filter === 'overdue') return g.overduePayments.length > 0
@@ -140,19 +112,13 @@ export default function RentPayments() {
     if (filter === 'paid') return g.paidPayments.length > 0 && !g.currentPayment && g.overduePayments.length === 0
     return true
   })
-
-  /* Geciken en ustte */
   const sorted = [...filtered].sort((a, b) => {
-    const aHasOverdue = a.overduePayments.length > 0 ? 0 : 1
-    const bHasOverdue = b.overduePayments.length > 0 ? 0 : 1
-    return aHasOverdue - bHasOverdue
+    return (a.overduePayments.length > 0 ? 0 : 1) - (b.overduePayments.length > 0 ? 0 : 1)
   })
 
-  /* ── Istatistikler ── */
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-
   const thisMonthAll = payments.filter(p => {
     const d = new Date(p.due_date)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
@@ -162,19 +128,15 @@ export default function RentPayments() {
   const overdueCount = payments.filter(p => realStatus(p) === 'overdue').length
   const totalAll = payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
 
-  /* ── Mail gonder ── */
   const sendEmail = async (payment, type) => {
     const tenantEmail = payment.tenants?.email
     if (!tenantEmail) { showToast('Kiracinin e-posta adresi bulunamadi.', 'error'); return false }
-
     const { data: { session } } = await supabase.auth.getSession()
     const landlordName = session?.user?.email?.split('@')[0] || 'Mulk Sahibi'
     const diff = daysDiff(payment.due_date)
-
     try {
       const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type, tenantName: payment.tenants?.full_name, tenantEmail,
           amount: payment.amount, dueDate: formatDate(payment.due_date),
@@ -187,12 +149,10 @@ export default function RentPayments() {
         user_id: session.user.id, tenant_id: payment.tenant_id,
         payment_id: payment.id, email_type: type, recipient: tenantEmail,
         subject: type === 'reminder' ? 'Kira Hatirlatmasi' : type === 'overdue' ? 'Geciken Odeme' : 'Odeme Onay',
-        status: result.success ? 'sent' : 'failed',
-        error_message: result.error || null
+        status: result.success ? 'sent' : 'failed', error_message: result.error || null
       })
       if (result.success) { showToast(`Mail gonderildi: ${tenantEmail}`, 'success'); return true }
-      showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error')
-      return false
+      showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error'); return false
     } catch (err) { showToast('Mail gonderilemedi: ' + err.message, 'error'); return false }
   }
 
@@ -215,66 +175,42 @@ export default function RentPayments() {
     e.stopPropagation()
     const { error: err } = await supabase.from('rent_payments').update({ status: 'pending', paid_date: null }).eq('id', id)
     if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Odeme geri alindi.', 'success')
-    loadPayments()
+    showToast('Odeme geri alindi.', 'success'); loadPayments()
   }
 
-  const toggleExpand = (tenantId) => {
-    setExpandedTenant(prev => prev === tenantId ? null : tenantId)
-  }
+  const toggleExpand = (tenantId) => setExpandedTenant(prev => prev === tenantId ? null : tenantId)
 
-  /* Ana odemeyi bul (geciken varsa ilk geciken, yoksa bekleyen) */
   const getMainPayment = (group) => {
     if (group.overduePayments.length > 0) return group.overduePayments[0]
     return group.currentPayment
   }
 
   return (
-    <>
+    <motion.div variants={stagger} initial="hidden" animate="show">
       {/* Stat Cards */}
       <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-icon-box green">
-            <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div className="stat-info">
-            <div className="stat-number"><span>{totalCollected.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Bu Ay Tahsil ({'\u20BA'})</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon-box amber">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div className="stat-info">
-            <div className="stat-number"><span>{totalPending.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Bu Ay Bekleyen ({'\u20BA'})</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon-box red">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </div>
-          <div className="stat-info">
-            <div className="stat-number"><span>{overdueCount}</span></div>
-            <div className="stat-label">Geciken Odeme</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon-box blue">
-            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          </div>
-          <div className="stat-info">
-            <div className="stat-number"><span>{totalAll.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Toplam Tahsilat ({'\u20BA'})</div>
-          </div>
-        </div>
+        {[
+          { icon: DollarSign, color: 'green', value: totalCollected.toLocaleString('tr-TR'), label: `Bu Ay Tahsil (\u20BA)` },
+          { icon: Clock, color: 'amber', value: totalPending.toLocaleString('tr-TR'), label: `Bu Ay Bekleyen (\u20BA)` },
+          { icon: XCircle, color: 'red', value: overdueCount, label: 'Geciken Odeme' },
+          { icon: CreditCard, color: 'blue', value: totalAll.toLocaleString('tr-TR'), label: `Toplam Tahsilat (\u20BA)` }
+        ].map((s, i) => (
+          <motion.div key={i} variants={fadeUp} className="stat-card">
+            <div className={`stat-icon-box ${s.color}`}>
+              <s.icon className="w-5 h-5" />
+            </div>
+            <div className="stat-info">
+              <div className="stat-number"><span>{s.value}</span></div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       {/* Controls */}
-      <div className="table-controls">
+      <motion.div variants={fadeUp} className="table-controls">
         <div className="table-search">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <Search className="w-4 h-4" style={{ stroke: 'var(--text-muted)' }} />
           <input type="text" placeholder="Odeme ara..." disabled style={{ opacity: 0.5 }} />
         </div>
         <div className="table-filter-group">
@@ -286,21 +222,16 @@ export default function RentPayments() {
             <option value="overdue">Gecikti</option>
           </select>
         </div>
-      </div>
+      </motion.div>
 
       {/* Table */}
-      <div className="data-table-wrap">
+      <motion.div variants={fadeUp} className="data-table-wrap">
         <table className="data-table">
           <thead>
             <tr>
               <th style={{ width: 28 }}></th>
-              <th>Kiraci</th>
-              <th>Daire</th>
-              <th>Vade Tarihi</th>
-              <th>Tutar ({'\u20BA'})</th>
-              <th>Durum</th>
-              <th>Kalan Gun</th>
-              <th>Aksiyon</th>
+              <th>Kiraci</th><th>Daire</th><th>Vade Tarihi</th>
+              <th>Tutar ({'\u20BA'})</th><th>Durum</th><th>Kalan Gun</th><th>Aksiyon</th>
             </tr>
           </thead>
           <tbody>
@@ -310,15 +241,13 @@ export default function RentPayments() {
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
             ) : sorted.length === 0 ? (
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                {filter ? 'Bu filtreye uygun odeme bulunamadi.' : 'Henuz odeme kaydi yok. Kiraci eklediginizde otomatik olusturulacak.'}
+                {filter ? 'Bu filtreye uygun odeme bulunamadi.' : 'Henuz odeme kaydi yok.'}
               </td></tr>
             ) : sorted.map(group => {
               const mainPayment = getMainPayment(group)
               const isExpanded = expandedTenant === group.tenantId
               const hasPaidHistory = group.paidPayments.length > 0
               const hasExtraOverdue = group.overduePayments.length > 1
-
-              /* Ana satir icin bilgiler */
               const st = mainPayment ? realStatus(mainPayment) : 'paid'
               const cfg = STATUS_CONFIG[st]
               const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
@@ -334,16 +263,13 @@ export default function RentPayments() {
 
               return (
                 <React.Fragment key={group.tenantId}>
-                  {/* Ana satir */}
                   <tr
                     onClick={() => (hasPaidHistory || hasExtraOverdue) && toggleExpand(group.tenantId)}
                     style={{ cursor: (hasPaidHistory || hasExtraOverdue) ? 'pointer' : 'default' }}
                   >
-                    <td style={{ width: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+                    <td style={{ width: 28, textAlign: 'center', color: 'var(--text-muted)' }}>
                       {(hasPaidHistory || hasExtraOverdue) && (
-                        <svg viewBox="0 0 24 24" style={{ width: 16, height: 16, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
+                        <ChevronDown className="w-4 h-4 transition-transform" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                       )}
                     </td>
                     <td>
@@ -366,24 +292,20 @@ export default function RentPayments() {
                       {mainPayment && st !== 'paid' && (
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => markAsPaid(e, mainPayment.id)}>
-                            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
-                            Odendi
+                            <Check className="w-3.5 h-3.5" /> Odendi
                           </button>
                           <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }} title="Hatirlatma maili gonder">
-                            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            Hatirla
+                            <Mail className="w-3.5 h-3.5" /> Hatirla
                           </button>
                         </div>
                       )}
                     </td>
                   </tr>
 
-                  {/* Genisletilmis gecmis */}
                   {isExpanded && (
                     <tr>
                       <td colSpan={8} style={{ padding: 0, background: 'var(--bg-secondary, #f8f9fa)' }}>
                         <div style={{ padding: '12px 16px 12px 44px' }}>
-                          {/* Diger geciken odemeler */}
                           {group.overduePayments.length > 1 && (
                             <>
                               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red)', marginBottom: 8 }}>Geciken Odemeler</div>
@@ -404,7 +326,6 @@ export default function RentPayments() {
                             </>
                           )}
 
-                          {/* Odeme gecmisi */}
                           {group.paidPayments.length > 0 && (
                             <>
                               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: group.overduePayments.length > 1 ? 16 : 0 }}>
@@ -441,7 +362,7 @@ export default function RentPayments() {
             })}
           </tbody>
         </table>
-      </div>
-    </>
+      </motion.div>
+    </motion.div>
   )
 }
