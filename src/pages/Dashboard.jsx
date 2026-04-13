@@ -1,8 +1,16 @@
-/* ── KiraciYonet — Ozet (Dashboard) — Sequence Theme ── */
+/* ── KiraciYonet — Dashboard — Tailwind + shadcn/ui + Motion ── */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Clock, AlertTriangle, Building2, Users, CreditCard,
+  TrendingUp, ArrowUpRight, ArrowRight, Plus, CircleDot
+} from 'lucide-react'
 
 const MONTHS = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
 
@@ -30,6 +38,20 @@ function daysDiff(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
   const target = new Date(dateStr); target.setHours(0,0,0,0)
   return Math.ceil((target - today) / (1000*60*60*24))
+}
+
+/* ── Stagger animation variants ── */
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+}
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } }
+}
+const slideUp = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } }
 }
 
 export default function Dashboard() {
@@ -60,7 +82,6 @@ export default function Dashboard() {
   const currentYear = now.getFullYear()
   const userName = user?.email?.split('@')[0] || 'Kullanici'
 
-  /* ── Istatistikler ── */
   const thisMonthPayments = payments.filter(p => {
     const d = new Date(p.due_date)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
@@ -78,15 +99,13 @@ export default function Dashboard() {
   const totalTenants = tenants.length
 
   const totalExpected = collectedThisMonth + pendingThisMonth
-  const collectionRate = totalExpected > 0 ? ((collectedThisMonth / totalExpected) * 100).toFixed(1) : 0
+  const collectionRate = totalExpected > 0 ? ((collectedThisMonth / totalExpected) * 100).toFixed(0) : 0
 
-  /* ── Son hareketler ── */
   const recentPaid = payments
     .filter(p => p.status === 'paid' && p.paid_date)
     .sort((a, b) => new Date(b.paid_date) - new Date(a.paid_date))
     .slice(0, 6)
 
-  /* ── Sozlesmesi yakinda biten kiraciler (30 gun icinde) ── */
   const expiringTenants = tenants
     .filter(t => {
       if (!t.lease_end) return false
@@ -98,197 +117,299 @@ export default function Dashboard() {
   const occupiedPct = totalApartments > 0 ? Math.round((occupiedApartments / totalApartments) * 100) : 0
   const vacantPct = 100 - occupiedPct
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>Yukleniyor...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-2 border-teal-700 border-t-transparent rounded-full"
+        />
+      </div>
+    )
+  }
 
   return (
-    <div className="dashboard">
-      {/* Baslik */}
-      <div className="dash-header">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="dashboard"
+    >
+      {/* ═══ Header ═══ */}
+      <motion.div variants={item} className="dash-header">
         <div>
-          <h2 className="dash-title">{getGreeting()}, {userName}</h2>
-          <p className="dash-greeting">Mulk yonetim panelinize hos geldiniz.</p>
+          <h2 className="dash-title" style={{ fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
+            {getGreeting()}, <span className="text-teal-700">{userName}</span>
+          </h2>
+          <p className="dash-greeting" style={{ marginTop: 4 }}>
+            Mulk yonetim panelinize hos geldiniz.
+          </p>
         </div>
         <div className="dash-header-date">
           {now.getDate()} {MONTHS[currentMonth]} {currentYear}
         </div>
-      </div>
+      </motion.div>
 
-      {/* Hero Card — Sequence style */}
-      <div className="dash-hero">
-        <div className="dash-hero-content">
-          <span className="dash-hero-label">Bu Ay Toplam Tahsilat</span>
-          <div className="dash-hero-value">
-            {collectedThisMonth.toLocaleString('tr-TR')} {'\u20BA'}
-            <span className="dash-hero-badge">{collectionRate}%</span>
-          </div>
-        </div>
-        <div className="dash-hero-actions">
-          <button className="dash-hero-btn primary" onClick={() => navigate('/payments/rent')}>
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Tahsilat
-          </button>
-          <button className="dash-hero-btn" onClick={() => navigate('/tenants/list')}>
-            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-            Kiracilar
-          </button>
-          <button className="dash-hero-btn" onClick={() => navigate('/properties')}>
-            <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-            Mulkler
-          </button>
-        </div>
-      </div>
+      {/* ═══ Hero Card ═══ */}
+      <motion.div variants={slideUp} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-800 via-teal-700 to-teal-600 p-8 text-white shadow-2xl shadow-teal-900/30"
+        whileHover={{ scale: 1.005 }}
+        transition={{ type: 'spring', stiffness: 300 }}
+      >
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-teal-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
 
-      {/* Stat Cards — 3 kolon */}
-      <div className="dash-stats">
-        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
-          <div className="dash-stat-top">
-            <div className="dash-stat-icon pending">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <p className="text-sm font-medium text-white/60 uppercase tracking-widest mb-2">Bu Ay Toplam Tahsilat</p>
+            <div className="flex items-baseline gap-4">
+              <span className="text-5xl font-black tracking-tighter leading-none">
+                {collectedThisMonth.toLocaleString('tr-TR')}
+              </span>
+              <span className="text-2xl font-bold text-white/70">{'\u20BA'}</span>
+              <Badge className="bg-emerald-400/20 text-emerald-300 border-emerald-400/30 text-sm px-3 py-1">
+                <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                {collectionRate}%
+              </Badge>
             </div>
-            <span className="dash-stat-period">Bu Ay</span>
           </div>
-          <div className="dash-stat-value">
-            {pendingThisMonth.toLocaleString('tr-TR')} {'\u20BA'}
-          </div>
-          <div className="dash-stat-label">Bekleyen Odeme</div>
-          <div className="dash-stat-sub">
-            <span className="dash-stat-change down">{unpaidCount} bekliyor</span>
-            <span>{paidCount + unpaidCount} odemeden</span>
-          </div>
-        </div>
-
-        <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
-          <div className="dash-stat-top">
-            <div className="dash-stat-icon overdue">
-              <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <span className="dash-stat-period">Toplam</span>
-          </div>
-          <div className="dash-stat-value">
-            {overdueTotal.toLocaleString('tr-TR')} {'\u20BA'}
-          </div>
-          <div className="dash-stat-label">Geciken Odeme</div>
-          <div className="dash-stat-sub">
-            {overdueAll.length > 0 && <span className="dash-stat-change down">{overdueAll.length} gecikme</span>}
-            <span>Vadesi gecen odemeler</span>
-          </div>
-        </div>
-
-        <div className="dash-stat-card" onClick={() => navigate('/properties')}>
-          <div className="dash-stat-top">
-            <div className="dash-stat-icon property">
-              <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-            </div>
-            <span className="dash-stat-period">{totalApartments} mulk</span>
-          </div>
-          <div className="dash-stat-value">
-            %{occupiedPct}
-          </div>
-          <div className="dash-stat-label">Doluluk Orani</div>
-          <div className="dash-stat-sub">
-            <span className="dash-stat-change up">Doluluk</span>
-            <span>{occupiedApartments} dolu — {vacantApartments} bos</span>
+          <div className="flex gap-3">
+            <Button
+              variant="accent"
+              size="default"
+              className="rounded-xl shadow-lg shadow-emerald-900/30"
+              onClick={() => navigate('/payments/rent')}
+            >
+              <Plus className="w-4 h-4" />
+              Tahsilat
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="rounded-xl border-white/20 text-white hover:bg-white/10"
+              onClick={() => navigate('/tenants/list')}
+            >
+              <Users className="w-4 h-4" />
+              Kiracilar
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              className="rounded-xl border-white/20 text-white hover:bg-white/10"
+              onClick={() => navigate('/properties')}
+            >
+              <Building2 className="w-4 h-4" />
+              Mulkler
+            </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Orta kisim: Hareket + Sag kolon */}
-      <div className="dash-row">
-        {/* Hareket Akisi */}
-        <div className="dash-card dash-activity">
-          <div className="dash-card-header">
-            <h3 className="dash-card-title">Son Hareketler</h3>
-            <button className="dash-card-link" onClick={() => navigate('/payments/rent')}>Tumunu Gor</button>
-          </div>
-          <div className="dash-card-body">
-            {recentPaid.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 14 }}>
-                Henuz odeme hareketi yok.
+      {/* ═══ Stat Cards — 3 columns ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+        {[
+          {
+            icon: Clock,
+            iconBg: 'bg-teal-50',
+            iconColor: 'text-teal-700',
+            label: 'Bekleyen Odeme',
+            period: 'Bu Ay',
+            value: `${pendingThisMonth.toLocaleString('tr-TR')} \u20BA`,
+            badge: unpaidCount > 0 ? { text: `${unpaidCount} bekliyor`, variant: 'warning' } : null,
+            sub: `${paidCount + unpaidCount} odemeden`,
+            onClick: () => navigate('/payments/rent')
+          },
+          {
+            icon: AlertTriangle,
+            iconBg: 'bg-red-50',
+            iconColor: 'text-red-500',
+            label: 'Geciken Odeme',
+            period: 'Toplam',
+            value: `${overdueTotal.toLocaleString('tr-TR')} \u20BA`,
+            badge: overdueAll.length > 0 ? { text: `${overdueAll.length} gecikme`, variant: 'danger' } : null,
+            sub: 'Vadesi gecen odemeler',
+            onClick: () => navigate('/payments/rent')
+          },
+          {
+            icon: Building2,
+            iconBg: 'bg-emerald-50',
+            iconColor: 'text-emerald-600',
+            label: 'Doluluk Orani',
+            period: `${totalApartments} mulk`,
+            value: `%${occupiedPct}`,
+            badge: { text: 'Doluluk', variant: 'success' },
+            sub: `${occupiedApartments} dolu — ${vacantApartments} bos`,
+            onClick: () => navigate('/properties')
+          }
+        ].map((stat, i) => (
+          <motion.div
+            key={i}
+            variants={item}
+            whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(2,88,100,0.12)' }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            className="bg-white rounded-xl border border-gray-100 p-5 cursor-pointer hover:border-teal-200 transition-colors"
+            onClick={stat.onClick}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
-            ) : recentPaid.map(p => (
-              <div key={p.id} className="dash-activity-item">
-                <div className="dash-activity-dot" />
-                <div className="dash-activity-content">
-                  <div className="dash-activity-title">
-                    {p.tenants?.full_name || '\u2014'}
-                    <span className="dash-activity-amount">{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
-                  </div>
-                  <div className="dash-activity-desc">
-                    {p.apartments ? `${p.apartments.building} \u2014 No: ${p.apartments.unit_no}` : '\u2014'}
-                  </div>
+              <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-md">
+                {stat.period}
+              </span>
+            </div>
+            <div className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none mb-1">
+              {stat.value}
+            </div>
+            <div className="text-[13px] font-medium text-gray-500 mb-3">{stat.label}</div>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              {stat.badge && <Badge variant={stat.badge.variant}>{stat.badge.text}</Badge>}
+              <span>{stat.sub}</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* ═══ Main Grid — Activity + Side Column ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-6">
+
+        {/* ── Son Hareketler ── */}
+        <motion.div variants={slideUp} className="lg:col-span-3">
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+              <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">Son Hareketler</h3>
+              <button
+                className="text-xs font-semibold text-teal-700 hover:text-teal-600 flex items-center gap-1 transition-colors"
+                onClick={() => navigate('/payments/rent')}
+              >
+                Tumunu Gor
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {recentPaid.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 text-sm">
+                  Henuz odeme hareketi yok.
                 </div>
-                <div className="dash-activity-time">{timeAgo(p.paid_date)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Sag kolon */}
-        <div className="dash-side">
-          {/* Mulk Dagilimi */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <h3 className="dash-card-title">Mulk Dagilimi</h3>
+              ) : recentPaid.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/50 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-900 truncate">
+                        {p.tenants?.full_name || '\u2014'}
+                      </span>
+                      <span className="text-sm font-bold text-gray-900 tabular-nums ml-3">
+                        {Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-xs text-gray-400 truncate">
+                        {p.apartments ? `${p.apartments.building} — No: ${p.apartments.unit_no}` : '\u2014'}
+                      </span>
+                      <span className="text-[11px] text-gray-400 ml-3">{timeAgo(p.paid_date)}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-            <div className="dash-card-body" style={{ padding: '24px 20px' }}>
-              <div className="dash-donut-wrap">
+          </div>
+        </motion.div>
+
+        {/* ── Sag Kolon ── */}
+        <motion.div variants={slideUp} className="lg:col-span-2 flex flex-col gap-5">
+
+          {/* Mulk Dagilimi */}
+          <div className="bg-white rounded-xl border border-gray-100 p-6">
+            <h3 className="text-[15px] font-bold text-gray-900 tracking-tight mb-5">Mulk Dagilimi</h3>
+            <div className="flex items-center gap-6">
+              {/* Donut */}
+              <div className="relative flex-shrink-0">
                 <div
-                  className="dash-donut"
+                  className="w-24 h-24 rounded-full"
                   style={{
                     background: totalApartments > 0
-                      ? `conic-gradient(#025864 0deg ${(occupiedApartments / totalApartments) * 360}deg, #e5e7eb ${(occupiedApartments / totalApartments) * 360}deg 360deg)`
-                      : 'var(--border)'
+                      ? `conic-gradient(#025864 0deg ${occupiedPct * 3.6}deg, #e5e7eb ${occupiedPct * 3.6}deg 360deg)`
+                      : '#e5e7eb'
                   }}
                 >
-                  <div className="dash-donut-inner">
-                    <span className="dash-donut-number">{totalApartments}</span>
-                    <span className="dash-donut-label">Toplam</span>
+                  <div className="absolute inset-2 rounded-full bg-white flex flex-col items-center justify-center">
+                    <span className="text-xl font-black text-gray-900">{totalApartments}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">Toplam</span>
                   </div>
                 </div>
               </div>
-              <div className="dash-donut-legend">
-                <div className="dash-legend-row">
-                  <span className="dash-legend-dot" style={{ background: '#025864' }} />
-                  <span className="dash-legend-text">Kirada</span>
-                  <span className="dash-legend-val">{occupiedApartments}</span>
-                  <span className="dash-legend-pct">{occupiedPct}%</span>
+              {/* Legend */}
+              <div className="flex flex-col gap-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-teal-700" />
+                    <span className="text-sm text-gray-600">Kirada</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900">{occupiedApartments}</span>
+                    <span className="text-xs text-gray-400">{occupiedPct}%</span>
+                  </div>
                 </div>
-                <div className="dash-legend-row">
-                  <span className="dash-legend-dot" style={{ background: '#e5e7eb' }} />
-                  <span className="dash-legend-text">Bosta</span>
-                  <span className="dash-legend-val">{vacantApartments}</span>
-                  <span className="dash-legend-pct">{vacantPct}%</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-200" />
+                    <span className="text-sm text-gray-600">Bosta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900">{vacantApartments}</span>
+                    <span className="text-xs text-gray-400">{vacantPct}%</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Hizli Bakis */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <h3 className="dash-card-title">Hizli Bakis</h3>
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-50">
+              <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">Hizli Bakis</h3>
             </div>
-            <div className="dash-card-body" style={{ padding: 0 }}>
-              <div className="dash-quick-item" onClick={() => navigate('/tenants/list')} style={{ cursor: 'pointer' }}>
-                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                <span>Toplam Kiraci</span>
-                <strong>{totalTenants}</strong>
+            <div className="divide-y divide-gray-50">
+              <div
+                className="flex items-center gap-3 px-6 py-3.5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                onClick={() => navigate('/tenants/list')}
+              >
+                <Users className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-600 flex-1">Toplam Kiraci</span>
+                <span className="text-sm font-bold text-gray-900">{totalTenants}</span>
               </div>
-              <div className="dash-quick-item">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>Sozlesmesi Biten</span>
-                <strong style={{ color: expiringTenants.length > 0 ? 'var(--red)' : undefined }}>{expiringTenants.length}</strong>
+              <div className="flex items-center gap-3 px-6 py-3.5">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-600 flex-1">Sozlesmesi Biten</span>
+                <span className={`text-sm font-bold ${expiringTenants.length > 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                  {expiringTenants.length}
+                </span>
               </div>
               {expiringTenants.map(t => (
-                <div key={t.id} className="dash-quick-alert">
-                  <span>{t.full_name}</span>
-                  <span style={{ color: 'var(--red)', fontSize: 12 }}>{daysDiff(t.lease_end)} gun</span>
-                </div>
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-between px-6 py-2.5 bg-red-50/50"
+                >
+                  <span className="text-xs font-medium text-gray-700">{t.full_name}</span>
+                  <Badge variant="danger">{daysDiff(t.lease_end)} gun</Badge>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }
