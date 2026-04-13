@@ -16,8 +16,11 @@ Bu proje, gayrimenkul sahipleri ve küçük/orta ölçekli mülk yönetim firmal
 
 | Katman | Teknoloji | Açıklama |
 |--------|-----------|----------|
-| **Frontend** | React 19 + Vite + CSS3 | SPA yapı, component tabanlı mimari. React Router ile sayfa yönetimi. |
-| **Stil** | Saf CSS (index.css) | Modern, simetrik, responsive tasarım için |
+| **Frontend** | React 19 + Vite 8 | SPA yapı, component tabanlı mimari. React Router ile sayfa yönetimi. |
+| **Stil** | Tailwind CSS v4 + Legacy CSS (index.css) | Yeni komponentler Tailwind utility-first, eski komponentler hâlâ CSS. |
+| **UI Kütüphanesi** | shadcn/ui (CVA + clsx + tailwind-merge) | Copy-paste component yaklaşımı, src/components/ui/ altında. |
+| **Animasyon** | Motion (Framer Motion) | Stagger, spring, AnimatePresence ile mikro etkileşimler. |
+| **İkonlar** | Lucide React | Tüm sayfalarda tutarlı ikon seti. |
 | **Backend** | **Supabase** | PostgreSQL veritabanı + Auth + Storage + Realtime |
 | **Auth** | Supabase Auth | E-posta + şifre ile giriş |
 | **Storage** | Supabase Storage | Doküman/dosya yükleme için |
@@ -216,8 +219,8 @@ Standart Supabase auth tablosu kullanılır.
 
 **Yapılacaklar:**
 1. `index.html` dosyası oluşturulur. Temel HTML5 yapı.
-2. TailwindCSS CDN ile eklenir.
-3. Supabase JavaScript SDK CDN ile eklenir.
+2. Tailwind CSS v4 npm ile kurulur (@tailwindcss/vite plugin). shadcn/ui, Motion, Lucide React eklenir.
+3. Supabase JavaScript SDK npm ile kurulur.
 4. Supabase projesi oluşturulur (kullanıcı manuel olarak supabase.com'da yapacak).
 5. Supabase URL ve anon key, `index.html` içinde bir `config` objesine yerleştirilir.
 6. Sayfa açıldığında "Kiracı Yönetim Sistemi" başlığı ve "Hoş geldiniz" yazısı gösterilir.
@@ -537,30 +540,42 @@ Standart Supabase auth tablosu kullanılır.
 
 ## 7. Dosya Yapısı (Önerilen)
 
-React + Vite component tabanlı yapı:
+React 19 + Vite 8 + Tailwind CSS v4 + shadcn/ui + Motion + Lucide:
 
 ```
 /proje
 ├── index.html              (Vite entry point)
 ├── package.json
-├── vite.config.js
+├── vite.config.js          (Tailwind + path alias @/)
 ├── vercel.json
+├── CLAUDE.md               (Stack & style guide for AI)
 ├── /src
 │   ├── main.jsx            (React mount)
 │   ├── App.jsx             (Router + Auth wrapper)
-│   ├── index.css           (Tüm stiller)
+│   ├── index.css           (Tailwind import + legacy CSS)
 │   ├── /lib
-│   │   └── supabase.js     (Supabase client)
+│   │   ├── supabase.js     (Supabase client)
+│   │   └── utils.js        (cn() utility — clsx + tailwind-merge)
 │   ├── /context
 │   │   └── AuthContext.jsx  (Auth state yönetimi)
 │   ├── /components
 │   │   ├── Layout.jsx      (Sidebar + Topbar + Outlet)
-│   │   ├── Sidebar.jsx     (Sol menü)
-│   │   ├── Topbar.jsx      (Üst bar)
-│   │   ├── AuthOverlay.jsx (Giriş/kayıt ekranı)
-│   │   └── Toast.jsx       (Bildirim sistemi)
+│   │   ├── Sidebar.jsx     (Sol menü — Lucide + Motion)
+│   │   ├── Topbar.jsx      (Üst bar — Lucide)
+│   │   ├── AuthOverlay.jsx (Giriş/kayıt — Motion animasyonlu)
+│   │   ├── Toast.jsx       (Bildirim sistemi)
+│   │   └── /ui
+│   │       ├── card.jsx    (shadcn/ui Card)
+│   │       ├── badge.jsx   (shadcn/ui Badge — CVA)
+│   │       └── button.jsx  (shadcn/ui Button — CVA)
 │   └── /pages
-│       ├── ApartmentsList.jsx  (Daire CRUD)
+│       ├── Dashboard.jsx       (Tailwind + Motion — tamamen migrated)
+│       ├── Properties.jsx      (Mülk CRUD — Lucide + Motion)
+│       ├── PropertyDetail.jsx  (Mülk detay)
+│       ├── TenantsList.jsx     (Kiracı CRUD — Lucide + Motion)
+│       ├── RentPayments.jsx    (Ödeme yönetimi — Lucide + Motion)
+│       ├── PaymentHistory.jsx  (Ödeme geçmişi)
+│       ├── OverduePayments.jsx (Geciken ödemeler)
 │       └── EmptyPage.jsx       (Placeholder sayfalar)
 └── /supabase
     └── 001_apartments.sql
@@ -611,4 +626,4 @@ Kullanıcının (proje sahibi) önce yapması gerekenler:
 
 **Doküman versiyonu:** 1.0
 **Hazırlanma tarihi:** 2026
-**Hedef platform:** Web (React + Vite + Supabase)
+**Hedef platform:** Web (React 19 + Vite 8 + Tailwind CSS v4 + shadcn/ui + Motion + Lucide + Supabase)
