@@ -1989,7 +1989,7 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 }
 
 .dash-stat-card {
-  background: linear-gradient(135deg, #025864 0%, #037A8E 60%, #03919A 100%);
+  background: linear-gradient(135deg, #00A86B 0%, #00C776 50%, #00D47E 100%);
   border: none;
   border-radius: 12px;
   padding: 20px;
@@ -2007,12 +2007,12 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   right: -15%;
   width: 140px;
   height: 140px;
-  background: radial-gradient(circle, rgba(0,212,126,0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .dash-stat-card:hover {
-  box-shadow: 0 4px 20px rgba(2,88,100,0.25);
+  box-shadow: 0 4px 20px rgba(0,168,107,0.3);
   transform: translateY(-1px);
 }
 
@@ -2056,8 +2056,8 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
   gap: 3px;
 }
 
-.dash-stat-change.up { color: #00D47E; background: rgba(0,212,126,0.15); }
-.dash-stat-change.down { color: #FCA5A5; background: rgba(239,68,68,0.2); }
+.dash-stat-change.up { color: #fff; background: rgba(255,255,255,0.2); }
+.dash-stat-change.down { color: #fff; background: rgba(0,0,0,0.15); }
 
 .dash-stat-sub {
   font-size: 12px;
