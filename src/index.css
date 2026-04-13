@@ -1989,80 +1989,109 @@ body.collapsed .nav-item:hover::after { opacity: 1; }
 }
 
 .dash-stat-card {
-  background: linear-gradient(135deg, #00A86B 0%, #00C776 50%, #00D47E 100%);
-  border: none;
+  background: #fff;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 20px;
+  padding: 22px;
   cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.15s;
-  color: white;
+  transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
   position: relative;
   overflow: hidden;
 }
 
-.dash-stat-card::before {
-  content: '';
-  position: absolute;
-  top: -30%;
-  right: -15%;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
-  pointer-events: none;
-}
+.dash-stat-card::before { display: none; }
 
 .dash-stat-card:hover {
-  box-shadow: 0 4px 20px rgba(0,168,107,0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(2,88,100,0.1);
+  border-color: var(--primary);
+  transform: translateY(-2px);
 }
 
 .dash-stat-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
+
+/* ── Stat Icon ── */
+.dash-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-stat-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dash-stat-icon.pending {
+  background: rgba(2,88,100,0.08);
+}
+.dash-stat-icon.pending svg { stroke: var(--primary); }
+.dash-stat-icon.overdue {
+  background: rgba(239,68,68,0.08);
+}
+.dash-stat-icon.overdue svg { stroke: #EF4444; }
+.dash-stat-icon.property {
+  background: rgba(0,212,126,0.08);
+}
+.dash-stat-icon.property svg { stroke: #00B86E; }
 
 .dash-stat-label {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255,255,255,0.7);
+  color: var(--text-muted);
+  margin-bottom: 2px;
 }
 
 .dash-stat-period {
   font-size: 11px;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
   font-weight: 500;
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .dash-stat-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
-  color: white;
+  color: var(--text);
   letter-spacing: -0.5px;
   line-height: 1.1;
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 2px;
 }
 
 .dash-stat-change {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 5px;
+  padding: 2px 8px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
 }
 
-.dash-stat-change.up { color: #fff; background: rgba(255,255,255,0.2); }
-.dash-stat-change.down { color: #fff; background: rgba(0,0,0,0.15); }
+.dash-stat-change.up { color: #00B86E; background: rgba(0,212,126,0.1); }
+.dash-stat-change.down { color: #EF4444; background: rgba(239,68,68,0.08); }
 
 .dash-stat-sub {
   font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  margin-top: 6px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Remove old accent bar styles */

@@ -142,38 +142,53 @@ export default function Dashboard() {
       <div className="dash-stats">
         <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
           <div className="dash-stat-top">
-            <span className="dash-stat-label">Bekleyen Odeme</span>
+            <div className="dash-stat-icon pending">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <span className="dash-stat-period">Bu Ay</span>
           </div>
           <div className="dash-stat-value">
             {pendingThisMonth.toLocaleString('tr-TR')} {'\u20BA'}
-            <span className="dash-stat-change down">{unpaidCount} odeme</span>
           </div>
-          <div className="dash-stat-sub">{paidCount + unpaidCount} odemeden {unpaidCount} bekliyor</div>
+          <div className="dash-stat-label">Bekleyen Odeme</div>
+          <div className="dash-stat-sub">
+            <span className="dash-stat-change down">{unpaidCount} bekliyor</span>
+            <span>{paidCount + unpaidCount} odemeden</span>
+          </div>
         </div>
 
         <div className="dash-stat-card" onClick={() => navigate('/payments/rent')}>
           <div className="dash-stat-top">
-            <span className="dash-stat-label">Geciken Odeme</span>
+            <div className="dash-stat-icon overdue">
+              <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
             <span className="dash-stat-period">Toplam</span>
           </div>
           <div className="dash-stat-value">
             {overdueTotal.toLocaleString('tr-TR')} {'\u20BA'}
-            {overdueAll.length > 0 && <span className="dash-stat-change down">{overdueAll.length} gecikme</span>}
           </div>
-          <div className="dash-stat-sub">Vadesi gecen odemeler toplami</div>
+          <div className="dash-stat-label">Geciken Odeme</div>
+          <div className="dash-stat-sub">
+            {overdueAll.length > 0 && <span className="dash-stat-change down">{overdueAll.length} gecikme</span>}
+            <span>Vadesi gecen odemeler</span>
+          </div>
         </div>
 
         <div className="dash-stat-card" onClick={() => navigate('/properties')}>
           <div className="dash-stat-top">
-            <span className="dash-stat-label">Mulk Durumu</span>
+            <div className="dash-stat-icon property">
+              <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+            </div>
             <span className="dash-stat-period">{totalApartments} mulk</span>
           </div>
           <div className="dash-stat-value">
-            {occupiedPct}%
-            <span className="dash-stat-change up">Doluluk</span>
+            %{occupiedPct}
           </div>
-          <div className="dash-stat-sub">{occupiedApartments} dolu — {vacantApartments} bos</div>
+          <div className="dash-stat-label">Doluluk Orani</div>
+          <div className="dash-stat-sub">
+            <span className="dash-stat-change up">Doluluk</span>
+            <span>{occupiedApartments} dolu — {vacantApartments} bos</span>
+          </div>
         </div>
       </div>
 
