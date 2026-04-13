@@ -1,7 +1,9 @@
-/* ── KiraciYonet — Auth Overlay (Faz 1) ── */
+/* ── KiraciYonet — Auth Overlay — Motion + Lucide ── */
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from './Toast'
+import { Home } from 'lucide-react'
 
 export default function AuthOverlay() {
   const { signIn, signUp } = useAuth()
@@ -10,7 +12,6 @@ export default function AuthOverlay() {
   const [message, setMessage] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  /* Form state */
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [regEmail, setRegEmail] = useState('')
@@ -18,13 +19,8 @@ export default function AuthOverlay() {
   const [regPasswordConfirm, setRegPasswordConfirm] = useState('')
 
   const clearMsg = () => setMessage(null)
+  const switchTab = (t) => { setTab(t); clearMsg() }
 
-  const switchTab = (t) => {
-    setTab(t)
-    clearMsg()
-  }
-
-  /* Giris */
   const handleLogin = async (e) => {
     e.preventDefault()
     clearMsg()
@@ -43,16 +39,13 @@ export default function AuthOverlay() {
     }
   }
 
-  /* Kayit */
   const handleRegister = async (e) => {
     e.preventDefault()
     clearMsg()
-
     if (regPassword !== regPasswordConfirm) {
       setMessage({ type: 'error', text: 'Sifreler eslesmiyor.' })
       return
     }
-
     setLoading(true)
     try {
       const data = await signUp(regEmail.trim(), regPassword)
@@ -75,14 +68,24 @@ export default function AuthOverlay() {
 
   return (
     <div className="auth-overlay">
-      <div className="auth-card">
+      <motion.div
+        className="auth-card"
+        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="auth-header">
-          <div className="auth-logo">
+          <motion.div
+            className="auth-logo"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
             <div className="auth-logo-icon">
-              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <Home className="w-5 h-5 text-white" strokeWidth={2} />
             </div>
             <span className="auth-logo-text">KiraciYonet</span>
-          </div>
+          </motion.div>
           <h2 className="auth-title">{tab === 'login' ? 'Giris Yap' : 'Kayit Ol'}</h2>
           <p className="auth-subtitle">
             {tab === 'login' ? 'Hesabiniza giris yaparak devam edin' : 'Yeni bir hesap olusturun'}
@@ -95,9 +98,19 @@ export default function AuthOverlay() {
         </div>
 
         <div className="auth-body">
-          {message && (
-            <div className={`auth-message ${message.type}`}>{message.text}</div>
-          )}
+          <AnimatePresence mode="wait">
+            {message && (
+              <motion.div
+                key="msg"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={`auth-message ${message.type}`}
+              >
+                {message.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {tab === 'login' ? (
             <form className="auth-form" onSubmit={handleLogin}>
@@ -111,9 +124,15 @@ export default function AuthOverlay() {
                 <input className="form-input" id="loginPassword" type="password" placeholder="••••••••" required minLength={6}
                   value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
               </div>
-              <button className="auth-btn" type="submit" disabled={loading}>
+              <motion.button
+                className="auth-btn"
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 {loading ? 'Giris yapiliyor...' : 'Giris Yap'}
-              </button>
+              </motion.button>
             </form>
           ) : (
             <form className="auth-form" onSubmit={handleRegister}>
@@ -132,21 +151,27 @@ export default function AuthOverlay() {
                 <input className="form-input" id="regPasswordConfirm" type="password" placeholder="Sifrenizi tekrarlayin" required minLength={6}
                   value={regPasswordConfirm} onChange={e => setRegPasswordConfirm(e.target.value)} />
               </div>
-              <button className="auth-btn" type="submit" disabled={loading}>
+              <motion.button
+                className="auth-btn"
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 {loading ? 'Kayit yapiliyor...' : 'Kayit Ol'}
-              </button>
+              </motion.button>
             </form>
           )}
 
           <div className="auth-footer">
             {tab === 'login' ? (
-              <>Hesabiniz yok mu? <a href="#" onClick={(e) => { e.preventDefault(); switchTab('register') }} style={{ color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}>Kayit olun</a></>
+              <>Hesabiniz yok mu? <a href="#" onClick={(e) => { e.preventDefault(); switchTab('register') }} style={{ color: '#00D47E', fontWeight: 600, textDecoration: 'none' }}>Kayit olun</a></>
             ) : (
-              <>Zaten hesabiniz var mi? <a href="#" onClick={(e) => { e.preventDefault(); switchTab('login') }} style={{ color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}>Giris yapin</a></>
+              <>Zaten hesabiniz var mi? <a href="#" onClick={(e) => { e.preventDefault(); switchTab('login') }} style={{ color: '#00D47E', fontWeight: 600, textDecoration: 'none' }}>Giris yapin</a></>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
