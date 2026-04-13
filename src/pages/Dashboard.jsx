@@ -1,15 +1,14 @@
-/* ── KiraciYonet — Dashboard — Tailwind + shadcn/ui + Motion ── */
+/* ── KiraciYonet — Dashboard — Tailwind + Motion ── */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Clock, AlertTriangle, Building2, Users, CreditCard,
-  TrendingUp, ArrowUpRight, ArrowRight, Plus, CircleDot
+  Clock, AlertTriangle, Building2, Users,
+  TrendingUp, ArrowUpRight, ArrowRight, Plus
 } from 'lucide-react'
 
 const MONTHS = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
@@ -40,18 +39,14 @@ function daysDiff(dateStr) {
   return Math.ceil((target - today) / (1000*60*60*24))
 }
 
-/* ── Stagger animation variants ── */
-const container = {
+/* ── Animation variants ── */
+const stagger = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
+  show: { opacity: 1, transition: { staggerChildren: 0.07 } }
 }
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } }
-}
-const slideUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } }
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
 }
 
 export default function Dashboard() {
@@ -119,11 +114,12 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[400px]">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-teal-700 border-t-transparent rounded-full"
+          className="w-8 h-8 rounded-full"
+          style={{ border: '2px solid #025864', borderTopColor: 'transparent' }}
         />
       </div>
     )
@@ -131,192 +127,221 @@ export default function Dashboard() {
 
   return (
     <motion.div
-      variants={container}
+      variants={stagger}
       initial="hidden"
       animate="show"
-      className="dashboard"
+      className="flex flex-col gap-5"
     >
       {/* ═══ Header ═══ */}
-      <motion.div variants={item} className="dash-header">
+      <motion.div variants={fadeUp} className="flex items-end justify-between">
         <div>
-          <h2 className="dash-title" style={{ fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            {getGreeting()}, <span className="text-teal-700">{userName}</span>
+          <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+            {getGreeting()}, <span style={{ color: '#025864' }}>{userName}</span>
           </h2>
-          <p className="dash-greeting" style={{ marginTop: 4 }}>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             Mulk yonetim panelinize hos geldiniz.
           </p>
         </div>
-        <div className="dash-header-date">
+        <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
           {now.getDate()} {MONTHS[currentMonth]} {currentYear}
-        </div>
+        </span>
       </motion.div>
 
       {/* ═══ Hero Card ═══ */}
-      <motion.div variants={slideUp} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-800 via-teal-700 to-teal-600 p-8 text-white shadow-2xl shadow-teal-900/30"
-        whileHover={{ scale: 1.005 }}
-        transition={{ type: 'spring', stiffness: 300 }}
+      <motion.div
+        variants={fadeUp}
+        whileHover={{ scale: 1.003 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        className="relative overflow-hidden rounded-2xl p-7 text-white"
+        style={{
+          background: 'linear-gradient(135deg, #03363D 0%, #025864 40%, #037A8E 100%)',
+          boxShadow: '0 20px 60px -15px rgba(2,88,100,0.4)'
+        }}
       >
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-60 h-60 bg-teal-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
+        {/* Decorative orbs */}
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-20 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #00D47E 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full opacity-10 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #00D47E 0%, transparent 70%)' }} />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-white/60 uppercase tracking-widest mb-2">Bu Ay Toplam Tahsilat</p>
-            <div className="flex items-baseline gap-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Bu Ay Toplam Tahsilat
+            </p>
+            <div className="flex items-baseline gap-3">
               <span className="text-5xl font-black tracking-tighter leading-none">
                 {collectedThisMonth.toLocaleString('tr-TR')}
               </span>
-              <span className="text-2xl font-bold text-white/70">{'\u20BA'}</span>
-              <Badge className="bg-emerald-400/20 text-emerald-300 border-emerald-400/30 text-sm px-3 py-1">
-                <TrendingUp className="w-3.5 h-3.5 mr-1" />
+              <span className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{'\u20BA'}</span>
+              <span className="inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-lg"
+                style={{ background: 'rgba(0,212,126,0.15)', color: '#00D47E' }}>
+                <TrendingUp className="w-3.5 h-3.5" />
                 {collectionRate}%
-              </Badge>
+              </span>
             </div>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="accent"
-              size="default"
-              className="rounded-xl shadow-lg shadow-emerald-900/30"
+          <div className="flex gap-2.5 flex-wrap">
+            <button
               onClick={() => navigate('/payments/rent')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              style={{ background: '#00D47E', color: '#03363D', boxShadow: '0 4px 14px rgba(0,212,126,0.3)' }}
             >
-              <Plus className="w-4 h-4" />
-              Tahsilat
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              className="rounded-xl border-white/20 text-white hover:bg-white/10"
+              <Plus className="w-4 h-4" /> Tahsilat
+            </button>
+            <button
               onClick={() => navigate('/tenants/list')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
             >
-              <Users className="w-4 h-4" />
-              Kiracilar
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              className="rounded-xl border-white/20 text-white hover:bg-white/10"
+              <Users className="w-4 h-4" /> Kiracilar
+            </button>
+            <button
               onClick={() => navigate('/properties')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
             >
-              <Building2 className="w-4 h-4" />
-              Mulkler
-            </Button>
+              <Building2 className="w-4 h-4" /> Mulkler
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* ═══ Stat Cards — 3 columns ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+      {/* ═══ Stat Cards ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           {
             icon: Clock,
-            iconBg: 'bg-teal-50',
-            iconColor: 'text-teal-700',
+            iconBg: '#E6F3F5',
+            iconColor: '#025864',
             label: 'Bekleyen Odeme',
             period: 'Bu Ay',
             value: `${pendingThisMonth.toLocaleString('tr-TR')} \u20BA`,
-            badge: unpaidCount > 0 ? { text: `${unpaidCount} bekliyor`, variant: 'warning' } : null,
+            badge: unpaidCount > 0 ? { text: `${unpaidCount} bekliyor`, color: '#D97706', bg: '#FFFBEB' } : null,
             sub: `${paidCount + unpaidCount} odemeden`,
             onClick: () => navigate('/payments/rent')
           },
           {
             icon: AlertTriangle,
-            iconBg: 'bg-red-50',
-            iconColor: 'text-red-500',
+            iconBg: '#FEF2F2',
+            iconColor: '#EF4444',
             label: 'Geciken Odeme',
             period: 'Toplam',
             value: `${overdueTotal.toLocaleString('tr-TR')} \u20BA`,
-            badge: overdueAll.length > 0 ? { text: `${overdueAll.length} gecikme`, variant: 'danger' } : null,
+            badge: overdueAll.length > 0 ? { text: `${overdueAll.length} gecikme`, color: '#DC2626', bg: '#FEF2F2' } : null,
             sub: 'Vadesi gecen odemeler',
             onClick: () => navigate('/payments/rent')
           },
           {
             icon: Building2,
-            iconBg: 'bg-emerald-50',
-            iconColor: 'text-emerald-600',
+            iconBg: '#EDFCF4',
+            iconColor: '#059669',
             label: 'Doluluk Orani',
             period: `${totalApartments} mulk`,
             value: `%${occupiedPct}`,
-            badge: { text: 'Doluluk', variant: 'success' },
+            badge: { text: 'Doluluk', color: '#059669', bg: '#EDFCF4' },
             sub: `${occupiedApartments} dolu — ${vacantApartments} bos`,
             onClick: () => navigate('/properties')
           }
         ].map((stat, i) => (
           <motion.div
             key={i}
-            variants={item}
-            whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(2,88,100,0.12)' }}
-            transition={{ type: 'spring', stiffness: 300 }}
-            className="bg-white rounded-xl border border-gray-100 p-5 cursor-pointer hover:border-teal-200 transition-colors"
+            variants={fadeUp}
+            whileHover={{ y: -3 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="rounded-xl p-5 cursor-pointer transition-all"
+            style={{
+              background: 'white',
+              border: '1px solid var(--border)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+            }}
             onClick={stat.onClick}
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: stat.iconBg }}>
+                <stat.icon className="w-5 h-5" style={{ color: stat.iconColor }} />
               </div>
-              <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-md">
+              <span className="text-[11px] font-medium px-2.5 py-1 rounded-md"
+                style={{ color: 'var(--text-muted)', background: 'var(--bg)' }}>
                 {stat.period}
               </span>
             </div>
-            <div className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none mb-1">
+            <div className="text-[26px] font-extrabold tracking-tight leading-none mb-1"
+              style={{ color: 'var(--text)' }}>
               {stat.value}
             </div>
-            <div className="text-[13px] font-medium text-gray-500 mb-3">{stat.label}</div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              {stat.badge && <Badge variant={stat.badge.variant}>{stat.badge.text}</Badge>}
+            <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+              {stat.label}
+            </div>
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {stat.badge && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                  style={{ color: stat.badge.color, background: stat.badge.bg }}>
+                  {stat.badge.text}
+                </span>
+              )}
               <span>{stat.sub}</span>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* ═══ Main Grid — Activity + Side Column ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-6">
+      {/* ═══ Main Grid ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
         {/* ── Son Hareketler ── */}
-        <motion.div variants={slideUp} className="lg:col-span-3">
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-              <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">Son Hareketler</h3>
+        <motion.div variants={fadeUp} className="lg:col-span-3">
+          <div className="rounded-xl overflow-hidden"
+            style={{ background: 'white', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: '1px solid var(--border)' }}>
+              <h3 className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+                Son Hareketler
+              </h3>
               <button
-                className="text-xs font-semibold text-teal-700 hover:text-teal-600 flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                style={{ color: '#025864' }}
                 onClick={() => navigate('/payments/rent')}
               >
                 Tumunu Gor
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div>
               {recentPaid.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 text-sm">
+                <div className="text-center py-12 text-sm" style={{ color: 'var(--text-muted)' }}>
                   Henuz odeme hareketi yok.
                 </div>
               ) : recentPaid.map((p, i) => (
                 <motion.div
                   key={p.id}
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.3 }}
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/50 transition-colors"
+                  transition={{ delay: i * 0.04, duration: 0.3 }}
+                  className="flex items-center gap-4 px-6 py-3.5 transition-colors"
+                  style={{ borderBottom: '1px solid #f8f9fa' }}
                 >
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: '#EDFCF4' }}>
+                    <ArrowUpRight className="w-4 h-4" style={{ color: '#059669' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-900 truncate">
+                      <span className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
                         {p.tenants?.full_name || '\u2014'}
                       </span>
-                      <span className="text-sm font-bold text-gray-900 tabular-nums ml-3">
+                      <span className="text-sm font-bold ml-3" style={{ color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
                         {Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-xs text-gray-400 truncate">
+                      <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                         {p.apartments ? `${p.apartments.building} — No: ${p.apartments.unit_no}` : '\u2014'}
                       </span>
-                      <span className="text-[11px] text-gray-400 ml-3">{timeAgo(p.paid_date)}</span>
+                      <span className="text-[11px] ml-3" style={{ color: 'var(--text-muted)' }}>
+                        {timeAgo(p.paid_date)}
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -326,48 +351,47 @@ export default function Dashboard() {
         </motion.div>
 
         {/* ── Sag Kolon ── */}
-        <motion.div variants={slideUp} className="lg:col-span-2 flex flex-col gap-5">
+        <motion.div variants={fadeUp} className="lg:col-span-2 flex flex-col gap-5">
 
           {/* Mulk Dagilimi */}
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h3 className="text-[15px] font-bold text-gray-900 tracking-tight mb-5">Mulk Dagilimi</h3>
+          <div className="rounded-xl p-6" style={{ background: 'white', border: '1px solid var(--border)' }}>
+            <h3 className="text-[15px] font-bold tracking-tight mb-5" style={{ color: 'var(--text)' }}>
+              Mulk Dagilimi
+            </h3>
             <div className="flex items-center gap-6">
-              {/* Donut */}
-              <div className="relative flex-shrink-0">
-                <div
-                  className="w-24 h-24 rounded-full"
+              <div className="relative flex-shrink-0 w-24 h-24">
+                <div className="w-full h-full rounded-full"
                   style={{
                     background: totalApartments > 0
                       ? `conic-gradient(#025864 0deg ${occupiedPct * 3.6}deg, #e5e7eb ${occupiedPct * 3.6}deg 360deg)`
                       : '#e5e7eb'
                   }}
-                >
-                  <div className="absolute inset-2 rounded-full bg-white flex flex-col items-center justify-center">
-                    <span className="text-xl font-black text-gray-900">{totalApartments}</span>
-                    <span className="text-[10px] text-gray-400 font-medium">Toplam</span>
-                  </div>
+                />
+                <div className="absolute inset-2 rounded-full flex flex-col items-center justify-center"
+                  style={{ background: 'white' }}>
+                  <span className="text-xl font-black" style={{ color: 'var(--text)' }}>{totalApartments}</span>
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>Toplam</span>
                 </div>
               </div>
-              {/* Legend */}
               <div className="flex flex-col gap-3 flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-teal-700" />
-                    <span className="text-sm text-gray-600">Kirada</span>
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#025864' }} />
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Kirada</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900">{occupiedApartments}</span>
-                    <span className="text-xs text-gray-400">{occupiedPct}%</span>
+                    <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{occupiedApartments}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{occupiedPct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-gray-200" />
-                    <span className="text-sm text-gray-600">Bosta</span>
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e5e7eb' }} />
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Bosta</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900">{vacantApartments}</span>
-                    <span className="text-xs text-gray-400">{vacantPct}%</span>
+                    <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{vacantApartments}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{vacantPct}%</span>
                   </div>
                 </div>
               </div>
@@ -375,36 +399,39 @@ export default function Dashboard() {
           </div>
 
           {/* Hizli Bakis */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-50">
-              <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">Hizli Bakis</h3>
+          <div className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid var(--border)' }}>
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+              <h3 className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+                Hizli Bakis
+              </h3>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div>
               <div
-                className="flex items-center gap-3 px-6 py-3.5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                className="flex items-center gap-3 px-6 py-3.5 cursor-pointer transition-colors"
+                style={{ borderBottom: '1px solid #f8f9fa' }}
                 onClick={() => navigate('/tenants/list')}
               >
-                <Users className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600 flex-1">Toplam Kiraci</span>
-                <span className="text-sm font-bold text-gray-900">{totalTenants}</span>
+                <Users className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                <span className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>Toplam Kiraci</span>
+                <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{totalTenants}</span>
               </div>
-              <div className="flex items-center gap-3 px-6 py-3.5">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600 flex-1">Sozlesmesi Biten</span>
-                <span className={`text-sm font-bold ${expiringTenants.length > 0 ? 'text-red-500' : 'text-gray-900'}`}>
+              <div className="flex items-center gap-3 px-6 py-3.5"
+                style={{ borderBottom: expiringTenants.length > 0 ? '1px solid #f8f9fa' : 'none' }}>
+                <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                <span className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>Sozlesmesi Biten</span>
+                <span className="text-sm font-bold" style={{ color: expiringTenants.length > 0 ? '#EF4444' : 'var(--text)' }}>
                   {expiringTenants.length}
                 </span>
               </div>
               {expiringTenants.map(t => (
-                <motion.div
-                  key={t.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center justify-between px-6 py-2.5 bg-red-50/50"
-                >
-                  <span className="text-xs font-medium text-gray-700">{t.full_name}</span>
-                  <Badge variant="danger">{daysDiff(t.lease_end)} gun</Badge>
-                </motion.div>
+                <div key={t.id} className="flex items-center justify-between px-6 py-2.5"
+                  style={{ background: '#FEF2F2' }}>
+                  <span className="text-xs font-medium" style={{ color: 'var(--text)' }}>{t.full_name}</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded"
+                    style={{ color: '#DC2626', background: 'rgba(239,68,68,0.1)' }}>
+                    {daysDiff(t.lease_end)} gun
+                  </span>
+                </div>
               ))}
             </div>
           </div>
