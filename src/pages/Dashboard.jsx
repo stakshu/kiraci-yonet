@@ -147,32 +147,32 @@ export default function Dashboard() {
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
   const aptVac = aptTotal - aptOcc
 
-  /* Unpaid tenants list — only due payments (past + current month), not future */
+  /* Unpaid tenants list — separate overdue and this month's pending */
   const unpaidTenants = useMemo(() => {
     const groups = {}
 
-    // 1) Unpaid payments where due_date <= end of this month (past overdue + this month's unpaid)
     dueUnpaid.forEach(p => {
       if (!p.tenant_id) return
-      if (!groups[p.tenant_id]) {
-        groups[p.tenant_id] = {
+      const diff = dDiff(p.due_date)
+      const isOverdue = diff < 0
+      const key = `${p.tenant_id}_${isOverdue ? 'overdue' : 'pending'}`
+      if (!groups[key]) {
+        groups[key] = {
           name: p.tenants?.full_name || '—',
           email: p.tenants?.email || '',
           apt: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
           amount: 0,
           daysLate: 0,
-          isOverdue: false
+          isOverdue
         }
       }
-      groups[p.tenant_id].amount += Number(p.amount)
-      const diff = dDiff(p.due_date)
-      if (diff < 0) {
-        groups[p.tenant_id].isOverdue = true
-        groups[p.tenant_id].daysLate = Math.max(groups[p.tenant_id].daysLate, Math.abs(diff))
+      groups[key].amount += Number(p.amount)
+      if (isOverdue) {
+        groups[key].daysLate = Math.max(groups[key].daysLate, Math.abs(diff))
       }
     })
 
-    return Object.values(groups).sort((a, b) => b.daysLate - a.daysLate || b.amount - a.amount)
+    return Object.values(groups).sort((a, b) => b.isOverdue - a.isOverdue || b.daysLate - a.daysLate || b.amount - a.amount)
   }, [dueUnpaid])
 
   /* Trend chart */
