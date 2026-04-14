@@ -9,7 +9,7 @@ import {
   Layers, Maximize2, Clock, Check, Undo2, Pencil, X, Save,
   FileText, StickyNote, CreditCard, ScrollText, CalendarDays,
   Mail, Phone, IdCard, DollarSign, Shield, Upload, Trash2,
-  Download, Plus, FileUp
+  Download, Plus, FileUp, ChevronDown, ChevronRight, Users, User
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -90,14 +90,15 @@ export default function PropertyDetail() {
   const [payments, setPayments] = useState([])
   const [paymentsLoading, setPaymentsLoading] = useState(false)
 
+  /* Past tenants */
+  const [pastTenants, setPastTenants] = useState([])
+  const [pastTenantsLoading, setPastTenantsLoading] = useState(false)
+  const [expandedPastTenant, setExpandedPastTenant] = useState(null)
+
   /* Edit modes */
   const [editingDetails, setEditingDetails] = useState(false)
   const [detailForm, setDetailForm] = useState({})
   const [savingDetails, setSavingDetails] = useState(false)
-
-  const [editingLease, setEditingLease] = useState(false)
-  const [leaseForm, setLeaseForm] = useState({})
-  const [savingLease, setSavingLease] = useState(false)
 
   /* Notes */
   const [editingNote, setEditingNote] = useState(null) // 'property' | 'tenant' | null
@@ -112,6 +113,7 @@ export default function PropertyDetail() {
   useEffect(() => {
     if (tab === 'payments' && apt) loadPayments()
     if (tab === 'documents' && apt) loadDocuments()
+    if (tab === 'lease' && apt) loadPastTenants()
   }, [tab, apt])
 
   const loadProperty = async () => {
@@ -140,32 +142,34 @@ export default function PropertyDetail() {
     setPaymentsLoading(false)
   }
 
+  const loadPastTenants = async () => {
+    setPastTenantsLoading(true)
+    // Find all tenant_ids from payments for this apartment
+    const { data: paymentData } = await supabase
+      .from('rent_payments')
+      .select('tenant_id')
+      .eq('apartment_id', id)
+    const tenantIds = [...new Set((paymentData || []).map(p => p.tenant_id).filter(Boolean))]
+    // Exclude current tenant
+    const currentTenantId = apt?.tenants?.[0]?.id
+    const pastIds = tenantIds.filter(tid => tid !== currentTenantId)
+    if (pastIds.length > 0) {
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, full_name, email, phone, tc_no, lease_start, lease_end, rent, deposit, notes, emergency_contact_name, emergency_contact_phone, iban, household_info')
+        .in('id', pastIds)
+      setPastTenants(tenants || [])
+    } else {
+      setPastTenants([])
+    }
+    setPastTenantsLoading(false)
+  }
+
   const loadDocuments = async () => {
     const { data } = await supabase.storage
       .from('documents')
       .list(`apartments/${id}`, { sortBy: { column: 'created_at', order: 'desc' } })
     setDocuments(data || [])
-  }
-
-  const markAsPaid = async (paymentId) => {
-    const today = new Date().toISOString().split('T')[0]
-    const { error } = await supabase
-      .from('rent_payments')
-      .update({ status: 'paid', paid_date: today })
-      .eq('id', paymentId)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Odeme kaydedildi.', 'success')
-    loadPayments()
-  }
-
-  const markAsUnpaid = async (paymentId) => {
-    const { error } = await supabase
-      .from('rent_payments')
-      .update({ status: 'pending', paid_date: null })
-      .eq('id', paymentId)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Odeme geri alindi.', 'success')
-    loadPayments()
   }
 
   /* ── Detail edit ── */
@@ -203,40 +207,6 @@ export default function PropertyDetail() {
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     showToast('Mulk bilgileri guncellendi.', 'success')
     setEditingDetails(false)
-    loadProperty()
-  }
-
-  /* ── Lease edit ── */
-  const startEditLease = () => {
-    const t = apt.tenants?.[0]
-    if (!t) return
-    setLeaseForm({
-      full_name: t.full_name || '', email: t.email || '',
-      phone: t.phone || '', tc_no: t.tc_no || '',
-      lease_start: t.lease_start || '', lease_end: t.lease_end || '',
-      rent: t.rent || '', deposit: t.deposit || ''
-    })
-    setEditingLease(true)
-  }
-
-  const saveLease = async () => {
-    const t = apt.tenants?.[0]
-    if (!t) return
-    setSavingLease(true)
-    const { error } = await supabase.from('tenants').update({
-      full_name: leaseForm.full_name.trim(),
-      email: leaseForm.email.trim(),
-      phone: leaseForm.phone.trim(),
-      tc_no: leaseForm.tc_no.trim(),
-      lease_start: leaseForm.lease_start || null,
-      lease_end: leaseForm.lease_end || null,
-      rent: parseFloat(leaseForm.rent) || 0,
-      deposit: parseFloat(leaseForm.deposit) || 0
-    }).eq('id', t.id)
-    setSavingLease(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Sozlesme bilgileri guncellendi.', 'success')
-    setEditingLease(false)
     loadProperty()
   }
 
@@ -340,7 +310,43 @@ export default function PropertyDetail() {
   ]
 
   const DF = (field, val) => setDetailForm(p => ({ ...p, [field]: val }))
-  const LF = (field, val) => setLeaseForm(p => ({ ...p, [field]: val }))
+
+  /* Helper: render tenant info card (used for both current and past) */
+  const renderTenantInfo = (t) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+      {[
+        { icon: IdCard, label: 'Ad Soyad', value: t.full_name },
+        { icon: Mail, label: 'E-posta', value: t.email || '—' },
+        { icon: Phone, label: 'Telefon', value: t.phone || '—' },
+        { icon: Shield, label: 'TC No', value: t.tc_no || '—' },
+        { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(t.lease_start) },
+        { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(t.lease_end) },
+        { icon: DollarSign, label: 'Aylik Kira', value: t.rent ? money(t.rent) + ' ₺' : '—' },
+        { icon: DollarSign, label: 'Depozito', value: t.deposit ? money(t.deposit) + ' ₺' : '—' }
+      ].map((r, i, arr) => {
+        const Icon = r.icon
+        return (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 22px',
+            borderBottom: i < arr.length - 2 ? `1px solid ${C.borderLight}` : 'none',
+            borderRight: i % 2 === 0 ? `1px solid ${C.borderLight}` : 'none'
+          }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 8, background: '#F0FDFA', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Icon style={{ width: 14, height: 14, color: C.teal }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint }}>{r.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 1 }}>{r.value}</div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 
   return (
     <motion.div variants={container} initial="hidden" animate="show"
@@ -562,208 +568,182 @@ export default function PropertyDetail() {
         </>
       )}
 
-      {/* ── ODEME AKISI ── */}
+      {/* ── ODEME AKISI (info-only log) ── */}
       {tab === 'payments' && (
-        <motion.div variants={fadeItem} style={cardBox}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr 100px',
-            padding: '14px 24px', background: '#FAFBFC',
-            borderBottom: `1px solid ${C.borderLight}`
-          }}>
-            {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi', ''].map((h, i) => (
-              <div key={i} style={{
-                fontSize: 11, fontWeight: 700, color: C.textFaint,
-                textTransform: 'uppercase', letterSpacing: '0.06em'
-              }}>{h}</div>
-            ))}
-          </div>
+        <motion.div variants={fadeItem}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+            Odeme Gecmisi
+          </h2>
+          <div style={cardBox}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
+              padding: '14px 24px', background: '#FAFBFC',
+              borderBottom: `1px solid ${C.borderLight}`
+            }}>
+              {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi'].map((h, i) => (
+                <div key={i} style={{
+                  fontSize: 11, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em'
+                }}>{h}</div>
+              ))}
+            </div>
 
-          {paymentsLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
-            </div>
-          ) : payments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-              Odeme kaydi bulunamadi.
-            </div>
-          ) : payments.map((p, i) => {
-            const isPaid = p.status === 'paid'
-            const diff = daysDiff(p.due_date)
-            const isOverdue = !isPaid && diff < 0
-            return (
-              <div key={p.id} style={{
-                display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr 100px',
-                padding: '14px 24px', alignItems: 'center',
-                borderBottom: `1px solid ${C.borderLight}`
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)} ₺</div>
-                <div>
-                  <span style={{
-                    padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                    background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
-                    color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
-                  }}>
-                    {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
-                  </span>
-                </div>
-                <div style={{ fontSize: 13, color: C.textMuted }}>{p.paid_date ? formatDate(p.paid_date) : '—'}</div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  {isPaid ? (
-                    <button onClick={() => markAsUnpaid(p.id)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: font,
-                        background: '#F1F5F9', color: C.textMuted, border: 'none', cursor: 'pointer'
-                      }}>
-                      <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
-                    </button>
-                  ) : (
-                    <button onClick={() => markAsPaid(p.id)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: font,
-                        background: C.teal, color: 'white', border: 'none', cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(2,88,100,0.2)'
-                      }}>
-                      <Check style={{ width: 12, height: 12 }} /> Odendi
-                    </button>
-                  )}
-                </div>
+            {paymentsLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
               </div>
-            )
-          })}
+            ) : payments.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
+                Odeme kaydi bulunamadi.
+              </div>
+            ) : payments.map((p, i) => {
+              const isPaid = p.status === 'paid'
+              const diff = daysDiff(p.due_date)
+              const isOverdue = !isPaid && diff < 0
+              return (
+                <div key={p.id} style={{
+                  display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
+                  padding: '14px 24px', alignItems: 'center',
+                  borderBottom: i < payments.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                  background: i % 2 === 0 ? 'white' : '#FAFBFC'
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)} ₺</div>
+                  <div>
+                    <span style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                      background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
+                      color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
+                    }}>
+                      {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>{p.paid_date ? formatDate(p.paid_date) : '—'}</div>
+                </div>
+              )
+            })}
+          </div>
         </motion.div>
       )}
 
       {/* ── KIRA SOZLESMESI BILGILERI ── */}
       {tab === 'lease' && (
         <motion.div variants={fadeItem}>
+          {/* ── Güncel Kiracı ── */}
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+            Guncel Kiraci Bilgileri
+          </h2>
           {tenant ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>
-                  Kiraci & Sozlesme Bilgileri
-                </h2>
-                {!editingLease && (
-                  <button onClick={startEditLease}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '8px 16px', borderRadius: 10, background: '#F1F5F9', color: C.textMuted,
-                      border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
-                    }}>
-                    <Pencil style={{ width: 13, height: 13 }} /> Duzenle
-                  </button>
-                )}
-              </div>
-
-              {!editingLease ? (
-                <div style={cardBox}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-                    {[
-                      { icon: IdCard, label: 'Ad Soyad', value: tenant.full_name },
-                      { icon: Mail, label: 'E-posta', value: tenant.email || '—' },
-                      { icon: Phone, label: 'Telefon', value: tenant.phone || '—' },
-                      { icon: Shield, label: 'TC No', value: tenant.tc_no || '—' },
-                      { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(tenant.lease_start) },
-                      { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(tenant.lease_end) },
-                      { icon: DollarSign, label: 'Aylik Kira', value: tenant.rent ? money(tenant.rent) + ' ₺' : '—' },
-                      { icon: DollarSign, label: 'Depozito', value: tenant.deposit ? money(tenant.deposit) + ' ₺' : '—' }
-                    ].map((r, i, arr) => {
-                      const Icon = r.icon
-                      return (
-                        <div key={i} style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '14px 22px',
-                          borderBottom: i < arr.length - 2 ? `1px solid ${C.borderLight}` : 'none',
-                          borderRight: i % 2 === 0 ? `1px solid ${C.borderLight}` : 'none'
-                        }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: 8, background: '#F0FDFA', flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            <Icon style={{ width: 14, height: 14, color: C.teal }} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint }}>{r.label}</div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 1 }}>{r.value}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+            <div style={cardBox}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '16px 22px', borderBottom: `1px solid ${C.borderLight}`,
+                background: '#F0FDFA'
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  background: 'linear-gradient(135deg, #025864 0%, #03363D 100%)',
+                  color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, fontWeight: 800
+                }}>
+                  {tenant.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
-              ) : (
-                /* Lease edit form */
-                <div style={cardBox}>
-                  <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Ad Soyad</label>
-                        <input style={inputStyle} value={leaseForm.full_name} onChange={e => LF('full_name', e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>E-posta</label>
-                        <input style={inputStyle} type="email" value={leaseForm.email} onChange={e => LF('email', e.target.value)} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Telefon</label>
-                        <input style={inputStyle} value={leaseForm.phone} onChange={e => LF('phone', e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>TC No</label>
-                        <input style={inputStyle} value={leaseForm.tc_no} onChange={e => LF('tc_no', e.target.value)} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Sozlesme Baslangic</label>
-                        <input style={inputStyle} type="date" value={leaseForm.lease_start} onChange={e => LF('lease_start', e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Sozlesme Bitis</label>
-                        <input style={inputStyle} type="date" value={leaseForm.lease_end} onChange={e => LF('lease_end', e.target.value)} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Aylik Kira (₺)</label>
-                        <input style={inputStyle} type="number" value={leaseForm.rent} onChange={e => LF('rent', e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Depozito (₺)</label>
-                        <input style={inputStyle} type="number" value={leaseForm.deposit} onChange={e => LF('deposit', e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{
-                    display: 'flex', justifyContent: 'flex-end', gap: 10,
-                    padding: '16px 24px', borderTop: `1px solid ${C.borderLight}`
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tenant.full_name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 1 }}>Aktif Kiraci</div>
+                </div>
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate(`/tenants/list/${tenant.id}`)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 8,
+                    background: C.teal, color: 'white', border: 'none',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                   }}>
-                    <button onClick={() => setEditingLease(false)}
-                      style={{ padding: '9px 18px', borderRadius: 10, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
-                      Iptal
-                    </button>
-                    <button onClick={saveLease} disabled={savingLease}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '9px 20px', borderRadius: 10, background: C.teal, color: 'white', border: 'none',
-                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
-                        opacity: savingLease ? 0.7 : 1, boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
-                      }}>
-                      <Save style={{ width: 14, height: 14 }} />
-                      {savingLease ? 'Kaydediliyor...' : 'Kaydet'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                  Detaya Git
+                </motion.button>
+              </div>
+              {renderTenantInfo(tenant)}
+            </div>
           ) : (
             <div style={{ ...cardBox, textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-              Bu mulkte kiraci bulunmuyor.
+              Bu mulkte guncel kiraci bulunmuyor.
+            </div>
+          )}
+
+          {/* ── Geçmiş Kiracılar ── */}
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '32px 0 16px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Users style={{ width: 18, height: 18, color: C.textMuted }} />
+            Gecmis Kiracilar
+          </h2>
+          {pastTenantsLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+            </div>
+          ) : pastTenants.length === 0 ? (
+            <div style={{ ...cardBox, textAlign: 'center', padding: '28px 24px', color: C.textFaint, fontSize: 14 }}>
+              Gecmis kiraci kaydi bulunamadi.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {pastTenants.map(pt => {
+                const isExpanded = expandedPastTenant === pt.id
+                const initials = pt.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'
+                return (
+                  <div key={pt.id} style={cardBox}>
+                    {/* Clickable header */}
+                    <button
+                      onClick={() => setExpandedPastTenant(isExpanded ? null : pt.id)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '14px 22px', background: isExpanded ? '#F8FAFC' : 'white',
+                        border: 'none', cursor: 'pointer', fontFamily: font, textAlign: 'left',
+                        transition: 'background 0.2s'
+                      }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                        background: '#E2E8F0', color: C.textMuted,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 800
+                      }}>
+                        {initials}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{pt.full_name}</div>
+                        <div style={{ fontSize: 12, color: C.textFaint, marginTop: 1 }}>
+                          {formatDate(pt.lease_start)} — {formatDate(pt.lease_end)}
+                          {pt.rent ? ` · ${money(pt.rent)} ₺/ay` : ''}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                        background: '#F1F5F9', color: C.textMuted, border: '1px solid #E2E8F0'
+                      }}>
+                        Eski Kiraci
+                      </span>
+                      {isExpanded
+                        ? <ChevronDown style={{ width: 16, height: 16, color: C.textFaint }} />
+                        : <ChevronRight style={{ width: 16, height: 16, color: C.textFaint }} />
+                      }
+                    </button>
+                    {/* Expanded details */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                          style={{ overflow: 'hidden', borderTop: `1px solid ${C.borderLight}` }}>
+                          {renderTenantInfo(pt)}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
+              })}
             </div>
           )}
         </motion.div>
