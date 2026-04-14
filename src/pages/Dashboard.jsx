@@ -271,7 +271,7 @@ export default function Dashboard() {
               {money(collectedSum)} ₺
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, position: 'relative', zIndex: 1 }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
               background: 'rgba(255,255,255,0.18)',
@@ -279,7 +279,13 @@ export default function Dashboard() {
             }}>
               <TrendingUp style={{ width: 22, height: 22, color: '#FFFFFF' }} />
             </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <div style={{
+              fontSize: 12, fontWeight: 700, color: '#FFFFFF',
+              background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 8, padding: '4px 12px',
+              whiteSpace: 'nowrap'
+            }}>
               {paidAptCount > 0 ? `${paidAptCount} Mulk'ten` : 'Odeme yok'}
             </div>
           </div>
@@ -308,7 +314,7 @@ export default function Dashboard() {
               {money(overdueMonthSum)} ₺
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
               background: overdueThisMonth.length > 0 ? '#FEF2F2' : '#F1F5F9',
@@ -316,7 +322,14 @@ export default function Dashboard() {
             }}>
               <Clock style={{ width: 22, height: 22, color: overdueThisMonth.length > 0 ? '#DC2626' : '#94A3B8' }} />
             </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <div style={{
+              fontSize: 12, fontWeight: 700,
+              color: overdueThisMonth.length > 0 ? '#DC2626' : '#64748B',
+              background: overdueThisMonth.length > 0 ? '#FEF2F2' : '#F1F5F9',
+              border: overdueThisMonth.length > 0 ? '1px solid #FECACA' : '1px solid #E2E8F0',
+              borderRadius: 8, padding: '4px 12px',
+              whiteSpace: 'nowrap'
+            }}>
               {overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten` : 'Geciken yok'}
             </div>
           </div>
@@ -342,7 +355,7 @@ export default function Dashboard() {
               {money(upcomingMonthSum)} ₺
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
               background: '#F0FDFA',
@@ -350,7 +363,13 @@ export default function Dashboard() {
             }}>
               <CalendarCheck style={{ width: 22, height: 22, color: '#025864' }} />
             </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textAlign: 'center', whiteSpace: 'nowrap' }}>
+            <div style={{
+              fontSize: 12, fontWeight: 700, color: '#025864',
+              background: '#F0FDFA',
+              border: '1px solid #CCE4E8',
+              borderRadius: 8, padding: '4px 12px',
+              whiteSpace: 'nowrap'
+            }}>
               {upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten` : 'Bekleyen yok'}
             </div>
           </div>
