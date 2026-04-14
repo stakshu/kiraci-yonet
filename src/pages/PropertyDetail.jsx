@@ -771,7 +771,7 @@ export default function PropertyDetail() {
 
       {/* ── BELGELER ── */}
       {tab === 'documents' && (
-        <motion.div variants={fadeItem} style={{ maxWidth: 720 }}>
+        <motion.div variants={fadeItem} style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>Belgeler</h2>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
@@ -860,7 +860,7 @@ export default function PropertyDetail() {
 
       {/* ── NOTLAR ── */}
       {tab === 'notes' && (
-        <motion.div variants={fadeItem} style={{ maxWidth: 720 }}>
+        <motion.div variants={fadeItem} style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Mulk Notu */}
             <div style={cardBox}>
