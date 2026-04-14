@@ -44,11 +44,11 @@ export default function RentPayments() {
 
   useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
 
-  /* One-time cleanup: delete future pending payments (beyond current month) */
+  /* One-time cleanup: delete future pending payments (beyond next month) */
   const cleanupFuturePayments = async () => {
     const now = new Date()
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const cutoff = nextMonth.toISOString().split('T')[0]
+    const monthAfterNext = new Date(now.getFullYear(), now.getMonth() + 2, 1)
+    const cutoff = monthAfterNext.toISOString().split('T')[0]
     await supabase
       .from('rent_payments')
       .delete()
@@ -72,7 +72,7 @@ export default function RentPayments() {
     )
 
     const now = new Date()
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
     const newPayments = []
 
     for (const t of tenants) {
@@ -80,10 +80,10 @@ export default function RentPayments() {
       if (rentAmount <= 0 || !t.apartment_id) continue
       const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
 
-      /* Create missing payment records from lease start up to current month */
+      /* Create missing payment records from lease start up to next month */
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
-        if (dueDate > endOfMonth) break
+        if (dueDate > endOfNextMonth) break
         const key = `${t.id}_${dueDate.toISOString().slice(0, 7)}`
         if (existingKeys.has(key)) continue
         newPayments.push({

@@ -150,10 +150,10 @@ export default function TenantsList() {
         const paymentRecords = []
         const startDate = record.lease_start ? new Date(record.lease_start) : new Date()
         const now = new Date()
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
         for (let i = 0; i < 120; i++) {
           const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
-          if (dueDate > endOfMonth) break
+          if (dueDate > endOfNextMonth) break
           paymentRecords.push({
             user_id: session.user.id, tenant_id: tenantId, apartment_id: record.apartment_id,
             due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
