@@ -270,17 +270,18 @@ export default function Dashboard() {
             <div style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
               {money(collectedSum)} ₺
             </div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.65)', marginTop: 8 }}>
-              {paidAptCount > 0 ? `${paidAptCount} Mulk'ten gelen` : 'Henuz odeme yok'}
-            </div>
           </div>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            position: 'relative', zIndex: 1
-          }}>
-            <TrendingUp style={{ width: 22, height: 22, color: '#FFFFFF' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', zIndex: 1 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: 'rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <TrendingUp style={{ width: 22, height: 22, color: '#FFFFFF' }} />
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.65)', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              {paidAptCount > 0 ? `${paidAptCount} Mulk'ten` : 'Odeme yok'}
+            </div>
           </div>
         </motion.div>
 
@@ -306,16 +307,18 @@ export default function Dashboard() {
             }}>
               {money(overdueMonthSum)} ₺
             </div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 8 }}>
-              {overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten geciken` : 'Geciken odeme yok'}
-            </div>
           </div>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: overdueThisMonth.length > 0 ? '#FEF2F2' : '#F1F5F9',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <Clock style={{ width: 22, height: 22, color: overdueThisMonth.length > 0 ? '#DC2626' : '#94A3B8' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: overdueThisMonth.length > 0 ? '#FEF2F2' : '#F1F5F9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Clock style={{ width: 22, height: 22, color: overdueThisMonth.length > 0 ? '#DC2626' : '#94A3B8' }} />
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              {overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten` : 'Geciken yok'}
+            </div>
           </div>
         </motion.div>
 
@@ -338,16 +341,18 @@ export default function Dashboard() {
             <div style={{ fontSize: 28, fontWeight: 800, color: '#025864', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
               {money(upcomingMonthSum)} ₺
             </div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 8 }}>
-              {upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok'}
-            </div>
           </div>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: '#F0FDFA',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <CalendarCheck style={{ width: 22, height: 22, color: '#025864' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: '#F0FDFA',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <CalendarCheck style={{ width: 22, height: 22, color: '#025864' }} />
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              {upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten` : 'Bekleyen yok'}
+            </div>
           </div>
         </motion.div>
 
