@@ -103,18 +103,21 @@ export default function Dashboard() {
   const overdueAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
   const overdueSum = overdueAll.reduce((s, p) => s + Number(p.amount), 0)
   const paidRentCount = paidThisMonth.length
-  const unpaidRentCount = unpaidThisMonth.length
+  const unpaidRentCount = pays.filter(p => p.status !== 'paid').length
 
   const aptTotal = apts.length
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
   const aptVac = aptTotal - aptOcc
 
-  /* Unpaid tenants list — includes tenants with unpaid records + tenants with no record this month */
+  /* All unpaid payments (any month, any status !== 'paid') */
+  const allUnpaid = pays.filter(p => p.status !== 'paid')
+
+  /* Unpaid tenants list — all unpaid/overdue payments + tenants with no record this month */
   const unpaidTenants = useMemo(() => {
     const groups = {}
 
-    // 1) Tenants with explicit unpaid payment records this month
-    unpaidThisMonth.forEach(p => {
+    // 1) All unpaid payment records (current + past months — catches overdue)
+    allUnpaid.forEach(p => {
       if (!p.tenant_id) return
       if (!groups[p.tenant_id]) {
         groups[p.tenant_id] = {
@@ -135,11 +138,11 @@ export default function Dashboard() {
     })
 
     // 2) Tenants who have an apartment but NO payment record at all this month
-    const paidOrRecordedIds = new Set(monthPays.map(p => p.tenant_id).filter(Boolean))
+    const recordedThisMonth = new Set(monthPays.map(p => p.tenant_id).filter(Boolean))
     apts.forEach(apt => {
       const tenant = apt.tenants?.[0]
       if (!tenant) return
-      if (paidOrRecordedIds.has(tenant.id) || groups[tenant.id]) return
+      if (recordedThisMonth.has(tenant.id) || groups[tenant.id]) return
       groups[tenant.id] = {
         name: tenant.full_name || '—',
         email: '',
@@ -151,7 +154,7 @@ export default function Dashboard() {
     })
 
     return Object.values(groups).sort((a, b) => b.daysLate - a.daysLate || b.amount - a.amount)
-  }, [unpaidThisMonth, monthPays, apts])
+  }, [allUnpaid, monthPays, apts])
 
   /* Trend chart */
   const trendData = useMemo(() => {
