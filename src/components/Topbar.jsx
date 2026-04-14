@@ -20,7 +20,7 @@ export default function Topbar({ pathname }) {
   const { user, signOut } = useAuth()
   const { showToast } = useToast()
 
-  const title = ROUTE_TITLES[pathname] || (pathname.startsWith('/properties/') ? 'Mulk Detay' : 'Mulklerim')
+  const title = ROUTE_TITLES[pathname] || (pathname.startsWith('/properties/') ? 'Mulk Detay' : pathname.startsWith('/tenants/list/') ? 'Kiraci Detay' : 'Mulklerim')
 
   const handleLogout = async () => {
     try {

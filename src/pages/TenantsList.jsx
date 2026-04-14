@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
   UserCheck, UserX, AlertTriangle, Search,
   Shield, CreditCard, Home as HomeIcon
 } from 'lucide-react'
-import TenantDetail from '../components/TenantDetail'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 const money = n => Number(n).toLocaleString('tr-TR')
@@ -65,6 +65,7 @@ const EMPTY_FORM = {
 }
 
 export default function TenantsList() {
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const [tenants, setTenants] = useState([])
   const [apartments, setApartments] = useState([])
@@ -76,8 +77,6 @@ export default function TenantsList() {
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState('active')
   const [search, setSearch] = useState('')
-  const [detailTenant, setDetailTenant] = useState(null)
-  const [showDetail, setShowDetail] = useState(false)
 
   useEffect(() => { loadTenants(); loadApartments() }, [])
 
@@ -350,7 +349,7 @@ export default function TenantsList() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03, duration: 0.3 }}
-              onClick={() => { setDetailTenant(t); setShowDetail(true) }}
+              onClick={() => navigate(`/tenants/list/${t.id}`)}
               style={{
                 display: 'grid',
                 gridTemplateColumns: tab === 'active'
@@ -637,13 +636,6 @@ export default function TenantsList() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ═══ TENANT DETAIL DRAWER ═══ */}
-      <TenantDetail
-        tenant={detailTenant}
-        visible={showDetail}
-        onClose={() => { setShowDetail(false); setDetailTenant(null) }}
-      />
     </motion.div>
   )
 }
