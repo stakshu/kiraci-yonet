@@ -449,8 +449,9 @@ export default function PropertyDetail() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 10,
-                    background: '#F1F5F9', color: C.textMuted, border: 'none',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                    background: C.teal, color: 'white', border: 'none',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                    boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
                   }}>
                   <Pencil style={{ width: 13, height: 13 }} /> Duzenle
                 </motion.button>
