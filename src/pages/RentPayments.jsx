@@ -140,7 +140,7 @@ export default function RentPayments() {
       else if (!groups[key].currentPayment) groups[key].currentPayment = p
     })
     Object.values(groups).forEach(g => {
-      g.paidPayments.sort((a, b) => new Date(b.paid_date || b.due_date) - new Date(a.paid_date || a.due_date))
+      g.paidPayments.sort((a, b) => new Date(b.due_date) - new Date(a.due_date))
     })
     return Object.values(groups)
   }
