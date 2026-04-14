@@ -103,21 +103,22 @@ export default function Dashboard() {
   const overdueAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
   const overdueSum = overdueAll.reduce((s, p) => s + Number(p.amount), 0)
   const paidRentCount = paidThisMonth.length
-  const unpaidRentCount = pays.filter(p => p.status !== 'paid').length
+
+  /* Due payments: unpaid records where due_date <= end of current month (no future months) */
+  const endOfMonth = new Date(cy, cm + 1, 0, 23, 59, 59)
+  const dueUnpaid = pays.filter(p => p.status !== 'paid' && new Date(p.due_date) <= endOfMonth)
+  const unpaidRentCount = dueUnpaid.length
 
   const aptTotal = apts.length
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
   const aptVac = aptTotal - aptOcc
 
-  /* All unpaid payments (any month, any status !== 'paid') */
-  const allUnpaid = pays.filter(p => p.status !== 'paid')
-
-  /* Unpaid tenants list — all unpaid/overdue payments + tenants with no record this month */
+  /* Unpaid tenants list — only due payments (past + current month), not future */
   const unpaidTenants = useMemo(() => {
     const groups = {}
 
-    // 1) All unpaid payment records (current + past months — catches overdue)
-    allUnpaid.forEach(p => {
+    // 1) Unpaid payments where due_date <= end of this month (past overdue + this month's unpaid)
+    dueUnpaid.forEach(p => {
       if (!p.tenant_id) return
       if (!groups[p.tenant_id]) {
         groups[p.tenant_id] = {
@@ -137,24 +138,8 @@ export default function Dashboard() {
       }
     })
 
-    // 2) Tenants who have an apartment but NO payment record at all this month
-    const recordedThisMonth = new Set(monthPays.map(p => p.tenant_id).filter(Boolean))
-    apts.forEach(apt => {
-      const tenant = apt.tenants?.[0]
-      if (!tenant) return
-      if (recordedThisMonth.has(tenant.id) || groups[tenant.id]) return
-      groups[tenant.id] = {
-        name: tenant.full_name || '—',
-        email: '',
-        apt: `${apt.building || '—'} ${apt.unit_no || ''}`.trim(),
-        amount: Number(tenant.rent) || 0,
-        daysLate: 0,
-        isOverdue: false
-      }
-    })
-
     return Object.values(groups).sort((a, b) => b.daysLate - a.daysLate || b.amount - a.amount)
-  }, [allUnpaid, monthPays, apts])
+  }, [dueUnpaid])
 
   /* Trend chart */
   const trendData = useMemo(() => {
