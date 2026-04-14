@@ -60,6 +60,7 @@ export default function RentPayments() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
   const [expandedTenant, setExpandedTenant] = useState(null)
+  const [expandedPast, setExpandedPast] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
@@ -813,11 +814,11 @@ export default function RentPayments() {
             {/* Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1.5fr 1fr 120px 120px 100px',
+              gridTemplateColumns: '1.5fr 1fr 120px 100px 30px',
               padding: '12px 24px', background: '#FAFBFC',
               borderBottom: `1px solid ${C.borderLight}`
             }}>
-              {['Kiracı', 'Daire', 'Tutar', 'Ödeme Tarihi', 'Durum'].map((h, i) => (
+              {['Kiracı', 'Daire', 'Toplam Ödeme', 'Kayıt', ''].map((h, i) => (
                 <div key={i} style={{
                   fontSize: 11, fontWeight: 700, color: C.textFaint,
                   textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -828,66 +829,106 @@ export default function RentPayments() {
             {/* Rows */}
             {pastTenantGroups.map(group => {
               const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-              return group.paidPayments.map((p, pIdx) => (
-                <div key={p.id} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.5fr 1fr 120px 120px 100px',
-                  padding: '12px 24px', alignItems: 'center',
-                  borderBottom: `1px solid ${C.borderLight}`
-                }}>
-                  {/* Kiracı */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {pIdx === 0 ? (
+              const isOpen = expandedPast === group.tenantId
+              const totalPaid = group.paidPayments.reduce((s, p) => s + Number(p.amount), 0)
+
+              return (
+                <React.Fragment key={group.tenantId}>
+                  {/* Summary row */}
+                  <motion.div
+                    onClick={() => setExpandedPast(prev => prev === group.tenantId ? null : group.tenantId)}
+                    whileHover={{ backgroundColor: '#F8FAFC' }}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.5fr 1fr 120px 100px 30px',
+                      padding: '14px 24px', alignItems: 'center',
+                      borderBottom: `1px solid ${C.borderLight}`,
+                      cursor: 'pointer', transition: 'background 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{
                         width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                         background: '#F1F5F9', color: C.textMuted,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 12, fontWeight: 800
                       }}>{initials}</div>
-                    ) : (
-                      <div style={{ width: 36, flexShrink: 0 }} />
-                    )}
-                    <div>
-                      <span style={{ fontSize: 13, fontWeight: pIdx === 0 ? 700 : 500, color: pIdx === 0 ? C.text : C.textMuted }}>
-                        {pIdx === 0 ? group.tenantName : formatDate(p.due_date)}
-                      </span>
-                      {pIdx === 0 && (
-                        <div style={{ fontSize: 11, color: C.textFaint, marginTop: 1 }}>
-                          {formatDate(p.due_date)}
-                        </div>
-                      )}
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{group.tenantName}</div>
                     </div>
-                  </div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>{group.aptName}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                      {money(totalPaid)} ₺
+                    </div>
+                    <div style={{ fontSize: 12, color: C.textFaint }}>{group.paidPayments.length} ödeme</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }} style={{ color: C.textFaint }}>
+                        <ChevronDown style={{ width: 16, height: 16 }} />
+                      </motion.div>
+                    </div>
+                  </motion.div>
 
-                  {/* Daire */}
-                  <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
-                    {pIdx === 0 ? group.aptName : ''}
-                  </div>
-
-                  {/* Tutar */}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                    {money(p.amount)} ₺
-                  </div>
-
-                  {/* Ödeme Tarihi */}
-                  <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
-                    {p.paid_date ? formatDate(p.paid_date) : '—'}
-                  </div>
-
-                  {/* Durum */}
-                  <div>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center',
-                      padding: '3px 10px', borderRadius: 6,
-                      fontSize: 11, fontWeight: 600,
-                      background: '#F0FDF4', color: '#059669',
-                      border: '1px solid #A7F3D0'
-                    }}>
-                      Ödendi
-                    </span>
-                  </div>
-                </div>
-              ))
+                  {/* Expanded detail */}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        style={{ overflow: 'hidden', borderBottom: `1px solid ${C.borderLight}` }}
+                      >
+                        <div style={{ padding: '16px 24px 20px', background: '#FAFBFC' }}>
+                          {/* Column headers */}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                            gap: 16, padding: '6px 14px',
+                            fontSize: 10, fontWeight: 600, color: C.textFaint,
+                            textTransform: 'uppercase', letterSpacing: '0.06em'
+                          }}>
+                            <span>Vade Tarihi</span>
+                            <span>Tutar</span>
+                            <span>Durum</span>
+                            <span>Ödeme Tarihi</span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {group.paidPayments.map(p => {
+                              const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
+                              return (
+                                <div key={p.id} style={{
+                                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                                  alignItems: 'center', gap: 16,
+                                  padding: '10px 14px', borderRadius: 8,
+                                  background: '#FFFFFF', borderBottom: `1px solid ${C.borderLight}`
+                                }}>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
+                                    {formatDate(p.due_date)}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                    {money(p.amount)} ₺
+                                  </span>
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', width: 'fit-content',
+                                    padding: '3px 10px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: 600,
+                                    background: paidLate ? '#FFFBEB' : '#F0FDF4',
+                                    color: paidLate ? C.amber : '#059669',
+                                    border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
+                                  }}>
+                                    {paidLate ? 'Geç Ödendi' : 'Zamanında'}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
+                                    {p.paid_date ? formatDate(p.paid_date) : '—'}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </React.Fragment>
+              )
             })}
           </div>
         </motion.div>
