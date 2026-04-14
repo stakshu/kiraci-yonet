@@ -9,7 +9,8 @@ import {
   Layers, Maximize2, Clock, Check, Undo2, Pencil, X, Save,
   FileText, StickyNote, CreditCard, ScrollText, CalendarDays,
   Mail, Phone, IdCard, DollarSign, Shield, Upload, Trash2,
-  Download, Plus, FileUp, ChevronDown, ChevronRight, Users, User
+  Download, Plus, FileUp, ChevronDown, ChevronRight, Users, User,
+  AlertTriangle, UserMinus
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -105,6 +106,10 @@ export default function PropertyDetail() {
   const [noteText, setNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
 
+  /* End lease confirmation */
+  const [showEndLease, setShowEndLease] = useState(false)
+  const [endingLease, setEndingLease] = useState(false)
+
   /* Documents */
   const [documents, setDocuments] = useState([])
   const [uploading, setUploading] = useState(false)
@@ -163,6 +168,23 @@ export default function PropertyDetail() {
       setPastTenants([])
     }
     setPastTenantsLoading(false)
+  }
+
+  const confirmEndLease = async () => {
+    const t = apt?.tenants?.[0]
+    if (!t) return
+    setEndingLease(true)
+    const { error } = await supabase
+      .from('tenants')
+      .update({ apartment_id: null })
+      .eq('id', t.id)
+    setEndingLease(false)
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+    showToast(`${t.full_name} sözleşmesi sonlandırıldı.`, 'success')
+    setShowEndLease(false)
+    loadProperty()
+    // Refresh past tenants if lease tab is active
+    if (tab === 'lease') loadPastTenants()
   }
 
   const loadDocuments = async () => {
@@ -653,16 +675,29 @@ export default function PropertyDetail() {
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tenant.full_name}</div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 1 }}>Aktif Kiraci</div>
                 </div>
-                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                  onClick={() => navigate(`/tenants/list/${tenant.id}`)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 14px', borderRadius: 8,
-                    background: C.teal, color: 'white', border: 'none',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
-                  }}>
-                  Detaya Git
-                </motion.button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => setShowEndLease(true)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', borderRadius: 8,
+                      background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                    }}>
+                    <UserMinus style={{ width: 13, height: 13 }} />
+                    Sozlesmeyi Sonlandir
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => navigate(`/tenants/list/${tenant.id}`)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', borderRadius: 8,
+                      background: C.teal, color: 'white', border: 'none',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                    }}>
+                    Detaya Git
+                  </motion.button>
+                </div>
               </div>
               {renderTenantInfo(tenant)}
             </div>
@@ -938,6 +973,79 @@ export default function PropertyDetail() {
           </div>
         </motion.div>
       )}
+      {/* ═══ END LEASE CONFIRMATION MODAL ═══ */}
+      <AnimatePresence>
+        {showEndLease && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+            onClick={() => !endingLease && setShowEndLease(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'white', borderRadius: 20, padding: '32px',
+                maxWidth: 420, width: '90%',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
+                fontFamily: font
+              }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 14,
+                background: '#FEF2F2', border: '1px solid #FECACA',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <AlertTriangle style={{ width: 24, height: 24, color: '#DC2626' }} />
+              </div>
+              <h3 style={{
+                fontSize: 18, fontWeight: 800, color: C.text,
+                textAlign: 'center', margin: '0 0 8px', letterSpacing: '-0.01em'
+              }}>
+                Sozlesmeyi Sonlandir
+              </h3>
+              <p style={{
+                fontSize: 14, color: C.textMuted, textAlign: 'center',
+                margin: '0 0 24px', lineHeight: 1.6
+              }}>
+                <strong style={{ color: C.text }}>{tenant?.full_name}</strong> adli kiraci
+                bu daireden cikarilacaktir. Kiraci gecmis kiracilar listesine tasinacaktir.
+                <br />Bu islemi onayliyor musunuz?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setShowEndLease(false)}
+                  disabled={endingLease}
+                  style={{
+                    flex: 1, padding: '11px 16px', borderRadius: 12,
+                    background: '#F1F5F9', color: C.textMuted, border: 'none',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: font
+                  }}>
+                  Vazgec
+                </button>
+                <button
+                  onClick={confirmEndLease}
+                  disabled={endingLease}
+                  style={{
+                    flex: 1, padding: '11px 16px', borderRadius: 12,
+                    background: '#DC2626', color: 'white', border: 'none',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: font,
+                    opacity: endingLease ? 0.7 : 1,
+                    boxShadow: '0 4px 14px rgba(220,38,38,0.3)'
+                  }}>
+                  {endingLease ? 'Isleniyor...' : 'Evet, Sonlandir'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
