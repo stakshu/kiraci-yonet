@@ -140,7 +140,7 @@ export default function PropertyDetail() {
   const loadPayments = async () => {
     setPaymentsLoading(true)
     const { data } = await supabase
-      .from('rent_payments').select('*')
+      .from('rent_payments').select('*, tenants(id, full_name)')
       .eq('apartment_id', id)
       .order('due_date', { ascending: false })
     setPayments(data || [])
@@ -590,62 +590,102 @@ export default function PropertyDetail() {
         </>
       )}
 
-      {/* ── ODEME AKISI (info-only log) ── */}
+      {/* ── ODEME AKISI (info-only log, grouped by tenant) ── */}
       {tab === 'payments' && (
         <motion.div variants={fadeItem}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
-            Odeme Gecmisi
-          </h2>
-          <div style={cardBox}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
-              padding: '14px 24px', background: '#FAFBFC',
-              borderBottom: `1px solid ${C.borderLight}`
-            }}>
-              {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi'].map((h, i) => (
-                <div key={i} style={{
-                  fontSize: 11, fontWeight: 700, color: C.textFaint,
-                  textTransform: 'uppercase', letterSpacing: '0.06em'
-                }}>{h}</div>
-              ))}
+          {paymentsLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
             </div>
+          ) : payments.length === 0 ? (
+            <div style={{ ...cardBox, textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
+              Odeme kaydi bulunamadi.
+            </div>
+          ) : (() => {
+            // Group payments by tenant
+            const currentTenantId = tenant?.id
+            const grouped = {}
+            payments.forEach(p => {
+              const tid = p.tenant_id || 'unknown'
+              if (!grouped[tid]) grouped[tid] = { name: p.tenants?.full_name || 'Bilinmeyen', payments: [], isCurrent: tid === currentTenantId }
+              grouped[tid].payments.push(p)
+            })
+            // Sort: current tenant first, then past tenants
+            const sections = Object.values(grouped).sort((a, b) => {
+              if (a.isCurrent && !b.isCurrent) return -1
+              if (!a.isCurrent && b.isCurrent) return 1
+              return 0
+            })
 
-            {paymentsLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
-              </div>
-            ) : payments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-                Odeme kaydi bulunamadi.
-              </div>
-            ) : payments.map((p, i) => {
-              const isPaid = p.status === 'paid'
-              const diff = daysDiff(p.due_date)
-              const isOverdue = !isPaid && diff < 0
-              return (
-                <div key={p.id} style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
-                  padding: '14px 24px', alignItems: 'center',
-                  borderBottom: i < payments.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-                  background: i % 2 === 0 ? 'white' : '#FAFBFC'
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)} ₺</div>
-                  <div>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                      background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
-                      color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
-                    }}>
-                      {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
-                    </span>
+            return sections.map((section, si) => (
+              <div key={si} style={{ marginBottom: si < sections.length - 1 ? 20 : 0 }}>
+                {/* Tenant header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+                    background: section.isCurrent
+                      ? 'linear-gradient(135deg, #025864 0%, #03363D 100%)'
+                      : '#E2E8F0',
+                    color: section.isCurrent ? 'white' : C.textMuted,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 800
+                  }}>
+                    {section.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
-                  <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>{p.paid_date ? formatDate(p.paid_date) : '—'}</div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{section.name}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: section.isCurrent ? '#059669' : C.textFaint }}>
+                      {section.isCurrent ? 'Guncel Kiraci' : 'Gecmis Kiraci'} · {section.payments.length} odeme
+                    </div>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
+
+                <div style={cardBox}>
+                  {/* Table header */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
+                    padding: '12px 24px', background: '#FAFBFC',
+                    borderBottom: `1px solid ${C.borderLight}`
+                  }}>
+                    {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi'].map((h, i) => (
+                      <div key={i} style={{
+                        fontSize: 11, fontWeight: 700, color: C.textFaint,
+                        textTransform: 'uppercase', letterSpacing: '0.06em'
+                      }}>{h}</div>
+                    ))}
+                  </div>
+                  {/* Payment rows */}
+                  {section.payments.map((p, i) => {
+                    const isPaid = p.status === 'paid'
+                    const diff = daysDiff(p.due_date)
+                    const isOverdue = !isPaid && diff < 0
+                    return (
+                      <div key={p.id} style={{
+                        display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr',
+                        padding: '13px 24px', alignItems: 'center',
+                        borderBottom: i < section.payments.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                        background: i % 2 === 0 ? 'white' : '#FAFBFC'
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)} ₺</div>
+                        <div>
+                          <span style={{
+                            padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
+                            color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
+                          }}>
+                            {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>{p.paid_date ? formatDate(p.paid_date) : '—'}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))
+          })()}
         </motion.div>
       )}
 
