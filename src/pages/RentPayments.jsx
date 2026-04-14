@@ -424,355 +424,334 @@ export default function RentPayments() {
         </div>
       </motion.div>
 
-      {/* ═══ TENANT PAYMENT CARDS ═══ */}
-      {error ? (
-        <motion.div variants={fadeItem} style={{
-          ...cardBox, padding: 40, textAlign: 'center', color: C.red, fontSize: 14
+      {/* ═══ PAYMENT TABLE ═══ */}
+      <motion.div variants={fadeItem} style={cardBox}>
+        {/* Header row */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1.5fr 1fr 120px 100px 110px 140px 30px',
+          padding: '14px 24px', background: '#FAFBFC',
+          borderBottom: `1px solid ${C.borderLight}`
         }}>
-          Hata: {error}
-        </motion.div>
-      ) : sorted.length === 0 ? (
-        <motion.div variants={fadeItem} style={{
-          ...cardBox, padding: 60, textAlign: 'center'
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16, background: '#F8FAFC',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px'
-          }}>
-            <CreditCard style={{ width: 24, height: 24, color: C.textFaint }} />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: C.textMuted }}>
+          {['Kiracı', 'Daire', 'Tutar', 'Durum', 'Kalan', 'Aksiyon', ''].map((h, i) => (
+            <div key={i} style={{
+              fontSize: 11, fontWeight: 700, color: C.textFaint,
+              textTransform: 'uppercase', letterSpacing: '0.06em'
+            }}>{h}</div>
+          ))}
+        </div>
+
+        {/* Rows */}
+        {error ? (
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>Hata: {error}</div>
+        ) : sorted.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
             {searchQuery || filter ? 'Bu filtreye uygun ödeme bulunamadı.' : 'Henüz ödeme kaydı yok.'}
           </div>
-          <div style={{ fontSize: 13, color: C.textFaint, marginTop: 4 }}>
-            Kiracı ekleyip kira tutarı belirledikten sonra ödemeler otomatik oluşturulur.
-          </div>
-        </motion.div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {sorted.map((group, idx) => {
-            const mainPayment = getMainPayment(group)
-            const isExpanded = expandedTenant === group.tenantId
-            const hasPaidHistory = group.paidPayments.length > 0
-            const hasExtraOverdue = group.overduePayments.length > 1
-            const canExpand = hasPaidHistory || hasExtraOverdue
-            const st = mainPayment ? realStatus(mainPayment) : 'paid'
-            const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
+        ) : sorted.map((group, idx) => {
+          const mainPayment = getMainPayment(group)
+          const isExpanded = expandedTenant === group.tenantId
+          const hasPaidHistory = group.paidPayments.length > 0
+          const hasExtraOverdue = group.overduePayments.length > 1
+          const canExpand = hasPaidHistory || hasExtraOverdue
+          const st = mainPayment ? realStatus(mainPayment) : 'paid'
+          const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
 
-            let dayLabel = ''
-            if (!mainPayment) dayLabel = '—'
-            else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gün gecikti'
-            else if (diff === 0) dayLabel = 'Bugün'
-            else if (diff === 1) dayLabel = 'Yarın'
-            else dayLabel = diff + ' gün kaldı'
+          let dayLabel = ''
+          if (!mainPayment) dayLabel = '—'
+          else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gün gecikti'
+          else if (diff === 0) dayLabel = 'Bugün'
+          else if (diff === 1) dayLabel = 'Yarın'
+          else dayLabel = diff + ' gün kaldı'
 
-            const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+          const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 
-            const statusColor = st === 'overdue' ? C.red : st === 'pending' ? C.amber : C.green
-            const statusBg = st === 'overdue' ? '#FEF2F2' : st === 'pending' ? '#FFFBEB' : '#F0FDF4'
-            const statusLabel = st === 'overdue' ? 'Gecikti' : st === 'pending' ? 'Bekliyor' : 'Ödendi'
+          const statusColor = st === 'overdue' ? C.red : st === 'pending' ? C.amber : C.green
+          const statusBg = st === 'overdue' ? '#FEF2F2' : st === 'pending' ? '#FFFBEB' : '#F0FDF4'
+          const statusLabel = st === 'overdue' ? 'Gecikti' : st === 'pending' ? 'Bekliyor' : 'Ödendi'
 
-            return (
-              <motion.div key={group.tenantId}
-                variants={fadeItem}
+          return (
+            <React.Fragment key={group.tenantId}>
+              {/* ── Main Row ── */}
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03, duration: 0.3 }}
+                onClick={() => canExpand && toggleExpand(group.tenantId)}
+                whileHover={{ backgroundColor: '#F8FAFC' }}
                 style={{
-                  ...cardBox,
-                  borderLeft: st === 'overdue' ? `3px solid ${C.red}` : st === 'pending' ? `3px solid ${C.amber}` : `3px solid ${C.green}`,
-                  transition: 'box-shadow 0.2s'
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1fr 120px 100px 110px 140px 30px',
+                  padding: '14px 24px', alignItems: 'center',
+                  borderBottom: `1px solid ${C.borderLight}`,
+                  cursor: canExpand ? 'pointer' : 'default',
+                  transition: 'background 0.15s'
                 }}
               >
-                {/* ── Main Row ── */}
-                <motion.div
-                  onClick={() => canExpand && toggleExpand(group.tenantId)}
-                  whileHover={{ backgroundColor: canExpand ? '#FAFBFC' : '#FFFFFF' }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 16,
-                    padding: '18px 22px',
-                    cursor: canExpand ? 'pointer' : 'default',
-                    transition: 'background 0.15s'
-                  }}
-                >
-                  {/* Avatar */}
+                {/* Kiracı */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                    background: st === 'overdue'
-                      ? 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)'
-                      : st === 'pending'
-                        ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)'
-                        : `linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)`,
+                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                    background: '#F0FDFA', color: C.teal,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, fontWeight: 700,
-                    color: st === 'overdue' ? '#991B1B' : st === 'pending' ? '#92400E' : '#065F46'
-                  }}>
-                    {initials}
-                  </div>
-
-                  {/* Tenant Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: '-0.01em' }}>
-                        {group.tenantName}
-                      </span>
+                    fontSize: 12, fontWeight: 800
+                  }}>{initials}</div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{group.tenantName}</span>
                       {group.overduePayments.length > 1 && (
                         <span style={{
-                          fontSize: 10, fontWeight: 700, color: '#FFFFFF',
-                          background: C.red, borderRadius: 6, padding: '2px 7px',
-                          letterSpacing: '0.02em'
+                          fontSize: 10, fontWeight: 700, color: C.red,
+                          background: '#FEF2F2', borderRadius: 6, padding: '2px 6px',
+                          border: '1px solid #FECACA'
                         }}>
-                          +{group.overduePayments.length - 1} geciken
+                          +{group.overduePayments.length - 1}
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 3 }}>
-                      <span style={{ fontSize: 12, color: C.textFaint, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Building2 style={{ width: 12, height: 12 }} /> {group.aptName}
-                      </span>
-                      {group.tenantEmail && (
-                        <span style={{ fontSize: 12, color: C.textFaint, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Mail style={{ width: 12, height: 12 }} /> {group.tenantEmail}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Payment amount */}
-                  <div style={{ textAlign: 'right', marginRight: 8 }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: '-0.02em' }}>
-                      {mainPayment ? money(mainPayment.amount) : '—'} ₺
-                    </div>
-                    <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: C.textFaint, marginTop: 1 }}>
                       {mainPayment ? formatDate(mainPayment.due_date) : ''}
                     </div>
                   </div>
+                </div>
 
-                  {/* Status badge */}
-                  <div style={{
-                    padding: '6px 14px', borderRadius: 10,
-                    background: statusBg, border: `1px solid ${statusColor}20`,
-                    fontSize: 12, fontWeight: 600, color: statusColor,
-                    whiteSpace: 'nowrap'
+                {/* Daire */}
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{group.aptName}</div>
+
+                {/* Tutar */}
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                  {mainPayment ? money(mainPayment.amount) + ' ₺' : '— ₺'}
+                </div>
+
+                {/* Durum */}
+                <div>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '4px 10px', borderRadius: 6,
+                    fontSize: 11, fontWeight: 600,
+                    background: statusBg, color: statusColor,
+                    border: `1px solid ${statusColor}25`
                   }}>
                     {statusLabel}
-                  </div>
+                  </span>
+                </div>
 
-                  {/* Days info */}
-                  <div style={{
-                    fontSize: 12, fontWeight: st === 'overdue' ? 700 : 500,
-                    color: st === 'overdue' ? C.red : st === 'pending' && diff <= 3 ? C.amber : C.textFaint,
-                    minWidth: 100, textAlign: 'center', whiteSpace: 'nowrap'
-                  }}>
-                    {dayLabel}
-                  </div>
+                {/* Kalan */}
+                <div style={{
+                  fontSize: 12, fontWeight: st === 'overdue' ? 700 : 500,
+                  color: st === 'overdue' ? C.red : st === 'pending' && diff <= 3 ? C.amber : C.textFaint
+                }}>
+                  {dayLabel}
+                </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    {mainPayment && st !== 'paid' && (
-                      <>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                          onClick={(e) => markAsPaid(e, mainPayment.id)}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            padding: '7px 14px', borderRadius: 10, border: 'none',
-                            background: C.teal, color: '#FFFFFF',
-                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
-                            boxShadow: '0 2px 8px rgba(2,88,100,0.2)'
-                          }}>
-                          <Check style={{ width: 14, height: 14 }} /> Ödendi
-                        </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                          onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }}
-                          title="Hatırlatma maili gönder"
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            padding: '7px 12px', borderRadius: 10,
-                            border: `1.5px solid ${C.border}`, background: C.card,
-                            color: C.textMuted, fontSize: 12, fontWeight: 600,
-                            cursor: 'pointer', fontFamily: font
-                          }}>
-                          <Mail style={{ width: 14, height: 14 }} /> Hatırla
-                        </motion.button>
-                      </>
-                    )}
-                  </div>
+                {/* Aksiyon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {mainPayment && st !== 'paid' && (
+                    <>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={(e) => markAsPaid(e, mainPayment.id)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '6px 12px', borderRadius: 8, border: 'none',
+                          background: C.teal, color: '#FFFFFF',
+                          fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                        }}>
+                        <Check style={{ width: 13, height: 13 }} /> Ödendi
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }}
+                        title="Hatırlatma maili gönder"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '6px 10px', borderRadius: 8,
+                          border: `1.5px solid ${C.border}`, background: C.card,
+                          color: C.textMuted, fontSize: 11, fontWeight: 600,
+                          cursor: 'pointer', fontFamily: font
+                        }}>
+                        <Mail style={{ width: 13, height: 13 }} />
+                      </motion.button>
+                    </>
+                  )}
+                </div>
 
-                  {/* Expand chevron */}
+                {/* Expand chevron */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {canExpand && (
                     <motion.div
                       animate={{ rotate: isExpanded ? 180 : 0 }}
                       transition={{ duration: 0.25 }}
-                      style={{ color: C.textFaint, flexShrink: 0 }}
+                      style={{ color: C.textFaint }}
                     >
-                      <ChevronDown style={{ width: 18, height: 18 }} />
+                      <ChevronDown style={{ width: 16, height: 16 }} />
                     </motion.div>
                   )}
-                </motion.div>
+                </div>
+              </motion.div>
 
-                {/* ── Expanded Detail ── */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                      style={{ overflow: 'hidden' }}
-                    >
-                      <div style={{
-                        padding: '0 22px 20px 22px',
-                        borderTop: `1px solid ${C.borderLight}`
-                      }}>
+              {/* ── Expanded Detail ── */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ overflow: 'hidden', borderBottom: `1px solid ${C.borderLight}` }}
+                  >
+                    <div style={{
+                      padding: '16px 24px 20px 72px',
+                      background: '#FAFBFC'
+                    }}>
 
-                        {/* Extra overdue payments */}
-                        {group.overduePayments.length > 1 && (
-                          <div style={{ marginTop: 18 }}>
-                            <div style={{
-                              fontSize: 11, fontWeight: 700, color: C.red,
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                              marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
-                            }}>
-                              <AlertTriangle style={{ width: 13, height: 13 }} />
-                              Geciken Ödemeler
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {group.overduePayments.slice(1).map(p => {
-                                const d = daysDiff(p.due_date)
-                                return (
-                                  <div key={p.id} style={{
-                                    display: 'flex', alignItems: 'center', gap: 14,
-                                    padding: '10px 14px', borderRadius: 10,
-                                    background: '#FEF2F2', border: '1px solid #FECACA'
-                                  }}>
-                                    <CalendarDays style={{ width: 14, height: 14, color: C.red, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text, minWidth: 120 }}>
-                                      {formatDate(p.due_date)}
-                                    </span>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                      {money(p.amount)} ₺
-                                    </span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.red, flex: 1 }}>
-                                      {Math.abs(d)} gün gecikti
-                                    </span>
-                                    <div style={{ display: 'flex', gap: 6 }}>
-                                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                        onClick={(e) => markAsPaid(e, p.id)}
-                                        style={{
-                                          padding: '5px 12px', borderRadius: 8, border: 'none',
-                                          background: C.teal, color: '#FFFFFF',
-                                          fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
-                                        }}>
-                                        Ödendi
-                                      </motion.button>
-                                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                        onClick={(e) => { e.stopPropagation(); sendReminder(p) }}
-                                        style={{
-                                          padding: '5px 12px', borderRadius: 8,
-                                          border: `1.5px solid ${C.border}`, background: C.card,
-                                          color: C.textMuted, fontSize: 11, fontWeight: 600,
-                                          cursor: 'pointer', fontFamily: font
-                                        }}>
-                                        Hatırla
-                                      </motion.button>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
+                      {/* Extra overdue payments */}
+                      {group.overduePayments.length > 1 && (
+                        <div style={{ marginBottom: group.paidPayments.length > 0 ? 18 : 0 }}>
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, color: C.red,
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
+                          }}>
+                            <AlertTriangle style={{ width: 13, height: 13 }} />
+                            Geciken Ödemeler
                           </div>
-                        )}
-
-                        {/* Payment history */}
-                        {group.paidPayments.length > 0 && (
-                          <div style={{ marginTop: group.overduePayments.length > 1 ? 20 : 18 }}>
-                            <div style={{
-                              fontSize: 11, fontWeight: 700, color: C.teal,
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                              marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
-                            }}>
-                              <Check style={{ width: 13, height: 13 }} />
-                              Ödeme Geçmişi ({group.paidPayments.length})
-                            </div>
-
-                            {/* Column headers */}
-                            <div style={{
-                              display: 'grid', gridTemplateColumns: '1fr 100px 100px 1fr auto',
-                              gap: 12, padding: '6px 14px',
-                              fontSize: 10, fontWeight: 600, color: C.textFaint,
-                              textTransform: 'uppercase', letterSpacing: '0.06em'
-                            }}>
-                              <span>Vade Tarihi</span>
-                              <span>Tutar</span>
-                              <span>Durum</span>
-                              <span>Ödeme Tarihi</span>
-                              <span></span>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {group.paidPayments.map(p => {
-                                const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
-                                return (
-                                  <div key={p.id} style={{
-                                    display: 'grid', gridTemplateColumns: '1fr 100px 100px 1fr auto',
-                                    alignItems: 'center', gap: 12,
-                                    padding: '10px 14px', borderRadius: 8,
-                                    background: '#FAFBFC',
-                                    borderBottom: `1px solid ${C.borderLight}`
-                                  }}>
-                                    <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
-                                      {formatDate(p.due_date)}
-                                    </span>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                                      {money(p.amount)} ₺
-                                    </span>
-                                    <span style={{
-                                      display: 'inline-flex', alignItems: 'center',
-                                      padding: '3px 10px', borderRadius: 6,
-                                      fontSize: 11, fontWeight: 600,
-                                      background: paidLate ? '#FFFBEB' : '#F0FDF4',
-                                      color: paidLate ? C.amber : '#059669',
-                                      border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
-                                    }}>
-                                      {paidLate ? 'Geç Ödendi' : 'Zamanında'}
-                                    </span>
-                                    <span style={{ fontSize: 12, color: C.textFaint }}>
-                                      {p.paid_date ? formatDate(p.paid_date) : ''}
-                                    </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {group.overduePayments.slice(1).map(p => {
+                              const d = daysDiff(p.due_date)
+                              return (
+                                <div key={p.id} style={{
+                                  display: 'grid', gridTemplateColumns: '140px 100px 1fr auto',
+                                  alignItems: 'center', gap: 12,
+                                  padding: '8px 14px', borderRadius: 8,
+                                  background: '#FFFFFF', border: `1px solid ${C.borderLight}`
+                                }}>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
+                                    {formatDate(p.due_date)}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                    {money(p.amount)} ₺
+                                  </span>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: C.red }}>
+                                    {Math.abs(d)} gün gecikti
+                                  </span>
+                                  <div style={{ display: 'flex', gap: 6 }}>
                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                      onClick={(e) => markAsUnpaid(e, p.id)}
+                                      onClick={(e) => markAsPaid(e, p.id)}
                                       style={{
-                                        padding: '4px 10px', borderRadius: 8,
-                                        border: `1.5px solid ${C.border}`, background: C.card,
-                                        color: C.textMuted, fontSize: 11, fontWeight: 600,
-                                        cursor: 'pointer', fontFamily: font,
-                                        display: 'inline-flex', alignItems: 'center', gap: 4
+                                        padding: '5px 12px', borderRadius: 8, border: 'none',
+                                        background: C.teal, color: '#FFFFFF',
+                                        fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
                                       }}>
-                                      <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
+                                      Ödendi
+                                    </motion.button>
+                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                      onClick={(e) => { e.stopPropagation(); sendReminder(p) }}
+                                      style={{
+                                        padding: '5px 12px', borderRadius: 8,
+                                        border: `1.5px solid ${C.border}`, background: '#FFFFFF',
+                                        color: C.textMuted, fontSize: 11, fontWeight: 600,
+                                        cursor: 'pointer', fontFamily: font
+                                      }}>
+                                      Hatırla
                                     </motion.button>
                                   </div>
-                                )
-                              })}
-                            </div>
+                                </div>
+                              )
+                            })}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {group.paidPayments.length === 0 && group.overduePayments.length <= 1 && (
+                      {/* Payment history */}
+                      {group.paidPayments.length > 0 && (
+                        <div>
                           <div style={{
-                            marginTop: 18, padding: 20, textAlign: 'center',
-                            fontSize: 13, color: C.textFaint, background: '#FAFBFC',
-                            borderRadius: 10
+                            fontSize: 11, fontWeight: 700, color: C.teal,
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
                           }}>
-                            Henüz ödeme geçmişi yok.
+                            <Check style={{ width: 13, height: 13 }} />
+                            Ödeme Geçmişi ({group.paidPayments.length})
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )
-          })}
-        </div>
-      )}
+
+                          {/* Column headers */}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto',
+                            gap: 12, padding: '6px 14px',
+                            fontSize: 10, fontWeight: 600, color: C.textFaint,
+                            textTransform: 'uppercase', letterSpacing: '0.06em'
+                          }}>
+                            <span>Vade Tarihi</span>
+                            <span>Tutar</span>
+                            <span>Durum</span>
+                            <span>Ödeme Tarihi</span>
+                            <span></span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {group.paidPayments.map(p => {
+                              const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
+                              return (
+                                <div key={p.id} style={{
+                                  display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto',
+                                  alignItems: 'center', gap: 12,
+                                  padding: '8px 14px', borderRadius: 8,
+                                  background: '#FFFFFF',
+                                  borderBottom: `1px solid ${C.borderLight}`
+                                }}>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
+                                    {formatDate(p.due_date)}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                    {money(p.amount)} ₺
+                                  </span>
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center',
+                                    padding: '3px 10px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: 600,
+                                    background: paidLate ? '#FFFBEB' : '#F0FDF4',
+                                    color: paidLate ? C.amber : '#059669',
+                                    border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
+                                  }}>
+                                    {paidLate ? 'Geç Ödendi' : 'Zamanında'}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: C.textFaint }}>
+                                    {p.paid_date ? formatDate(p.paid_date) : ''}
+                                  </span>
+                                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                    onClick={(e) => markAsUnpaid(e, p.id)}
+                                    style={{
+                                      padding: '4px 10px', borderRadius: 8,
+                                      border: `1.5px solid ${C.border}`, background: '#FFFFFF',
+                                      color: C.textMuted, fontSize: 11, fontWeight: 600,
+                                      cursor: 'pointer', fontFamily: font,
+                                      display: 'inline-flex', alignItems: 'center', gap: 4
+                                    }}>
+                                    <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
+                                  </motion.button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {group.paidPayments.length === 0 && group.overduePayments.length <= 1 && (
+                        <div style={{
+                          padding: 16, textAlign: 'center',
+                          fontSize: 13, color: C.textFaint, background: '#FFFFFF',
+                          borderRadius: 8
+                        }}>
+                          Henüz ödeme geçmişi yok.
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </React.Fragment>
+          )
+        })}
+      </motion.div>
     </motion.div>
   )
 }
