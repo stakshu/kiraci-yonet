@@ -8,7 +8,7 @@ import {
   ArrowLeft, Phone, Mail, IdCard, Shield, CreditCard, Users,
   Home, CalendarDays, Clock, CheckCircle, AlertTriangle,
   Banknote, Heart, Baby, UserPlus, StickyNote,
-  TrendingUp, Building2
+  TrendingUp, Building2, Pencil
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -186,6 +186,18 @@ export default function TenantDetail() {
             )}
           </div>
         </div>
+        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+          onClick={() => navigate('/tenants/list', { state: { editId: id } })}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px', borderRadius: 12,
+            background: C.teal, color: 'white', border: 'none',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
+          }}>
+          <Pencil style={{ width: 14, height: 14 }} />
+          Düzenle
+        </motion.button>
       </motion.div>
 
       {/* ═══ MAIN GRID ═══ */}
