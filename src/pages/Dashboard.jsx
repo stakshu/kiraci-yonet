@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { ArrowRight, Plus, AlertTriangle, Mail, UserPlus, Building2 } from 'lucide-react'
+import { ArrowRight, Plus, AlertTriangle, Mail, UserPlus, Building2, TrendingUp, Clock, CalendarCheck } from 'lucide-react'
 
 const MO = ['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara']
 const MO_FULL = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
@@ -241,68 +241,116 @@ export default function Dashboard() {
       </motion.div>
 
       {/* ═══ KPI CARDS ═══ */}
+      {/* ═══ KPI CARDS ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {[
-          {
-            title: 'Gerceklesen Odemeler',
-            value: `${money(collectedSum)} ₺`,
-            sub: paidAptCount > 0 ? `${paidAptCount} Mulk'ten gelen` : 'Henuz odeme yok',
-            color: '#FFFFFF',
-            titleColor: 'rgba(255,255,255,0.8)',
-            subColor: 'rgba(255,255,255,0.65)',
-            buAyColor: 'rgba(255,255,255,0.5)',
-            bg: 'linear-gradient(135deg, #019671 0%, #026f69 100%)',
-            borderColor: 'transparent'
-          },
-          {
-            title: 'Geciken Odemeler',
-            value: `${money(overdueMonthSum)} ₺`,
-            sub: overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten geciken` : 'Geciken odeme yok',
-            color: overdueThisMonth.length > 0 ? '#DC2626' : '#0F172A',
-            borderColor: overdueThisMonth.length > 0 ? '#FECACA' : '#E2E8F0'
-          },
-          {
-            title: 'Gelecek Odemeler',
-            value: `${money(upcomingMonthSum)} ₺`,
-            sub: upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok',
-            color: '#025864',
-            borderColor: '#CCE4E8'
-          }
-        ].map((k, i) => (
-          <motion.div key={i} variants={item}
-            whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
-            style={{
-              ...S.card,
-              padding: '20px 22px',
-              borderLeft: k.bg ? 'none' : `3px solid ${k.borderColor}`,
-              background: k.bg || S.card.background,
-              cursor: 'default',
-              transition: 'box-shadow 0.2s'
-            }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: k.titleColor || '#64748B', letterSpacing: '0.01em' }}>
-              {k.title}
+
+        {/* Gerçekleşen Ödemeler */}
+        <motion.div variants={item}
+          whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(1,150,113,0.25)' }}
+          style={{
+            ...S.card, padding: '22px 24px',
+            background: 'linear-gradient(135deg, #019671 0%, #026f69 100%)',
+            borderLeft: 'none', cursor: 'default', transition: 'box-shadow 0.2s',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            position: 'relative', overflow: 'hidden'
+          }}>
+          {/* Decorative circle */}
+          <div style={{
+            position: 'absolute', right: -20, top: -20,
+            width: 100, height: 100, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.08)'
+          }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>
+              Gerceklesen Odemeler
             </div>
-            <div style={{
-              fontSize: 11, fontWeight: 500, color: k.buAyColor || '#94A3B8',
-              marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em'
-            }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Bu Ay
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
+              {money(collectedSum)} ₺
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.65)', marginTop: 8 }}>
+              {paidAptCount > 0 ? `${paidAptCount} Mulk'ten gelen` : 'Henuz odeme yok'}
+            </div>
+          </div>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative', zIndex: 1
+          }}>
+            <TrendingUp style={{ width: 22, height: 22, color: '#FFFFFF' }} />
+          </div>
+        </motion.div>
+
+        {/* Geciken Ödemeler */}
+        <motion.div variants={item}
+          whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
+          style={{
+            ...S.card, padding: '22px 24px',
+            borderLeft: overdueThisMonth.length > 0 ? '3px solid #FECACA' : '3px solid #E2E8F0',
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+          }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B', letterSpacing: '0.01em' }}>
+              Geciken Odemeler
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Bu Ay
             </div>
             <div style={{
-              fontSize: 26, fontWeight: 800, color: k.color,
-              letterSpacing: '-0.02em', lineHeight: 1,
-              marginTop: 8
+              fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10,
+              color: overdueThisMonth.length > 0 ? '#DC2626' : '#0F172A'
             }}>
-              {k.value}
+              {money(overdueMonthSum)} ₺
             </div>
-            <div style={{
-              fontSize: 11, fontWeight: 500, color: k.subColor || '#94A3B8',
-              marginTop: 8
-            }}>
-              {k.sub}
+            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 8 }}>
+              {overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten geciken` : 'Geciken odeme yok'}
             </div>
-          </motion.div>
-        ))}
+          </div>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: overdueThisMonth.length > 0 ? '#FEF2F2' : '#F1F5F9',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Clock style={{ width: 22, height: 22, color: overdueThisMonth.length > 0 ? '#DC2626' : '#94A3B8' }} />
+          </div>
+        </motion.div>
+
+        {/* Gelecek Ödemeler */}
+        <motion.div variants={item}
+          whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
+          style={{
+            ...S.card, padding: '22px 24px',
+            borderLeft: '3px solid #CCE4E8',
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+          }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B', letterSpacing: '0.01em' }}>
+              Gelecek Odemeler
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Bu Ay
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#025864', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
+              {money(upcomingMonthSum)} ₺
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 8 }}>
+              {upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok'}
+            </div>
+          </div>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: '#F0FDFA',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <CalendarCheck style={{ width: 22, height: 22, color: '#025864' }} />
+          </div>
+        </motion.div>
+
       </div>
 
       {/* ═══ MIDDLE ROW: Unpaid List + Trend ═══ */}
