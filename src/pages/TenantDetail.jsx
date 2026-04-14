@@ -226,7 +226,7 @@ export default function TenantDetail() {
       {/* ═══ BACK + HEADER ═══ */}
       <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/tenants/list')}
+          onClick={() => navigate(-1)}
           style={{
             width: 40, height: 40, borderRadius: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
