@@ -147,33 +147,27 @@ export default function Dashboard() {
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
   const aptVac = aptTotal - aptOcc
 
-  /* Unpaid tenants list — separate overdue and this month's pending */
+  /* Unpaid tenants list — only overdue payments (due_date < today) */
   const unpaidTenants = useMemo(() => {
     const groups = {}
 
-    dueUnpaid.forEach(p => {
+    overdueAll.forEach(p => {
       if (!p.tenant_id) return
-      const diff = dDiff(p.due_date)
-      const isOverdue = diff < 0
-      const key = `${p.tenant_id}_${isOverdue ? 'overdue' : 'pending'}`
-      if (!groups[key]) {
-        groups[key] = {
+      if (!groups[p.tenant_id]) {
+        groups[p.tenant_id] = {
           name: p.tenants?.full_name || '—',
           email: p.tenants?.email || '',
           apt: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
           amount: 0,
-          daysLate: 0,
-          isOverdue
+          daysLate: 0
         }
       }
-      groups[key].amount += Number(p.amount)
-      if (isOverdue) {
-        groups[key].daysLate = Math.max(groups[key].daysLate, Math.abs(diff))
-      }
+      groups[p.tenant_id].amount += Number(p.amount)
+      groups[p.tenant_id].daysLate = Math.max(groups[p.tenant_id].daysLate, Math.abs(dDiff(p.due_date)))
     })
 
-    return Object.values(groups).sort((a, b) => b.isOverdue - a.isOverdue || b.daysLate - a.daysLate || b.amount - a.amount)
-  }, [dueUnpaid])
+    return Object.values(groups).sort((a, b) => b.daysLate - a.daysLate || b.amount - a.amount)
+  }, [overdueAll])
 
   /* Trend chart */
   const trendData = useMemo(() => {
@@ -308,7 +302,7 @@ export default function Dashboard() {
             padding: '18px 22px', borderBottom: '1px solid #F1F5F9'
           }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-              Odenmemis Kiralar
+              Geciken Kiralar
             </div>
             <motion.button whileHover={{ x: 3 }}
               onClick={() => nav('/payments/rent')}
@@ -323,7 +317,7 @@ export default function Dashboard() {
 
           {unpaidTenants.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', fontSize: 13, color: '#94A3B8' }}>
-              Tum kiralar odenmis.
+              Geciken odeme yok.
             </div>
           ) : (
             <div>
@@ -336,29 +330,25 @@ export default function Dashboard() {
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 22px',
                     borderBottom: '1px solid #F8FAFC',
-                    background: t.isOverdue ? '#FFFBEB' : 'white'
+                    background: '#FFFBEB'
                   }}>
                   <div style={{
                     width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                    background: t.isOverdue ? '#FEF2F2' : '#FEF9C3',
+                    background: '#FEF2F2',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>
-                    <AlertTriangle style={{
-                      width: 14, height: 14,
-                      color: t.isOverdue ? '#DC2626' : '#D97706'
-                    }} />
+                    <AlertTriangle style={{ width: 14, height: 14, color: '#DC2626' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
                       {t.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
-                      {t.apt}{t.isOverdue ? ` · ${t.daysLate} gun gecikme` : ' · bekliyor'}
+                      {t.apt} · {t.daysLate} gun gecikme
                     </div>
                   </div>
                   <div style={{
-                    fontSize: 14, fontWeight: 700,
-                    color: t.isOverdue ? '#DC2626' : '#B45309',
+                    fontSize: 14, fontWeight: 700, color: '#DC2626',
                     fontVariantNumeric: 'tabular-nums', flexShrink: 0
                   }}>
                     {money(t.amount)} ₺
