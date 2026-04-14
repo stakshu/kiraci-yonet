@@ -42,7 +42,19 @@ export default function RentPayments() {
   const [filter, setFilter] = useState('')
   const [expandedTenant, setExpandedTenant] = useState(null)
 
-  useEffect(() => { loadPayments(); checkMissingPayments() }, [])
+  useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
+
+  /* One-time cleanup: delete future pending payments (beyond current month) */
+  const cleanupFuturePayments = async () => {
+    const now = new Date()
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const cutoff = nextMonth.toISOString().split('T')[0]
+    await supabase
+      .from('rent_payments')
+      .delete()
+      .gte('due_date', cutoff)
+      .eq('status', 'pending')
+  }
 
   const checkMissingPayments = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -52,16 +64,28 @@ export default function RentPayments() {
       .eq('user_id', session.user.id).not('apartment_id', 'is', null)
     if (!tenants || tenants.length === 0) return
     const { data: existingPayments } = await supabase
-      .from('rent_payments').select('tenant_id').eq('user_id', session.user.id)
-    const tenantsWithPayments = new Set((existingPayments || []).map(p => p.tenant_id))
+      .from('rent_payments').select('tenant_id, due_date').eq('user_id', session.user.id)
+
+    /* Build a set of existing "tenantId_YYYY-MM" keys to find missing months */
+    const existingKeys = new Set(
+      (existingPayments || []).map(p => `${p.tenant_id}_${p.due_date.slice(0, 7)}`)
+    )
+
+    const now = new Date()
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     const newPayments = []
+
     for (const t of tenants) {
-      if (tenantsWithPayments.has(t.id)) continue
       const rentAmount = Number(t.rent) || 0
       if (rentAmount <= 0 || !t.apartment_id) continue
       const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
-      for (let i = 0; i < 12; i++) {
+
+      /* Create missing payment records from lease start up to current month */
+      for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+        if (dueDate > endOfMonth) break
+        const key = `${t.id}_${dueDate.toISOString().slice(0, 7)}`
+        if (existingKeys.has(key)) continue
         newPayments.push({
           user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
           due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'

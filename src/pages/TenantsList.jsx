@@ -116,14 +116,20 @@ export default function TenantsList() {
       if (rentAmount > 0) {
         const paymentRecords = []
         const startDate = record.lease_start ? new Date(record.lease_start) : new Date()
-        for (let i = 0; i < 12; i++) {
+        const now = new Date()
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        /* Only create payment records from lease start up to current month */
+        for (let i = 0; i < 120; i++) {
           const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+          if (dueDate > endOfMonth) break
           paymentRecords.push({
             user_id: session.user.id, tenant_id: tenantId, apartment_id: record.apartment_id,
             due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
           })
         }
-        await supabase.from('rent_payments').insert(paymentRecords)
+        if (paymentRecords.length > 0) {
+          await supabase.from('rent_payments').insert(paymentRecords)
+        }
       }
     }
     setSaving(false)
