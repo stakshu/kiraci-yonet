@@ -1,15 +1,20 @@
-/* ── KiraciYonet — Kira Odemeleri — Lucide + Motion ── */
+/* ── KiraciYonet — Kira Ödemeleri — Redesigned ── */
 import React, { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import {
   DollarSign, Clock, XCircle, CreditCard, Search,
-  ChevronDown, Check, Mail
+  ChevronDown, Check, Mail, TrendingUp, Building2,
+  User, CalendarDays, AlertTriangle, Undo2, Filter
 } from 'lucide-react'
 
+const font = "'Plus Jakarta Sans', system-ui, sans-serif"
+const money = n => Number(n).toLocaleString('tr-TR')
+
 function formatDate(dateStr) {
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
+  if (!dateStr) return '—'
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
   const d = new Date(dateStr)
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
 }
@@ -25,14 +30,27 @@ function realStatus(payment) {
   return daysDiff(payment.due_date) < 0 ? 'overdue' : 'pending'
 }
 
-const STATUS_CONFIG = {
-  paid: { label: 'Odendi', css: 'active' },
-  pending: { label: 'Bekliyor', css: 'pending' },
-  overdue: { label: 'Gecikti', css: 'inactive' }
+const C = {
+  teal: '#025864', green: '#00D47E', darkTeal: '#03363D',
+  red: '#DC2626', amber: '#D97706',
+  text: '#0F172A', textMuted: '#64748B', textFaint: '#94A3B8',
+  border: '#E5E7EB', borderLight: '#F1F5F9', card: '#FFFFFF'
 }
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } }
+}
+const fadeItem = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }
+}
+
+const cardBox = {
+  background: C.card, borderRadius: 16,
+  boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+  overflow: 'hidden'
+}
 
 export default function RentPayments() {
   const { showToast } = useToast()
@@ -41,10 +59,10 @@ export default function RentPayments() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
   const [expandedTenant, setExpandedTenant] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
 
-  /* One-time cleanup: delete future pending payments (beyond next month) */
   const cleanupFuturePayments = async () => {
     const now = new Date()
     const monthAfterNext = new Date(now.getFullYear(), now.getMonth() + 2, 1)
@@ -66,7 +84,6 @@ export default function RentPayments() {
     const { data: existingPayments } = await supabase
       .from('rent_payments').select('tenant_id, due_date').eq('user_id', session.user.id)
 
-    /* Build a set of existing "tenantId_YYYY-MM" keys to find missing months */
     const existingKeys = new Set(
       (existingPayments || []).map(p => `${p.tenant_id}_${p.due_date.slice(0, 7)}`)
     )
@@ -80,7 +97,6 @@ export default function RentPayments() {
       if (rentAmount <= 0 || !t.apartment_id) continue
       const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
 
-      /* Create missing payment records from lease start up to next month */
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
         if (dueDate > endOfNextMonth) break
@@ -130,11 +146,14 @@ export default function RentPayments() {
 
   const tenantGroups = loading ? [] : getTenantGroups()
   const filtered = tenantGroups.filter(g => {
-    if (!filter) return true
     if (filter === 'overdue') return g.overduePayments.length > 0
     if (filter === 'pending') return g.currentPayment
     if (filter === 'paid') return g.paidPayments.length > 0 && !g.currentPayment && g.overduePayments.length === 0
     return true
+  }).filter(g => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return g.tenantName.toLowerCase().includes(q) || g.aptName.toLowerCase().includes(q)
   })
   const sorted = [...filtered].sort((a, b) => {
     return (a.overduePayments.length > 0 ? 0 : 1) - (b.overduePayments.length > 0 ? 0 : 1)
@@ -154,9 +173,9 @@ export default function RentPayments() {
 
   const sendEmail = async (payment, type) => {
     const tenantEmail = payment.tenants?.email
-    if (!tenantEmail) { showToast('Kiracinin e-posta adresi bulunamadi.', 'error'); return false }
+    if (!tenantEmail) { showToast('Kiracının e-posta adresi bulunamadı.', 'error'); return false }
     const { data: { session } } = await supabase.auth.getSession()
-    const landlordName = session?.user?.email?.split('@')[0] || 'Mulk Sahibi'
+    const landlordName = session?.user?.email?.split('@')[0] || 'Mülk Sahibi'
     const diff = daysDiff(payment.due_date)
     try {
       const res = await fetch('/api/send-email', {
@@ -172,12 +191,12 @@ export default function RentPayments() {
       await supabase.from('email_logs').insert({
         user_id: session.user.id, tenant_id: payment.tenant_id,
         payment_id: payment.id, email_type: type, recipient: tenantEmail,
-        subject: type === 'reminder' ? 'Kira Hatirlatmasi' : type === 'overdue' ? 'Geciken Odeme' : 'Odeme Onay',
+        subject: type === 'reminder' ? 'Kira Hatırlatması' : type === 'overdue' ? 'Geciken Ödeme' : 'Ödeme Onay',
         status: result.success ? 'sent' : 'failed', error_message: result.error || null
       })
-      if (result.success) { showToast(`Mail gonderildi: ${tenantEmail}`, 'success'); return true }
-      showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error'); return false
-    } catch (err) { showToast('Mail gonderilemedi: ' + err.message, 'error'); return false }
+      if (result.success) { showToast(`Mail gönderildi: ${tenantEmail}`, 'success'); return true }
+      showToast('Mail gönderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error'); return false
+    } catch (err) { showToast('Mail gönderilemedi: ' + err.message, 'error'); return false }
   }
 
   const sendReminder = async (payment) => {
@@ -189,7 +208,7 @@ export default function RentPayments() {
     const today = new Date().toISOString().split('T')[0]
     const { error: err } = await supabase.from('rent_payments').update({ status: 'paid', paid_date: today }).eq('id', id)
     if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Odeme kaydedildi.', 'success')
+    showToast('Ödeme kaydedildi.', 'success')
     const payment = payments.find(p => p.id === id)
     if (payment?.tenants?.email) sendEmail(payment, 'payment_received')
     loadPayments()
@@ -199,7 +218,7 @@ export default function RentPayments() {
     e.stopPropagation()
     const { error: err } = await supabase.from('rent_payments').update({ status: 'pending', paid_date: null }).eq('id', id)
     if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Odeme geri alindi.', 'success'); loadPayments()
+    showToast('Ödeme geri alındı.', 'success'); loadPayments()
   }
 
   const toggleExpand = (tenantId) => setExpandedTenant(prev => prev === tenantId ? null : tenantId)
@@ -209,184 +228,551 @@ export default function RentPayments() {
     return group.currentPayment
   }
 
-  return (
-    <motion.div variants={stagger} initial="hidden" animate="show">
-      {/* Stat Cards */}
-      <div className="stat-grid">
-        {[
-          { icon: DollarSign, color: 'green', value: totalCollected.toLocaleString('tr-TR'), label: `Bu Ay Tahsil (\u20BA)` },
-          { icon: Clock, color: 'amber', value: totalPending.toLocaleString('tr-TR'), label: `Bu Ay Bekleyen (\u20BA)` },
-          { icon: XCircle, color: 'red', value: overdueCount, label: 'Geciken Odeme' },
-          { icon: CreditCard, color: 'blue', value: totalAll.toLocaleString('tr-TR'), label: `Toplam Tahsilat (\u20BA)` }
-        ].map((s, i) => (
-          <motion.div key={i} variants={fadeUp} className="stat-card">
-            <div className={`stat-icon-box ${s.color}`}>
-              <s.icon className="w-5 h-5" />
-            </div>
-            <div className="stat-info">
-              <div className="stat-number"><span>{s.value}</span></div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+  /* ── Loading spinner ── */
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, fontFamily: font }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+    </div>
+  )
 
-      {/* Controls */}
-      <motion.div variants={fadeUp} className="table-controls">
-        <div className="table-search">
-          <Search className="w-4 h-4" style={{ stroke: 'var(--text-muted)' }} />
-          <input type="text" placeholder="Odeme ara..." disabled style={{ opacity: 0.5 }} />
-        </div>
-        <div className="table-filter-group">
-          <select className="filter-btn" value={filter} onChange={e => setFilter(e.target.value)}
-            style={{ cursor: 'pointer', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}>
-            <option value="">Tum Durumlar</option>
-            <option value="paid">Odendi</option>
-            <option value="pending">Bekliyor</option>
-            <option value="overdue">Gecikti</option>
-          </select>
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
+  const monthLabel = months[currentMonth] + ' ' + currentYear
+
+  return (
+    <motion.div variants={container} initial="hidden" animate="show"
+      style={{ display: 'flex', flexDirection: 'column', gap: 24, fontFamily: font }}>
+
+      {/* ═══ HEADER ═══ */}
+      <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
+            Kira Ödemeleri
+          </h1>
+          <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
+            {monthLabel} — Ödeme takibi ve tahsilat yönetimi
+          </p>
         </div>
       </motion.div>
 
-      {/* Table */}
-      <motion.div variants={fadeUp} className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 28 }}></th>
-              <th>Kiraci</th><th>Daire</th><th>Vade Tarihi</th>
-              <th>Tutar ({'\u20BA'})</th><th>Durum</th><th>Kalan Gun</th><th>Aksiyon</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
-            ) : error ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
-            ) : sorted.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                {filter ? 'Bu filtreye uygun odeme bulunamadi.' : 'Henuz odeme kaydi yok.'}
-              </td></tr>
-            ) : sorted.map(group => {
-              const mainPayment = getMainPayment(group)
-              const isExpanded = expandedTenant === group.tenantId
-              const hasPaidHistory = group.paidPayments.length > 0
-              const hasExtraOverdue = group.overduePayments.length > 1
-              const st = mainPayment ? realStatus(mainPayment) : 'paid'
-              const cfg = STATUS_CONFIG[st]
-              const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
+      {/* ═══ KPI CARDS ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
 
-              let dayLabel = ''
-              if (!mainPayment) dayLabel = '—'
-              else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gun gecikti'
-              else if (diff === 0) dayLabel = 'Bugun'
-              else if (diff === 1) dayLabel = 'Yarin'
-              else dayLabel = diff + ' gun kaldi'
+        {/* Bu Ay Tahsilat */}
+        <motion.div variants={fadeItem}
+          whileHover={{ y: -3, boxShadow: '0 12px 32px rgba(1,150,113,0.25)' }}
+          style={{
+            ...cardBox, padding: '20px 22px',
+            background: 'linear-gradient(135deg, #019671 0%, #026f69 100%)',
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            position: 'relative', overflow: 'hidden'
+          }}>
+          <div style={{
+            position: 'absolute', right: -18, top: -18,
+            width: 80, height: 80, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.08)'
+          }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Bu Ay Tahsilat
+              </div>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <TrendingUp style={{ width: 18, height: 18, color: '#FFFFFF' }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {money(totalCollected)} ₺
+            </div>
+          </div>
+        </motion.div>
 
-              const overdueExtra = group.overduePayments.length > 1 ? group.overduePayments.length - 1 : 0
+        {/* Bekleyen Ödemeler */}
+        <motion.div variants={fadeItem}
+          whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(217,119,6,0.15), 0 12px 32px rgba(217,119,6,0.12)' }}
+          style={{
+            ...cardBox, padding: '20px 22px',
+            borderLeft: `3px solid ${C.amber}`,
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            position: 'relative', overflow: 'hidden'
+          }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Bekleyen
+              </div>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: '#FFFBEB',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <Clock style={{ width: 18, height: 18, color: C.amber }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {money(totalPending)} ₺
+            </div>
+          </div>
+        </motion.div>
 
-              return (
-                <React.Fragment key={group.tenantId}>
-                  <tr
-                    onClick={() => (hasPaidHistory || hasExtraOverdue) && toggleExpand(group.tenantId)}
-                    style={{ cursor: (hasPaidHistory || hasExtraOverdue) ? 'pointer' : 'default' }}
-                  >
-                    <td style={{ width: 28, textAlign: 'center', color: 'var(--text-muted)' }}>
-                      {(hasPaidHistory || hasExtraOverdue) && (
-                        <ChevronDown className="w-4 h-4 transition-transform" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+        {/* Geciken */}
+        <motion.div variants={fadeItem}
+          whileHover={{ y: -3, boxShadow: overdueCount > 0 ? '0 0 0 1px rgba(220,38,38,0.15), 0 12px 32px rgba(220,38,38,0.12)' : '0 0 0 1px rgba(15,23,42,0.08), 0 12px 32px rgba(15,23,42,0.08)' }}
+          style={{
+            ...cardBox, padding: '20px 22px',
+            borderLeft: overdueCount > 0 ? `3px solid #FECACA` : `3px solid ${C.border}`,
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            position: 'relative', overflow: 'hidden'
+          }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Geciken
+              </div>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: overdueCount > 0 ? '#FEF2F2' : '#F8FAFC',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <AlertTriangle style={{ width: 18, height: 18, color: overdueCount > 0 ? C.red : C.textFaint }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: overdueCount > 0 ? C.red : C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {overdueCount}
+            </div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 4 }}>ödeme</div>
+          </div>
+        </motion.div>
+
+        {/* Toplam Tahsilat */}
+        <motion.div variants={fadeItem}
+          whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
+          style={{
+            ...cardBox, padding: '20px 22px',
+            borderLeft: `3px solid ${C.teal}`,
+            cursor: 'default', transition: 'box-shadow 0.2s',
+            position: 'relative', overflow: 'hidden'
+          }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Toplam Tahsilat
+              </div>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: '#F0FDFA',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <CreditCard style={{ width: 18, height: 18, color: C.teal }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {money(totalAll)} ₺
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ═══ CONTROLS BAR ═══ */}
+      <motion.div variants={fadeItem} style={{
+        display: 'flex', alignItems: 'center', gap: 12
+      }}>
+        {/* Search */}
+        <div style={{
+          flex: 1, maxWidth: 360, display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px', borderRadius: 12,
+          background: C.card, border: `1.5px solid ${C.border}`,
+          boxShadow: '0 1px 3px rgba(15,23,42,0.04)'
+        }}>
+          <Search style={{ width: 16, height: 16, color: C.textFaint, flexShrink: 0 }} />
+          <input
+            type="text" placeholder="Kiracı veya daire ara..."
+            value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              border: 'none', outline: 'none', background: 'transparent',
+              fontSize: 13, fontWeight: 500, color: C.text, fontFamily: font,
+              width: '100%', padding: 0
+            }}
+          />
+        </div>
+
+        {/* Filter pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {[
+            { key: '', label: 'Tümü' },
+            { key: 'pending', label: 'Bekleyen' },
+            { key: 'overdue', label: 'Geciken' },
+            { key: 'paid', label: 'Ödenen' }
+          ].map(f => (
+            <motion.button key={f.key} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => setFilter(f.key)}
+              style={{
+                padding: '8px 16px', borderRadius: 10,
+                fontSize: 12, fontWeight: 600, fontFamily: font,
+                cursor: 'pointer', border: 'none', transition: 'all 0.2s',
+                background: filter === f.key ? C.teal : '#F1F5F9',
+                color: filter === f.key ? '#FFFFFF' : C.textMuted,
+                boxShadow: filter === f.key ? '0 4px 12px rgba(2,88,100,0.25)' : 'none'
+              }}>
+              {f.label}
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ═══ TENANT PAYMENT CARDS ═══ */}
+      {error ? (
+        <motion.div variants={fadeItem} style={{
+          ...cardBox, padding: 40, textAlign: 'center', color: C.red, fontSize: 14
+        }}>
+          Hata: {error}
+        </motion.div>
+      ) : sorted.length === 0 ? (
+        <motion.div variants={fadeItem} style={{
+          ...cardBox, padding: 60, textAlign: 'center'
+        }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, background: '#F8FAFC',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px'
+          }}>
+            <CreditCard style={{ width: 24, height: 24, color: C.textFaint }} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.textMuted }}>
+            {searchQuery || filter ? 'Bu filtreye uygun ödeme bulunamadı.' : 'Henüz ödeme kaydı yok.'}
+          </div>
+          <div style={{ fontSize: 13, color: C.textFaint, marginTop: 4 }}>
+            Kiracı ekleyip kira tutarı belirledikten sonra ödemeler otomatik oluşturulur.
+          </div>
+        </motion.div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {sorted.map((group, idx) => {
+            const mainPayment = getMainPayment(group)
+            const isExpanded = expandedTenant === group.tenantId
+            const hasPaidHistory = group.paidPayments.length > 0
+            const hasExtraOverdue = group.overduePayments.length > 1
+            const canExpand = hasPaidHistory || hasExtraOverdue
+            const st = mainPayment ? realStatus(mainPayment) : 'paid'
+            const diff = mainPayment ? daysDiff(mainPayment.due_date) : 0
+
+            let dayLabel = ''
+            if (!mainPayment) dayLabel = '—'
+            else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gün gecikti'
+            else if (diff === 0) dayLabel = 'Bugün'
+            else if (diff === 1) dayLabel = 'Yarın'
+            else dayLabel = diff + ' gün kaldı'
+
+            const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+
+            const statusColor = st === 'overdue' ? C.red : st === 'pending' ? C.amber : C.green
+            const statusBg = st === 'overdue' ? '#FEF2F2' : st === 'pending' ? '#FFFBEB' : '#F0FDF4'
+            const statusLabel = st === 'overdue' ? 'Gecikti' : st === 'pending' ? 'Bekliyor' : 'Ödendi'
+
+            return (
+              <motion.div key={group.tenantId}
+                variants={fadeItem}
+                style={{
+                  ...cardBox,
+                  borderLeft: st === 'overdue' ? `3px solid ${C.red}` : st === 'pending' ? `3px solid ${C.amber}` : `3px solid ${C.green}`,
+                  transition: 'box-shadow 0.2s'
+                }}
+              >
+                {/* ── Main Row ── */}
+                <motion.div
+                  onClick={() => canExpand && toggleExpand(group.tenantId)}
+                  whileHover={{ backgroundColor: canExpand ? '#FAFBFC' : '#FFFFFF' }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    padding: '18px 22px',
+                    cursor: canExpand ? 'pointer' : 'default',
+                    transition: 'background 0.15s'
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                    background: st === 'overdue'
+                      ? 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)'
+                      : st === 'pending'
+                        ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)'
+                        : `linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, fontWeight: 700,
+                    color: st === 'overdue' ? '#991B1B' : st === 'pending' ? '#92400E' : '#065F46'
+                  }}>
+                    {initials}
+                  </div>
+
+                  {/* Tenant Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: '-0.01em' }}>
+                        {group.tenantName}
+                      </span>
+                      {group.overduePayments.length > 1 && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: '#FFFFFF',
+                          background: C.red, borderRadius: 6, padding: '2px 7px',
+                          letterSpacing: '0.02em'
+                        }}>
+                          +{group.overduePayments.length - 1} geciken
+                        </span>
                       )}
-                    </td>
-                    <td>
-                      <div className="tenant-cell">
-                        <span className="tenant-name">{group.tenantName}</span>
-                        <span className="tenant-email">{group.tenantEmail}</span>
-                      </div>
-                    </td>
-                    <td>{group.aptName}</td>
-                    <td>{mainPayment ? formatDate(mainPayment.due_date) : '—'}</td>
-                    <td>{mainPayment ? Number(mainPayment.amount).toLocaleString('tr-TR') : '—'}</td>
-                    <td>
-                      <span className={`status-badge ${cfg.css}`}>{cfg.label}</span>
-                      {overdueExtra > 0 && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--red)', fontWeight: 600 }}>+{overdueExtra} geciken</span>}
-                    </td>
-                    <td style={{ color: st === 'overdue' ? 'var(--red)' : st === 'pending' && diff <= 3 ? 'var(--amber)' : 'var(--text-muted)', fontWeight: st === 'overdue' ? 600 : 400 }}>
-                      {dayLabel}
-                    </td>
-                    <td>
-                      {mainPayment && st !== 'paid' && (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => markAsPaid(e, mainPayment.id)}>
-                            <Check className="w-3.5 h-3.5" /> Odendi
-                          </button>
-                          <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }} title="Hatirlatma maili gonder">
-                            <Mail className="w-3.5 h-3.5" /> Hatirla
-                          </button>
-                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 3 }}>
+                      <span style={{ fontSize: 12, color: C.textFaint, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Building2 style={{ width: 12, height: 12 }} /> {group.aptName}
+                      </span>
+                      {group.tenantEmail && (
+                        <span style={{ fontSize: 12, color: C.textFaint, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Mail style={{ width: 12, height: 12 }} /> {group.tenantEmail}
+                        </span>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
 
+                  {/* Payment amount */}
+                  <div style={{ textAlign: 'right', marginRight: 8 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: '-0.02em' }}>
+                      {mainPayment ? money(mainPayment.amount) : '—'} ₺
+                    </div>
+                    <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>
+                      {mainPayment ? formatDate(mainPayment.due_date) : ''}
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  <div style={{
+                    padding: '6px 14px', borderRadius: 10,
+                    background: statusBg, border: `1px solid ${statusColor}20`,
+                    fontSize: 12, fontWeight: 600, color: statusColor,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {statusLabel}
+                  </div>
+
+                  {/* Days info */}
+                  <div style={{
+                    fontSize: 12, fontWeight: st === 'overdue' ? 700 : 500,
+                    color: st === 'overdue' ? C.red : st === 'pending' && diff <= 3 ? C.amber : C.textFaint,
+                    minWidth: 100, textAlign: 'center', whiteSpace: 'nowrap'
+                  }}>
+                    {dayLabel}
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    {mainPayment && st !== 'paid' && (
+                      <>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                          onClick={(e) => markAsPaid(e, mainPayment.id)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '7px 14px', borderRadius: 10, border: 'none',
+                            background: C.teal, color: '#FFFFFF',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                            boxShadow: '0 2px 8px rgba(2,88,100,0.2)'
+                          }}>
+                          <Check style={{ width: 14, height: 14 }} /> Ödendi
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                          onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }}
+                          title="Hatırlatma maili gönder"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '7px 12px', borderRadius: 10,
+                            border: `1.5px solid ${C.border}`, background: C.card,
+                            color: C.textMuted, fontSize: 12, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: font
+                          }}>
+                          <Mail style={{ width: 14, height: 14 }} /> Hatırla
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Expand chevron */}
+                  {canExpand && (
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ color: C.textFaint, flexShrink: 0 }}
+                    >
+                      <ChevronDown style={{ width: 18, height: 18 }} />
+                    </motion.div>
+                  )}
+                </motion.div>
+
+                {/* ── Expanded Detail ── */}
+                <AnimatePresence>
                   {isExpanded && (
-                    <tr>
-                      <td colSpan={8} style={{ padding: 0, background: 'var(--bg-secondary, #f8f9fa)' }}>
-                        <div style={{ padding: '12px 16px 12px 44px' }}>
-                          {group.overduePayments.length > 1 && (
-                            <>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--red)', marginBottom: 8 }}>Geciken Odemeler</div>
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div style={{
+                        padding: '0 22px 20px 22px',
+                        borderTop: `1px solid ${C.borderLight}`
+                      }}>
+
+                        {/* Extra overdue payments */}
+                        {group.overduePayments.length > 1 && (
+                          <div style={{ marginTop: 18 }}>
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, color: C.red,
+                              textTransform: 'uppercase', letterSpacing: '0.06em',
+                              marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
+                            }}>
+                              <AlertTriangle style={{ width: 13, height: 13 }} />
+                              Geciken Ödemeler
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {group.overduePayments.slice(1).map(p => {
                                 const d = daysDiff(p.due_date)
                                 return (
-                                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '140px 100px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                                    <span>{formatDate(p.due_date)}</span>
-                                    <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
-                                    <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 12 }}>{Math.abs(d)} gun gecikti</span>
+                                  <div key={p.id} style={{
+                                    display: 'flex', alignItems: 'center', gap: 14,
+                                    padding: '10px 14px', borderRadius: 10,
+                                    background: '#FEF2F2', border: '1px solid #FECACA'
+                                  }}>
+                                    <CalendarDays style={{ width: 14, height: 14, color: C.red, flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text, minWidth: 120 }}>
+                                      {formatDate(p.due_date)}
+                                    </span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                      {money(p.amount)} ₺
+                                    </span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.red, flex: 1 }}>
+                                      {Math.abs(d)} gün gecikti
+                                    </span>
                                     <div style={{ display: 'flex', gap: 6 }}>
-                                      <button className="btn btn-primary" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsPaid(e, p.id)}>Odendi</button>
-                                      <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => { e.stopPropagation(); sendReminder(p) }}>Hatirla</button>
+                                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                        onClick={(e) => markAsPaid(e, p.id)}
+                                        style={{
+                                          padding: '5px 12px', borderRadius: 8, border: 'none',
+                                          background: C.teal, color: '#FFFFFF',
+                                          fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                                        }}>
+                                        Ödendi
+                                      </motion.button>
+                                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                        onClick={(e) => { e.stopPropagation(); sendReminder(p) }}
+                                        style={{
+                                          padding: '5px 12px', borderRadius: 8,
+                                          border: `1.5px solid ${C.border}`, background: C.card,
+                                          color: C.textMuted, fontSize: 11, fontWeight: 600,
+                                          cursor: 'pointer', fontFamily: font
+                                        }}>
+                                        Hatırla
+                                      </motion.button>
                                     </div>
                                   </div>
                                 )
                               })}
-                            </>
-                          )}
+                            </div>
+                          </div>
+                        )}
 
-                          {group.paidPayments.length > 0 && (
-                            <>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, marginTop: group.overduePayments.length > 1 ? 16 : 0 }}>
-                                Odeme Gecmisi ({group.paidPayments.length})
-                              </div>
+                        {/* Payment history */}
+                        {group.paidPayments.length > 0 && (
+                          <div style={{ marginTop: group.overduePayments.length > 1 ? 20 : 18 }}>
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, color: C.teal,
+                              textTransform: 'uppercase', letterSpacing: '0.06em',
+                              marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
+                            }}>
+                              <Check style={{ width: 13, height: 13 }} />
+                              Ödeme Geçmişi ({group.paidPayments.length})
+                            </div>
+
+                            {/* Column headers */}
+                            <div style={{
+                              display: 'grid', gridTemplateColumns: '1fr 100px 100px 1fr auto',
+                              gap: 12, padding: '6px 14px',
+                              fontSize: 10, fontWeight: 600, color: C.textFaint,
+                              textTransform: 'uppercase', letterSpacing: '0.06em'
+                            }}>
+                              <span>Vade Tarihi</span>
+                              <span>Tutar</span>
+                              <span>Durum</span>
+                              <span>Ödeme Tarihi</span>
+                              <span></span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {group.paidPayments.map(p => {
                                 const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
                                 return (
-                                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                                    <span>{formatDate(p.due_date)}</span>
-                                    <span>{Number(p.amount).toLocaleString('tr-TR')} {'\u20BA'}</span>
-                                    <span className={`status-badge ${paidLate ? 'pending' : 'active'}`} style={{ fontSize: 11 }}>
-                                      {paidLate ? 'Gec Odendi' : 'Zamaninda'}
+                                  <div key={p.id} style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 100px 100px 1fr auto',
+                                    alignItems: 'center', gap: 12,
+                                    padding: '10px 14px', borderRadius: 8,
+                                    background: '#FAFBFC',
+                                    borderBottom: `1px solid ${C.borderLight}`
+                                  }}>
+                                    <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
+                                      {formatDate(p.due_date)}
                                     </span>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                      {money(p.amount)} ₺
+                                    </span>
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center',
+                                      padding: '3px 10px', borderRadius: 6,
+                                      fontSize: 11, fontWeight: 600,
+                                      background: paidLate ? '#FFFBEB' : '#F0FDF4',
+                                      color: paidLate ? C.amber : '#059669',
+                                      border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
+                                    }}>
+                                      {paidLate ? 'Geç Ödendi' : 'Zamanında'}
+                                    </span>
+                                    <span style={{ fontSize: 12, color: C.textFaint }}>
                                       {p.paid_date ? formatDate(p.paid_date) : ''}
                                     </span>
-                                    <button className="btn btn-outline" style={{ fontSize: 11, padding: '3px 8px' }} onClick={(e) => markAsUnpaid(e, p.id)}>Geri Al</button>
+                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                      onClick={(e) => markAsUnpaid(e, p.id)}
+                                      style={{
+                                        padding: '4px 10px', borderRadius: 8,
+                                        border: `1.5px solid ${C.border}`, background: C.card,
+                                        color: C.textMuted, fontSize: 11, fontWeight: 600,
+                                        cursor: 'pointer', fontFamily: font,
+                                        display: 'inline-flex', alignItems: 'center', gap: 4
+                                      }}>
+                                      <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
+                                    </motion.button>
                                   </div>
                                 )
                               })}
-                            </>
-                          )}
+                            </div>
+                          </div>
+                        )}
 
-                          {group.paidPayments.length === 0 && group.overduePayments.length <= 1 && (
-                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Henuz odeme gecmisi yok.</div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                        {group.paidPayments.length === 0 && group.overduePayments.length <= 1 && (
+                          <div style={{
+                            marginTop: 18, padding: 20, textAlign: 'center',
+                            fontSize: 13, color: C.textFaint, background: '#FAFBFC',
+                            borderRadius: 10
+                          }}>
+                            Henüz ödeme geçmişi yok.
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
-      </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
     </motion.div>
   )
 }
