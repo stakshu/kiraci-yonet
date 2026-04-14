@@ -135,14 +135,18 @@ export default function Dashboard() {
   const collectedSum = paidThisMonth.reduce((s, p) => s + Number(p.amount), 0)
   const paidAptCount = new Set(paidThisMonth.map(p => p.apartment_id).filter(Boolean)).size
 
-  const overdueAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
-  const overdueSum = overdueAll.reduce((s, p) => s + Number(p.amount), 0)
-  const overdueAptCount = new Set(overdueAll.map(p => p.apartment_id).filter(Boolean)).size
+  /* This month's overdue (unpaid + past due within this month) */
+  const overdueThisMonth = monthPays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
+  const overdueMonthSum = overdueThisMonth.reduce((s, p) => s + Number(p.amount), 0)
+  const overdueMonthAptCount = new Set(overdueThisMonth.map(p => p.apartment_id).filter(Boolean)).size
 
-  /* Future payments: unpaid with due_date >= today (not yet due) */
-  const upcomingAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) >= 0)
-  const upcomingSum = upcomingAll.reduce((s, p) => s + Number(p.amount), 0)
-  const upcomingAptCount = new Set(upcomingAll.map(p => p.apartment_id).filter(Boolean)).size
+  /* This month's upcoming (unpaid + not yet due within this month) */
+  const upcomingThisMonth = monthPays.filter(p => p.status !== 'paid' && dDiff(p.due_date) >= 0)
+  const upcomingMonthSum = upcomingThisMonth.reduce((s, p) => s + Number(p.amount), 0)
+  const upcomingMonthAptCount = new Set(upcomingThisMonth.map(p => p.apartment_id).filter(Boolean)).size
+
+  /* All overdue payments (for the list below, not cards) */
+  const overdueAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
 
   const aptTotal = apts.length
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
@@ -248,15 +252,15 @@ export default function Dashboard() {
           },
           {
             title: 'Geciken Odemeler',
-            value: `${money(overdueSum)} ₺`,
-            sub: overdueAptCount > 0 ? `${overdueAptCount} Mulk'ten geciken` : 'Geciken odeme yok',
-            color: overdueAll.length > 0 ? '#DC2626' : '#0F172A',
-            borderColor: overdueAll.length > 0 ? '#FECACA' : '#E2E8F0'
+            value: `${money(overdueMonthSum)} ₺`,
+            sub: overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten geciken` : 'Geciken odeme yok',
+            color: overdueThisMonth.length > 0 ? '#DC2626' : '#0F172A',
+            borderColor: overdueThisMonth.length > 0 ? '#FECACA' : '#E2E8F0'
           },
           {
             title: 'Gelecek Odemeler',
-            value: `${money(upcomingSum)} ₺`,
-            sub: upcomingAptCount > 0 ? `${upcomingAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok',
+            value: `${money(upcomingMonthSum)} ₺`,
+            sub: upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok',
             color: '#025864',
             borderColor: '#CCE4E8'
           }
@@ -274,9 +278,15 @@ export default function Dashboard() {
               {k.title}
             </div>
             <div style={{
+              fontSize: 11, fontWeight: 500, color: '#94A3B8',
+              marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em'
+            }}>
+              Bu Ay
+            </div>
+            <div style={{
               fontSize: 26, fontWeight: 800, color: k.color,
               letterSpacing: '-0.02em', lineHeight: 1,
-              marginTop: 10
+              marginTop: 8
             }}>
               {k.value}
             </div>
