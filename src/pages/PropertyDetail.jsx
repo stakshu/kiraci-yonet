@@ -771,7 +771,7 @@ export default function PropertyDetail() {
 
       {/* ── BELGELER ── */}
       {tab === 'documents' && (
-        <motion.div variants={fadeItem} style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
+        <motion.div variants={fadeItem}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>Belgeler</h2>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
@@ -790,21 +790,11 @@ export default function PropertyDetail() {
 
           <div style={cardBox}>
             {documents.length === 0 ? (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '40px 24px'
-              }}>
-                <div style={{
-                  textAlign: 'center', padding: '36px 48px',
-                  background: '#F8FAFC', borderRadius: 16,
-                  border: `1.5px dashed ${C.border}`,
-                  maxWidth: 280
-                }}>
-                  <FileUp style={{ width: 32, height: 32, color: C.textFaint, marginBottom: 10 }} />
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>Henuz belge yuklenmemis.</div>
-                  <div style={{ fontSize: 12, color: C.textFaint, marginTop: 4, lineHeight: 1.5 }}>
-                    PDF, Word veya gorsel dosyalarini yukleyebilirsiniz.
-                  </div>
+              <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <FileUp style={{ width: 28, height: 28, color: C.textFaint, marginBottom: 8 }} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>Henuz belge yuklenmemis.</div>
+                <div style={{ fontSize: 12, color: C.textFaint, marginTop: 4 }}>
+                  PDF, Word veya gorsel dosyalarini yukleyebilirsiniz.
                 </div>
               </div>
             ) : (
