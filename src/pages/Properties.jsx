@@ -1,15 +1,19 @@
-/* ── KiraciYonet — Mulklerim — Lucide + Motion ── */
+/* ── KiraciYonet — Mulklerim — Complete Redesign ── */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import {
-  Building2, Users, Home, DollarSign, Search, Plus,
-  Pencil, Trash2, X, Check
+  Building2, Plus, Pencil, Trash2, X, Check,
+  ChevronDown, AlertCircle, UserPlus
 } from 'lucide-react'
 
+const font = "'Plus Jakarta Sans', system-ui, sans-serif"
+const money = n => Number(n).toLocaleString('tr-TR')
+
 function formatDate(dateStr) {
+  if (!dateStr) return '—'
   const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
   const d = new Date(dateStr)
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
@@ -27,17 +31,40 @@ const EMPTY_FORM = {
   deposit: '', notes: ''
 }
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }
+/* Animations */
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } }
+}
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }
+}
+
+/* Colors */
+const C = {
+  teal: '#025864',
+  green: '#00D47E',
+  red: '#EF4444',
+  bg: '#F0F2F5',
+  card: '#FFFFFF',
+  border: '#E5E7EB',
+  borderLight: '#F1F5F9',
+  text: '#0F172A',
+  textMuted: '#64748B',
+  textFaint: '#94A3B8'
+}
 
 export default function Properties() {
   const { showToast } = useToast()
   const navigate = useNavigate()
   const [apartments, setApartments] = useState([])
+  const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [cityFilter, setCityFilter] = useState('')
+  const [districtFilter, setDistrictFilter] = useState('')
   const [showPopup, setShowPopup] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -47,30 +74,46 @@ export default function Properties() {
 
   const loadData = async () => {
     setLoading(true); setError(null)
-    const { data, error: err } = await supabase
-      .from('apartments')
-      .select('*, tenants(id, full_name, email, lease_start, lease_end, rent)')
-      .order('created_at', { ascending: false })
-    if (err) { setError(err.message); setLoading(false); return }
-    setApartments(data || []); setLoading(false)
+    const [aptRes, payRes] = await Promise.all([
+      supabase.from('apartments')
+        .select('*, tenants(id, full_name, email, lease_start, lease_end, rent)')
+        .order('created_at', { ascending: false }),
+      supabase.from('rent_payments')
+        .select('id, tenant_id, due_date, status, amount')
+        .order('due_date', { ascending: true })
+    ])
+    if (aptRes.error) { setError(aptRes.error.message); setLoading(false); return }
+    setApartments(aptRes.data || [])
+    setPayments(payRes.data || [])
+    setLoading(false)
   }
 
-  const total = apartments.length
-  const occupied = apartments.filter(a => a.tenants?.[0]).length
-  const vacant = apartments.filter(a => !a.tenants?.[0]).length
-  const totalRent = apartments.reduce((s, a) => s + Number(a.tenants?.[0]?.rent || 0), 0)
+  /* Derive unique cities and districts for filters */
+  const cities = [...new Set(apartments.map(a => a.city).filter(Boolean))].sort()
+  const districts = [...new Set(
+    apartments
+      .filter(a => !cityFilter || a.city === cityFilter)
+      .map(a => a.district)
+      .filter(Boolean)
+  )].sort()
 
+  /* Get next unpaid payment for a tenant */
+  const getNextPayment = (tenantId) => {
+    if (!tenantId) return null
+    const now = new Date()
+    const upcoming = payments
+      .filter(p => p.tenant_id === tenantId && p.status !== 'paid')
+      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+    return upcoming[0] || null
+  }
+
+  /* Filtered list */
   const filtered = apartments.filter(a => {
-    const derivedStatus = a.tenants?.[0] ? 'occupied' : 'vacant'
-    if (statusFilter && derivedStatus !== statusFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (a.building || '').toLowerCase().includes(q) ||
-             (a.unit_no || '').toLowerCase().includes(q) ||
-             (a.city || '').toLowerCase().includes(q) ||
-             (a.district || '').toLowerCase().includes(q) ||
-             (a.tenants?.[0]?.full_name || '').toLowerCase().includes(q)
-    }
+    const isOccupied = !!a.tenants?.[0]
+    if (statusFilter === 'occupied' && !isOccupied) return false
+    if (statusFilter === 'vacant' && isOccupied) return false
+    if (cityFilter && a.city !== cityFilter) return false
+    if (districtFilter && a.district !== districtFilter) return false
     return true
   })
 
@@ -126,229 +169,480 @@ export default function Properties() {
 
   const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-  return (
-    <motion.div variants={stagger} initial="hidden" animate="show">
-      {/* Stat Cards */}
-      <div className="stat-grid">
-        {[
-          { icon: Building2, color: 'blue', value: total, label: 'Toplam Mulk' },
-          { icon: Users, color: 'green', value: occupied, label: 'Kirada' },
-          { icon: Home, color: 'red', value: vacant, label: 'Bosta' },
-          { icon: DollarSign, color: 'green', value: totalRent.toLocaleString('tr-TR'), label: `Aylik Kira (\u20BA)` }
-        ].map((s, i) => (
-          <motion.div key={i} variants={fadeUp} className="stat-card">
-            <div className={`stat-icon-box ${s.color}`}>
-              <s.icon className="w-5 h-5" />
-            </div>
-            <div className="stat-info">
-              <div className="stat-number"><span>{s.value}</span></div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+  /* Select style */
+  const selectStyle = {
+    fontFamily: font, fontSize: 13, fontWeight: 500,
+    padding: '8px 32px 8px 14px',
+    borderRadius: 10, border: `1.5px solid ${C.border}`,
+    background: 'white', color: C.text,
+    cursor: 'pointer', outline: 'none',
+    appearance: 'none', WebkitAppearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 10px center'
+  }
 
-      {/* Controls */}
-      <motion.div variants={fadeUp} className="table-controls">
-        <div className="table-search">
-          <Search className="w-4 h-4" style={{ stroke: 'var(--text-muted)' }} />
-          <input type="text" placeholder="Mulk veya kiraci ara..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <div className="table-filter-group">
-          <select className="filter-btn" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            style={{ cursor: 'pointer', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}>
-            <option value="">Tum Durumlar</option>
-            <option value="occupied">Kirada</option>
-            <option value="vacant">Bosta</option>
-          </select>
-          <button className="btn btn-primary" onClick={openAdd}>
-            <Plus className="w-4 h-4" />
-            Yeni Mulk
-          </button>
-        </div>
+  /* Input style for popup */
+  const inputStyle = {
+    fontFamily: font, fontSize: 13, padding: '10px 14px',
+    borderRadius: 10, border: `1.5px solid ${C.border}`,
+    background: '#FAFBFC', color: C.text, outline: 'none',
+    width: '100%', boxSizing: 'border-box',
+    transition: 'border-color 0.2s'
+  }
+
+  const labelStyle = {
+    fontSize: 12, fontWeight: 600, color: C.textMuted,
+    marginBottom: 6, display: 'block'
+  }
+
+  return (
+    <motion.div variants={container} initial="hidden" animate="show"
+      style={{ fontFamily: font, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ═══ HEADER ═══ */}
+      <motion.div variants={item}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h1 style={{
+          fontSize: 22, fontWeight: 800, color: C.text,
+          letterSpacing: '-0.02em', margin: 0
+        }}>
+          Mulklerim
+          <span style={{
+            fontSize: 16, fontWeight: 600, color: C.textFaint,
+            marginLeft: 8
+          }}>
+            ({filtered.length})
+          </span>
+        </h1>
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={openAdd}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '10px 20px', borderRadius: 12,
+            background: C.teal, color: 'white', border: 'none',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+            boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+          }}>
+          <Plus style={{ width: 15, height: 15 }} /> Mulk Ekle
+        </motion.button>
       </motion.div>
 
-      {/* Property Cards */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>Yukleniyor...</div>
-      ) : error ? (
-        <div style={{ textAlign: 'center', padding: 48, color: 'var(--red)' }}>Hata: {error}</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-          {search || statusFilter ? 'Filtreyle eslesen mulk bulunamadi.' : 'Henuz mulk eklenmemis. "Yeni Mulk" butonuna tiklayin.'}
+      {/* ═══ FILTERS ═══ */}
+      <motion.div variants={item}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <select value={cityFilter} onChange={e => { setCityFilter(e.target.value); setDistrictFilter('') }}
+          style={selectStyle}>
+          <option value="">Tum Iller</option>
+          {cities.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={districtFilter} onChange={e => setDistrictFilter(e.target.value)}
+          style={selectStyle}>
+          <option value="">Tum Ilceler</option>
+          {districts.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          style={selectStyle}>
+          <option value="">Mulk Durumu</option>
+          <option value="occupied">Kirada</option>
+          <option value="vacant">Bosta</option>
+        </select>
+
+        {(cityFilter || districtFilter || statusFilter) && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={() => { setCityFilter(''); setDistrictFilter(''); setStatusFilter('') }}
+            style={{
+              fontSize: 12, fontWeight: 600, color: C.red,
+              background: '#FEF2F2', border: 'none', borderRadius: 8,
+              padding: '8px 14px', cursor: 'pointer', fontFamily: font
+            }}>
+            Temizle
+          </motion.button>
+        )}
+      </motion.div>
+
+      {/* ═══ TABLE ═══ */}
+      <motion.div variants={item} style={{
+        background: C.card, borderRadius: 16,
+        boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+        overflow: 'hidden'
+      }}>
+        {/* Table Header */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1.2fr 1fr 1fr 80px',
+          padding: '14px 24px',
+          borderBottom: `1px solid ${C.borderLight}`,
+          background: '#FAFBFC'
+        }}>
+          {['Mulk Bilgileri', 'Kiraci', 'Siradaki Odeme', 'Sozlesme Bitis', ''].map((h, i) => (
+            <div key={i} style={{
+              fontSize: 11, fontWeight: 700, color: C.textFaint,
+              textTransform: 'uppercase', letterSpacing: '0.06em'
+            }}>
+              {h}
+            </div>
+          ))}
         </div>
-      ) : (
-        <div className="property-list">
-          {filtered.map((apt, i) => {
+
+        {/* Rows */}
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: 60, color: C.red, fontSize: 14 }}>
+            <AlertCircle style={{ width: 20, height: 20, marginBottom: 8 }} />
+            <div>Hata: {error}</div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
+            {statusFilter || cityFilter || districtFilter
+              ? 'Filtreyle eslesen mulk bulunamadi.'
+              : 'Henuz mulk eklenmemis.'}
+          </div>
+        ) : (
+          filtered.map((apt, i) => {
             const tenant = apt.tenants?.[0]
             const isOccupied = !!tenant
-            const statusLabel = isOccupied ? 'Kirada' : 'Bosta'
-            const statusCss = isOccupied ? 'active' : 'inactive'
+            const nextPay = tenant ? getNextPayment(tenant.id) : null
             const location = [apt.district, apt.city].filter(Boolean).join(', ')
-            const fullAddress = apt.address ? `${apt.address}${location ? ', ' + location : ''}` : location || '—'
+            const address = apt.address
+              ? `${apt.address}${location ? ', ' + location : ''}`
+              : location || '—'
 
             return (
-              <motion.div
-                key={apt.id}
-                variants={fadeUp}
-                whileHover={{ y: -2 }}
-                className="property-card"
+              <motion.div key={apt.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => navigate(`/properties/${apt.id}`)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1.2fr 1fr 1fr 80px',
+                  padding: '16px 24px',
+                  alignItems: 'center',
+                  borderBottom: `1px solid ${C.borderLight}`,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s'
+                }}
+                whileHover={{ backgroundColor: '#F8FAFC' }}
               >
-                <div className="property-card-top">
-                  <div className="property-card-info">
-                    <span className={`status-badge ${statusCss}`}>{statusLabel}</span>
-                    <h3 className="property-card-title">
-                      {apt.building}{apt.unit_no ? ` — No: ${apt.unit_no}` : ''}
-                    </h3>
-                    <p className="property-card-address">{fullAddress}</p>
+                {/* Mülk Bilgileri */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                  {/* Status badge */}
+                  <div style={{
+                    padding: '4px 10px', borderRadius: 6,
+                    fontSize: 11, fontWeight: 700, flexShrink: 0,
+                    background: isOccupied ? '#ECFDF5' : '#FEF2F2',
+                    color: isOccupied ? '#059669' : '#DC2626'
+                  }}>
+                    {isOccupied ? 'Kirada' : 'Bosta'}
                   </div>
-                  <div className="property-card-actions">
-                    <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={(e) => openEdit(e, apt.id)}>
-                      <Pencil className="w-3.5 h-3.5" /> Duzenle
-                    </button>
-                    <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px', color: 'var(--red)' }} onClick={(e) => handleDelete(e, apt.id, apt.building + ' ' + apt.unit_no)}>
-                      <Trash2 className="w-3.5 h-3.5" /> Sil
-                    </button>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 14, fontWeight: 700, color: C.text,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                    }}>
+                      {apt.building}{apt.unit_no ? ` — No: ${apt.unit_no}` : ''}
+                    </div>
+                    <div style={{
+                      fontSize: 12, color: C.textFaint, marginTop: 2,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                    }}>
+                      {address}
+                    </div>
                   </div>
                 </div>
-                <div className="property-card-details">
-                  <div className="property-card-detail">
-                    <span className="property-detail-label">Depozito</span>
-                    <span className="property-detail-value">{apt.deposit ? Number(apt.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                  </div>
+
+                {/* Kiracı */}
+                <div>
                   {tenant ? (
-                    <>
-                      <div className="property-card-divider" />
-                      <div className="property-card-detail">
-                        <span className="property-detail-label">Kiraci</span>
-                        <span className="property-detail-value">{tenant.full_name}</span>
-                      </div>
-                      <div className="property-card-detail">
-                        <span className="property-detail-label">Kira</span>
-                        <span className="property-detail-value">{tenant.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                      </div>
-                      <div className="property-card-detail">
-                        <span className="property-detail-label">Sozlesme Baslangic</span>
-                        <span className="property-detail-value">{tenant.lease_start ? formatDate(tenant.lease_start) : '—'}</span>
-                      </div>
-                      <div className="property-card-detail">
-                        <span className="property-detail-label">Sozlesme Bitis</span>
-                        <span className="property-detail-value">{tenant.lease_end ? formatDate(tenant.lease_end) : '—'}</span>
-                      </div>
-                    </>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      {tenant.full_name}
+                    </div>
                   ) : (
-                    <>
-                      <div className="property-card-divider" />
-                      <div className="property-card-detail" style={{ gridColumn: '1 / -1' }}>
-                        <span className="property-detail-label" style={{ color: 'var(--text-muted)' }}>Kiraci bulunmuyor — Sozlesme ekleyin</span>
-                      </div>
-                    </>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      fontSize: 12, fontWeight: 600, color: C.teal,
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => { e.stopPropagation(); navigate('/tenants/list') }}>
+                      <UserPlus style={{ width: 13, height: 13 }} />
+                      Kiraci Ekle
+                    </div>
                   )}
+                </div>
+
+                {/* Sıradaki Ödeme */}
+                <div>
+                  {tenant ? (
+                    nextPay ? (
+                      <div style={{
+                        fontSize: 13, fontWeight: 500,
+                        color: new Date(nextPay.due_date) < new Date() ? C.red : C.text
+                      }}>
+                        {formatDate(nextPay.due_date)}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: C.textFaint }}>
+                        Odeme kaydi yok
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ fontSize: 12, color: C.textFaint }}>—</div>
+                  )}
+                </div>
+
+                {/* Sözleşme Bitiş */}
+                <div>
+                  {tenant?.lease_end ? (
+                    <div style={{
+                      fontSize: 13, fontWeight: 500,
+                      color: new Date(tenant.lease_end) < new Date() ? C.red : C.text
+                    }}>
+                      {formatDate(tenant.lease_end)}
+                    </div>
+                  ) : tenant ? (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: 12, fontWeight: 600, color: C.teal, cursor: 'pointer'
+                    }}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/properties/${apt.id}`) }}>
+                      Sozlesme Ekle
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: C.textFaint }}>—</div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={(e) => openEdit(e, apt.id)}
+                    style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: C.textMuted
+                    }}>
+                    <Pencil style={{ width: 14, height: 14 }} />
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={(e) => handleDelete(e, apt.id, `${apt.building} ${apt.unit_no}`)}
+                    style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: C.textMuted
+                    }}>
+                    <Trash2 style={{ width: 14, height: 14 }} />
+                  </motion.button>
                 </div>
               </motion.div>
             )
-          })}
-        </div>
-      )}
+          })
+        )}
+      </motion.div>
 
-      {/* Add/Edit Popup */}
+      {/* ═══ ADD/EDIT POPUP ═══ */}
       <AnimatePresence>
         {showPopup && (
-          <div className="popup-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPopup(false) }}>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowPopup(false) }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20
+            }}>
             <motion.div
-              className="popup"
-              style={{ maxWidth: 720 }}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="popup-header">
-                <h3 className="popup-title">{editId ? 'Mulk Duzenle' : 'Yeni Mulk Ekle'}</h3>
-                <button className="popup-close" onClick={() => setShowPopup(false)}>
-                  <X className="w-5 h-5" />
-                </button>
+              style={{
+                background: 'white', borderRadius: 20,
+                boxShadow: '0 25px 60px rgba(15,23,42,0.2)',
+                width: '100%', maxWidth: 680,
+                maxHeight: '85vh', overflowY: 'auto'
+              }}>
+              {/* Popup Header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '20px 28px', borderBottom: `1px solid ${C.borderLight}`
+              }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
+                  {editId ? 'Mulk Duzenle' : 'Yeni Mulk Ekle'}
+                </h3>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowPopup(false)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#F1F5F9', border: 'none', cursor: 'pointer', color: C.textMuted
+                  }}>
+                  <X style={{ width: 18, height: 18 }} />
+                </motion.button>
               </div>
+
+              {/* Popup Form */}
               <form onSubmit={handleSave}>
-                <div className="popup-body">
-                  <div className="popup-grid">
-                    <div className="form-group">
-                      <label className="form-label">Mulk Adi / Bina *</label>
-                      <input className="form-input" type="text" placeholder="Opus Sitesi" required
-                        value={form.building} onChange={e => updateForm('building', e.target.value)} />
+                <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {/* Row 1: Building + Unit */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Mulk Adi / Bina *</label>
+                      <input style={inputStyle} type="text" placeholder="Opus Sitesi" required
+                        value={form.building} onChange={e => updateForm('building', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">No / Daire *</label>
-                      <input className="form-input" type="text" placeholder="2/10" required
-                        value={form.unit_no} onChange={e => updateForm('unit_no', e.target.value)} />
+                    <div>
+                      <label style={labelStyle}>No / Daire *</label>
+                      <input style={inputStyle} type="text" placeholder="2/10" required
+                        value={form.unit_no} onChange={e => updateForm('unit_no', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Mulk Tipi</label>
-                      <select className="form-input" value={form.property_type} onChange={e => updateForm('property_type', e.target.value)}>
+                  </div>
+
+                  {/* Row 2: Type + City + District */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Mulk Tipi</label>
+                      <select style={{ ...inputStyle, cursor: 'pointer' }}
+                        value={form.property_type} onChange={e => updateForm('property_type', e.target.value)}>
                         {Object.entries(PROPERTY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Sehir</label>
-                      <input className="form-input" type="text" placeholder="Istanbul" value={form.city} onChange={e => updateForm('city', e.target.value)} />
+                    <div>
+                      <label style={labelStyle}>Sehir</label>
+                      <input style={inputStyle} type="text" placeholder="Istanbul"
+                        value={form.city} onChange={e => updateForm('city', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Ilce</label>
-                      <input className="form-input" type="text" placeholder="Kadikoy" value={form.district} onChange={e => updateForm('district', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Oda Sayisi</label>
-                      <input className="form-input" type="text" placeholder="2+1" value={form.room_count} onChange={e => updateForm('room_count', e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-group" style={{ marginTop: 14 }}>
-                    <label className="form-label">Adres</label>
-                    <input className="form-input" type="text" placeholder="Mahalle, Sokak, No"
-                      value={form.address} onChange={e => updateForm('address', e.target.value)} />
-                  </div>
-                  <div className="popup-grid" style={{ marginTop: 14 }}>
-                    <div className="form-group">
-                      <label className="form-label">Kat</label>
-                      <input className="form-input" type="text" placeholder="3" value={form.floor_no} onChange={e => updateForm('floor_no', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Brut m2</label>
-                      <input className="form-input" type="number" min="0" step="0.01" placeholder="120" value={form.m2_gross} onChange={e => updateForm('m2_gross', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Net m2</label>
-                      <input className="form-input" type="number" min="0" step="0.01" placeholder="100" value={form.m2_net} onChange={e => updateForm('m2_net', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Bina Yasi</label>
-                      <input className="form-input" type="number" min="0" placeholder="5" value={form.building_age} onChange={e => updateForm('building_age', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Depozito ({'\u20BA'})</label>
-                      <input className="form-input" type="number" min="0" step="0.01" placeholder="0" value={form.deposit} onChange={e => updateForm('deposit', e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
-                      <input type="checkbox" id="furnished" checked={form.furnished} onChange={e => updateForm('furnished', e.target.checked)} style={{ width: 16, height: 16 }} />
-                      <label htmlFor="furnished" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>Esyali</label>
+                    <div>
+                      <label style={labelStyle}>Ilce</label>
+                      <input style={inputStyle} type="text" placeholder="Kadikoy"
+                        value={form.district} onChange={e => updateForm('district', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                   </div>
-                  <div className="form-group" style={{ marginTop: 14 }}>
-                    <label className="form-label">Notlar</label>
-                    <textarea className="form-input" rows={2} placeholder="Opsiyonel notlar..."
-                      value={form.notes} onChange={e => updateForm('notes', e.target.value)} />
+
+                  {/* Address */}
+                  <div>
+                    <label style={labelStyle}>Adres</label>
+                    <input style={inputStyle} type="text" placeholder="Mahalle, Sokak, No"
+                      value={form.address} onChange={e => updateForm('address', e.target.value)}
+                      onFocus={e => e.target.style.borderColor = C.teal}
+                      onBlur={e => e.target.style.borderColor = C.border} />
+                  </div>
+
+                  {/* Row 3: Room, Floor, m2, Age, Deposit, Furnished */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Oda Sayisi</label>
+                      <input style={inputStyle} type="text" placeholder="2+1"
+                        value={form.room_count} onChange={e => updateForm('room_count', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Kat</label>
+                      <input style={inputStyle} type="text" placeholder="3"
+                        value={form.floor_no} onChange={e => updateForm('floor_no', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Brut m²</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="120"
+                        value={form.m2_gross} onChange={e => updateForm('m2_gross', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Net m²</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="100"
+                        value={form.m2_net} onChange={e => updateForm('m2_net', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Bina Yasi</label>
+                      <input style={inputStyle} type="number" min="0" placeholder="5"
+                        value={form.building_age} onChange={e => updateForm('building_age', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Depozito (₺)</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                        value={form.deposit} onChange={e => updateForm('deposit', e.target.value)}
+                        onFocus={e => e.target.style.borderColor = C.teal}
+                        onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                  </div>
+
+                  {/* Furnished checkbox */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input type="checkbox" id="furnished" checked={form.furnished}
+                      onChange={e => updateForm('furnished', e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
+                    <label htmlFor="furnished" style={{ fontSize: 13, fontWeight: 600, color: C.text, cursor: 'pointer' }}>
+                      Esyali
+                    </label>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label style={labelStyle}>Notlar</label>
+                    <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
+                      placeholder="Opsiyonel notlar..."
+                      value={form.notes} onChange={e => updateForm('notes', e.target.value)}
+                      onFocus={e => e.target.style.borderColor = C.teal}
+                      onBlur={e => e.target.style.borderColor = C.border} />
                   </div>
                 </div>
-                <div className="popup-footer">
-                  <button type="button" className="btn btn-outline" onClick={() => setShowPopup(false)}>Iptal</button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
-                    <Check className="w-4 h-4" />
+
+                {/* Popup Footer */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10,
+                  padding: '16px 28px', borderTop: `1px solid ${C.borderLight}`
+                }}>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    type="button" onClick={() => setShowPopup(false)}
+                    style={{
+                      padding: '10px 20px', borderRadius: 10,
+                      background: '#F1F5F9', color: C.textMuted, border: 'none',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                    }}>
+                    Iptal
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    type="submit" disabled={saving}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '10px 22px', borderRadius: 10,
+                      background: C.teal, color: 'white', border: 'none',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                      opacity: saving ? 0.7 : 1,
+                      boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+                    }}>
+                    <Check style={{ width: 15, height: 15 }} />
                     {saving ? 'Kaydediliyor...' : 'Kaydet'}
-                  </button>
+                  </motion.button>
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
