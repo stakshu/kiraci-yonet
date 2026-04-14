@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { ArrowRight, Plus, AlertTriangle, Mail } from 'lucide-react'
+import { ArrowRight, Plus, AlertTriangle, Mail, UserPlus, Building2 } from 'lucide-react'
 
 const MO = ['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara']
 const MO_FULL = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
@@ -109,9 +109,11 @@ export default function Dashboard() {
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
   const aptVac = aptTotal - aptOcc
 
-  /* Unpaid tenants list */
+  /* Unpaid tenants list — includes tenants with unpaid records + tenants with no record this month */
   const unpaidTenants = useMemo(() => {
     const groups = {}
+
+    // 1) Tenants with explicit unpaid payment records this month
     unpaidThisMonth.forEach(p => {
       if (!p.tenant_id) return
       if (!groups[p.tenant_id]) {
@@ -131,8 +133,25 @@ export default function Dashboard() {
         groups[p.tenant_id].daysLate = Math.max(groups[p.tenant_id].daysLate, Math.abs(diff))
       }
     })
+
+    // 2) Tenants who have an apartment but NO payment record at all this month
+    const paidOrRecordedIds = new Set(monthPays.map(p => p.tenant_id).filter(Boolean))
+    apts.forEach(apt => {
+      const tenant = apt.tenants?.[0]
+      if (!tenant) return
+      if (paidOrRecordedIds.has(tenant.id) || groups[tenant.id]) return
+      groups[tenant.id] = {
+        name: tenant.full_name || '—',
+        email: '',
+        apt: `${apt.building || '—'} ${apt.unit_no || ''}`.trim(),
+        amount: Number(tenant.rent) || 0,
+        daysLate: 0,
+        isOverdue: false
+      }
+    })
+
     return Object.values(groups).sort((a, b) => b.daysLate - a.daysLate || b.amount - a.amount)
-  }, [unpaidThisMonth])
+  }, [unpaidThisMonth, monthPays, apts])
 
   /* Trend chart */
   const trendData = useMemo(() => {
@@ -168,16 +187,36 @@ export default function Dashboard() {
             {now.getDate()} {MO_FULL[cm]} {cy}
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          onClick={() => nav('/payments/rent')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 22px',
-            borderRadius: 12, background: S.teal, color: 'white', border: 'none',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
-            boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
-          }}>
-          <Plus style={{ width: 15, height: 15 }} /> Tahsilat Ekle
-        </motion.button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => nav('/tenants/list')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+              borderRadius: 12, background: '#F0FDFA', color: S.teal, border: `1.5px solid #CCE4E8`,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
+            }}>
+            <UserPlus style={{ width: 14, height: 14 }} /> Kiraci Ekle
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => nav('/properties')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+              borderRadius: 12, background: '#F8FAFC', color: '#475569', border: `1.5px solid #E2E8F0`,
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
+            }}>
+            <Building2 style={{ width: 14, height: 14 }} /> Mulk Ekle
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => nav('/payments/rent')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+              borderRadius: 12, background: S.teal, color: 'white', border: 'none',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+              boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+            }}>
+            <Plus style={{ width: 14, height: 14 }} /> Tahsilat Ekle
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* ═══ KPI CARDS ═══ */}

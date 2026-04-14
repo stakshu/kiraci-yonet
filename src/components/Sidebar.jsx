@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, Settings, HelpCircle,
-  Home, PanelLeftClose, Search, ChevronDown
+  Home, PanelLeftClose, ChevronDown
 } from 'lucide-react'
 
 const ICON_MAP = {
@@ -76,17 +76,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
         <button className="sb-collapse-btn" onClick={onToggleCollapse} title="Menuyu daralt">
           <PanelLeftClose className="w-[14px] h-[14px]" />
         </button>
-      </div>
-
-      {/* Search */}
-      <div className="sb-search">
-        <div className="sb-search-box">
-          <Search className="w-[15px] h-[15px] flex-shrink-0" style={{ stroke: 'var(--sb-text)' }} />
-          <input type="text" className="sb-search-input" placeholder="Ara..." />
-          <div className="sb-search-shortcut">
-            <kbd>⌘</kbd><kbd>F</kbd>
-          </div>
-        </div>
       </div>
 
       {/* Navigation */}
