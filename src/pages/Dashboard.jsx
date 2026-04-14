@@ -80,17 +80,51 @@ export default function Dashboard() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      supabase.from('apartments').select('*, tenants(id, full_name, rent)').order('created_at', { ascending: false }),
-      supabase.from('rent_payments').select('*, tenants(full_name, email), apartments(building, unit_no)').order('due_date', { ascending: false }),
-      supabase.from('tenants').select('id, full_name, apartment_id, lease_end').order('created_at', { ascending: false })
-    ]).then(([a, p, t]) => {
-      setApts(a.data || [])
-      setPays(p.data || [])
-      setTens(t.data || [])
-      setReady(true)
+    ensurePayments().then(() => {
+      Promise.all([
+        supabase.from('apartments').select('*, tenants(id, full_name, rent)').order('created_at', { ascending: false }),
+        supabase.from('rent_payments').select('*, tenants(full_name, email), apartments(building, unit_no)').order('due_date', { ascending: false }),
+        supabase.from('tenants').select('id, full_name, apartment_id, lease_end').order('created_at', { ascending: false })
+      ]).then(([a, p, t]) => {
+        setApts(a.data || [])
+        setPays(p.data || [])
+        setTens(t.data || [])
+        setReady(true)
+      })
     })
   }, [])
+
+  /* Ensure payment records exist up to next month */
+  const ensurePayments = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const { data: tenants } = await supabase
+      .from('tenants').select('id, apartment_id, lease_start, rent')
+      .eq('user_id', session.user.id).not('apartment_id', 'is', null)
+    if (!tenants || tenants.length === 0) return
+    const { data: existing } = await supabase
+      .from('rent_payments').select('tenant_id, due_date').eq('user_id', session.user.id)
+    const existingKeys = new Set((existing || []).map(p => `${p.tenant_id}_${p.due_date.slice(0, 7)}`))
+    const now = new Date()
+    const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+    const newPayments = []
+    for (const t of tenants) {
+      const rentAmount = Number(t.rent) || 0
+      if (rentAmount <= 0) continue
+      const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
+      for (let i = 0; i < 120; i++) {
+        const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+        if (dueDate > endOfNextMonth) break
+        const key = `${t.id}_${dueDate.toISOString().slice(0, 7)}`
+        if (existingKeys.has(key)) continue
+        newPayments.push({
+          user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+          due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
+        })
+      }
+    }
+    if (newPayments.length > 0) await supabase.from('rent_payments').insert(newPayments)
+  }
 
   const now = new Date()
   const cm = now.getMonth(), cy = now.getFullYear()
