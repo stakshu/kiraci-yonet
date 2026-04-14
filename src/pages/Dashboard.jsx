@@ -251,7 +251,7 @@ export default function Dashboard() {
             titleColor: 'rgba(255,255,255,0.8)',
             subColor: 'rgba(255,255,255,0.65)',
             buAyColor: 'rgba(255,255,255,0.5)',
-            bg: 'linear-gradient(135deg, #00D47E 0%, #025864 100%)',
+            bg: 'linear-gradient(135deg, #019671 0%, #026f69 100%)',
             borderColor: 'transparent'
           },
           {
