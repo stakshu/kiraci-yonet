@@ -16,7 +16,7 @@
 - **Dark Teal:** `#03363D` — gradients, dark backgrounds
 - **Sidebar BG:** `#0B1D23`
 - **Page BG:** `#F0F2F5`
-- **Font:** Inter (Google Fonts) — weights 400, 500, 600, 700, 800
+- **Font:** Helvetica Neue / Helvetica — system font, no external import needed
 
 ## Style Rules
 - Always use Tailwind utility classes for new components, avoid writing custom CSS
@@ -40,6 +40,14 @@
 - Sidebar, Topbar, AuthOverlay: still using legacy CSS (planned migration)
 - Properties, TenantsList, RentPayments, PaymentHistory: still using legacy CSS
 - `src/index.css` contains both Tailwind import and legacy CSS (~2200 lines)
+
+## Skills Workflow
+Every new feature, page, or significant change MUST follow this order:
+1. **brainstorming** — clarifying questions → 2-3 approaches → design spec
+2. **writing-plans** — implementation plan from approved spec
+3. **frontend-design** — invoke during UI implementation for professional aesthetics
+
+Never skip skills. For small UI tweaks, frontend-design alone may suffice.
 
 ## Build & Dev
 - `npm run dev` — Vite dev server (localhost:5173)
