@@ -16,7 +16,7 @@
 - **Dark Teal:** `#03363D` — gradients, dark backgrounds
 - **Sidebar BG:** `#0B1D23`
 - **Page BG:** `#F0F2F5`
-- **Font:** Helvetica Neue / Helvetica — system font, no external import needed
+- **Font:** Plus Jakarta Sans (Google Fonts) — weights 400, 500, 600, 700, 800
 
 ## Style Rules
 - Always use Tailwind utility classes for new components, avoid writing custom CSS

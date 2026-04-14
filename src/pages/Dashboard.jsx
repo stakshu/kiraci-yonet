@@ -34,7 +34,7 @@ const dDiff = d => {
 
 const money = n => Number(n).toLocaleString('tr-TR')
 
-const font = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 
 /* Animations */
 const container = {
