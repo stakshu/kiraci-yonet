@@ -5,8 +5,10 @@ import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
-  UserCheck, UserX, AlertTriangle, Search
+  UserCheck, UserX, AlertTriangle, Search,
+  Shield, CreditCard, Home as HomeIcon
 } from 'lucide-react'
+import TenantDetail from '../components/TenantDetail'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 const money = n => Number(n).toLocaleString('tr-TR')
@@ -56,7 +58,10 @@ const labelStyle = { fontSize: 12, fontWeight: 600, color: C.textMuted, marginBo
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', tc_no: '',
   apartment_id: '', lease_start: '', lease_end: '',
-  rent: '', deposit: '', notes: ''
+  rent: '', deposit: '', notes: '',
+  emergency_contact_name: '', emergency_contact_phone: '',
+  iban: '',
+  household_spouse: 0, household_children: 0, household_roommate: 0
 }
 
 export default function TenantsList() {
@@ -71,6 +76,8 @@ export default function TenantsList() {
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState('active')
   const [search, setSearch] = useState('')
+  const [detailTenant, setDetailTenant] = useState(null)
+  const [showDetail, setShowDetail] = useState(false)
 
   useEffect(() => { loadTenants(); loadApartments() }, [])
 
@@ -122,7 +129,13 @@ export default function TenantsList() {
       phone: data.phone || '', tc_no: data.tc_no || '',
       apartment_id: data.apartment_id || '', lease_start: data.lease_start || '',
       lease_end: data.lease_end || '', rent: data.rent || '',
-      deposit: data.deposit || '', notes: data.notes || ''
+      deposit: data.deposit || '', notes: data.notes || '',
+      emergency_contact_name: data.emergency_contact_name || '',
+      emergency_contact_phone: data.emergency_contact_phone || '',
+      iban: data.iban || '',
+      household_spouse: data.household_info?.spouse || 0,
+      household_children: data.household_info?.children || 0,
+      household_roommate: data.household_info?.roommate || 0
     })
     setShowPopup(true)
   }
@@ -137,7 +150,15 @@ export default function TenantsList() {
       apartment_id: form.apartment_id || null,
       lease_start: form.lease_start || null, lease_end: form.lease_end || null,
       rent: parseFloat(form.rent) || 0, deposit: parseFloat(form.deposit) || 0,
-      notes: form.notes.trim()
+      notes: form.notes.trim(),
+      emergency_contact_name: form.emergency_contact_name.trim(),
+      emergency_contact_phone: form.emergency_contact_phone.trim(),
+      iban: form.iban.trim(),
+      household_info: {
+        spouse: parseInt(form.household_spouse) || 0,
+        children: parseInt(form.household_children) || 0,
+        roommate: parseInt(form.household_roommate) || 0
+      }
     }
     let result
     if (editId) result = await supabase.from('tenants').update(record).eq('id', editId).select()
@@ -329,6 +350,7 @@ export default function TenantsList() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03, duration: 0.3 }}
+              onClick={() => { setDetailTenant(t); setShowDetail(true) }}
               style={{
                 display: 'grid',
                 gridTemplateColumns: tab === 'active'
@@ -336,7 +358,8 @@ export default function TenantsList() {
                   : '1.5fr 1fr 1fr 1fr 80px',
                 padding: '14px 24px', alignItems: 'center',
                 borderBottom: `1px solid ${C.borderLight}`,
-                transition: 'background 0.15s'
+                transition: 'background 0.15s',
+                cursor: 'pointer'
               }}
               whileHover={{ backgroundColor: '#F8FAFC' }}
             >
@@ -387,7 +410,7 @@ export default function TenantsList() {
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  onClick={() => openEdit(t.id)}
+                  onClick={(e) => { e.stopPropagation(); openEdit(t.id) }}
                   title="Duzenle"
                   style={{
                     width: 30, height: 30, borderRadius: 8,
@@ -398,7 +421,7 @@ export default function TenantsList() {
                 </motion.button>
                 {tab === 'active' && (
                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => moveToPast(t.id, t.full_name)}
+                    onClick={(e) => { e.stopPropagation(); moveToPast(t.id, t.full_name) }}
                     title="Eski kiracilara tasi"
                     style={{
                       width: 30, height: 30, borderRadius: 8,
@@ -409,7 +432,7 @@ export default function TenantsList() {
                   </motion.button>
                 )}
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDelete(t.id, t.full_name)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(t.id, t.full_name) }}
                   title="Sil"
                   style={{
                     width: 30, height: 30, borderRadius: 8,
@@ -525,6 +548,61 @@ export default function TenantsList() {
                         value={form.deposit} onChange={e => UF('deposit', e.target.value)} />
                     </div>
                   </div>
+                  {/* ── Acil Durum Kişisi ── */}
+                  <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Shield style={{ width: 13, height: 13 }} /> Acil Durum Kişisi
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>Ad Soyad</label>
+                        <input style={inputStyle} type="text" placeholder="Kişi adı"
+                          value={form.emergency_contact_name} onChange={e => UF('emergency_contact_name', e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Telefon</label>
+                        <input style={inputStyle} type="text" placeholder="0532 000 0000"
+                          value={form.emergency_contact_phone} onChange={e => UF('emergency_contact_phone', e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── IBAN ── */}
+                  <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CreditCard style={{ width: 13, height: 13 }} /> Finansal Bilgiler
+                    </div>
+                    <div>
+                      <label style={labelStyle}>IBAN</label>
+                      <input style={inputStyle} type="text" placeholder="TR00 0000 0000 0000 0000 0000 00"
+                        value={form.iban} onChange={e => UF('iban', e.target.value)} />
+                    </div>
+                  </div>
+
+                  {/* ── Hane Bilgisi ── */}
+                  <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <HomeIcon style={{ width: 13, height: 13 }} /> Hane Bilgisi
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>Eş</label>
+                        <input style={inputStyle} type="number" min="0" placeholder="0"
+                          value={form.household_spouse} onChange={e => UF('household_spouse', e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Çocuk</label>
+                        <input style={inputStyle} type="number" min="0" placeholder="0"
+                          value={form.household_children} onChange={e => UF('household_children', e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Oda Arkadaşı</label>
+                        <input style={inputStyle} type="number" min="0" placeholder="0"
+                          value={form.household_roommate} onChange={e => UF('household_roommate', e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label style={labelStyle}>Notlar</label>
                     <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
@@ -559,6 +637,13 @@ export default function TenantsList() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ═══ TENANT DETAIL DRAWER ═══ */}
+      <TenantDetail
+        tenant={detailTenant}
+        visible={showDetail}
+        onClose={() => { setShowDetail(false); setDetailTenant(null) }}
+      />
     </motion.div>
   )
 }
