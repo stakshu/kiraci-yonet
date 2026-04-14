@@ -364,6 +364,7 @@ export default function PropertyDetail() {
       {/* ═══ TABS ═══ */}
       <motion.div variants={fadeItem} style={{
         display: 'flex', gap: 0,
+        justifyContent: 'center',
         borderBottom: `2px solid ${C.borderLight}`,
         flexShrink: 0
       }}>
