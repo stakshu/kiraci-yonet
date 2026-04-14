@@ -340,7 +340,7 @@ export default function Dashboard() {
           whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
           style={{
             ...S.card, padding: '22px 24px',
-            borderLeft: '3px solid #CCE4E8',
+            borderLeft: '3px solid #FDE68A',
             cursor: 'default', transition: 'box-shadow 0.2s',
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
           }}>
@@ -351,22 +351,22 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Bu Ay
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#025864', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#B45309', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
               {money(upcomingMonthSum)} ₺
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
-              background: '#F0FDFA',
+              background: '#FFFBEB',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
-              <CalendarCheck style={{ width: 22, height: 22, color: '#025864' }} />
+              <CalendarCheck style={{ width: 22, height: 22, color: '#B45309' }} />
             </div>
             <div style={{
-              fontSize: 12, fontWeight: 700, color: '#025864',
-              background: '#F0FDFA',
-              border: '1px solid #CCE4E8',
+              fontSize: 12, fontWeight: 700, color: '#B45309',
+              background: '#FFFBEB',
+              border: '1px solid #FDE68A',
               borderRadius: 8, padding: '4px 12px',
               whiteSpace: 'nowrap'
             }}>
