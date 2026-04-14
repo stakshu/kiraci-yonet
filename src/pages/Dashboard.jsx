@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import {
   ArrowRight, Plus, ArrowUpRight, ExternalLink,
-  Wallet, ShieldAlert, Home, UserCheck
+  Wallet, Clock, AlertTriangle, Home, UserCheck
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════
@@ -66,10 +66,10 @@ const S = {
     background: 'white',
     borderRadius: 20,
     border: 'none',
-    boxShadow: '0 0 0 1px rgba(15,23,42,0.03), 0 2px 8px rgba(15,23,42,0.04)'
+    boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)'
   },
   cardHover: {
-    boxShadow: '0 0 0 1px rgba(2,88,100,0.08), 0 8px 24px rgba(15,23,42,0.08)'
+    boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)'
   },
   label: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8' },
   bigNum: { fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 },
@@ -164,7 +164,7 @@ export default function Dashboard() {
       const y = cm - i < 0 ? cy - 1 : cy
       const t = pays.filter(p => { const dt = new Date(p.due_date); return dt.getMonth() === m && dt.getFullYear() === y && p.status === 'paid' })
         .reduce((s, p) => s + Number(p.amount), 0)
-      d.push({ m: MO[m], v: t })
+      d.push({ m: MO[m], v: t || null })
     }
     return d
   }, [pays, cm, cy])
@@ -204,12 +204,12 @@ export default function Dashboard() {
       </motion.div>
 
       {/* ═══ 2. KPI ROW — 4 metric cards ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
         {[
-          { icon: Wallet, label: 'Tahsilat', val: `${money(collected)} ₺`, sub: `%${rate} orani`, accent: S.teal, bg: '#E6F3F5' },
-          { icon: ShieldAlert, label: 'Bekleyen', val: `${money(pending)} ₺`, sub: `${unpaidN} odeme`, accent: S.amber, bg: '#FEF9C3' },
-          { icon: ShieldAlert, label: 'Geciken', val: overdue.length > 0 ? `${money(overdueSum)} ₺` : '0 ₺', sub: `${overdue.length} odeme`, accent: S.red, bg: '#FEE2E2' },
-          { icon: Home, label: 'Doluluk', val: `%${occPct}`, sub: `${aptOcc}/${aptTotal} mulk`, accent: S.green, bg: '#DCFCE7' }
+          { icon: Wallet, label: 'Tahsilat', val: `${money(collected)} ₺`, sub: `%${rate} orani`, accent: S.teal, bg: '#E6F3F5', valColor: '#0F172A' },
+          { icon: Clock, label: 'Bekleyen', val: `${money(pending)} ₺`, sub: `${unpaidN} odeme`, accent: S.amber, bg: '#FEF9C3', valColor: unpaidN > 0 ? '#B45309' : '#0F172A' },
+          { icon: AlertTriangle, label: 'Geciken', val: overdue.length > 0 ? `${money(overdueSum)} ₺` : '0 ₺', sub: `${overdue.length} odeme`, accent: S.red, bg: '#FEE2E2', valColor: overdue.length > 0 ? '#DC2626' : '#0F172A' },
+          { icon: Home, label: 'Doluluk', val: `%${occPct}`, sub: `${aptOcc}/${aptTotal} mulk`, accent: S.green, bg: '#DCFCE7', valColor: '#0F172A' }
         ].map((k, i) => (
           <motion.div key={i} variants={item} whileHover={{ y: -4, ...S.cardHover }}
             style={{ ...S.card, padding: 24, cursor: 'default', transition: 'box-shadow 0.2s' }}>
@@ -222,14 +222,14 @@ export default function Dashboard() {
               </div>
               <span style={S.label}>{k.label}</span>
             </div>
-            <div style={{ ...S.bigNum, fontSize: 28 }}>{k.val}</div>
+            <div style={{ ...S.bigNum, fontSize: 28, color: k.valColor }}>{k.val}</div>
             <div style={{ ...S.muted, marginTop: 6 }}>{k.sub}</div>
           </motion.div>
         ))}
       </div>
 
       {/* ═══ 3. CHARTS ROW ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
 
         {/* Bar chart — Aylık */}
         <motion.div variants={item} style={{ ...S.card, padding: 28 }}>
@@ -273,7 +273,8 @@ export default function Dashboard() {
                 tick={{ fontSize: 11, fill: '#94A3B8' }} dy={8} interval={1} />
               <Tooltip content={<CTip />} />
               <Area type="monotone" dataKey="v" stroke="#025864" strokeWidth={2.5}
-                fill="url(#tealGrad)" dot={false} activeDot={{ r: 5, fill: '#025864', stroke: 'white', strokeWidth: 2 }} />
+                fill="url(#tealGrad)" dot={false} connectNulls
+                activeDot={{ r: 5, fill: '#025864', stroke: 'white', strokeWidth: 2 }} />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
@@ -305,37 +306,48 @@ export default function Dashboard() {
 
           {recent.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', ...S.muted }}>Henuz odeme yok.</div>
-          ) : recent.map((p, i) => (
-            <motion.div key={p.id}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 + i * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '14px 24px', borderBottom: '1px solid #F8FAFC'
-              }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <ArrowUpRight style={{ width: 16, height: 16, color: '#16A34A' }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
-                  {p.tenants?.full_name || '—'}
+          ) : recent.map((p, i) => {
+            const amt = Number(p.amount)
+            const isLarge = amt >= 50000
+            return (
+              <motion.div key={p.id}
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 + i * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 24px',
+                  borderBottom: '1px solid #F1F5F9',
+                  background: i % 2 === 1 ? '#FAFBFC' : 'white'
+                }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                  background: isLarge ? '#E6F3F5' : '#F0FDF4',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <ArrowUpRight style={{ width: 16, height: 16, color: isLarge ? S.teal : '#16A34A' }} />
                 </div>
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 1 }}>
-                  {p.apartments ? `${p.apartments.building} — ${p.apartments.unit_no}` : '—'}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
+                    {p.tenants?.full_name || '—'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 1 }}>
+                    {p.apartments ? `${p.apartments.building} — ${p.apartments.unit_no}` : '—'}
+                  </div>
                 </div>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
-                  +{money(p.amount)} ₺
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{
+                    fontSize: isLarge ? 15 : 14, fontWeight: 700,
+                    color: isLarge ? S.teal : '#0F172A',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
+                    +{money(amt)} ₺
+                  </div>
+                  <div style={{ fontSize: 11, color: '#CBD5E1', marginTop: 1 }}>{ago(p.paid_date)}</div>
                 </div>
-                <div style={{ fontSize: 11, color: '#CBD5E1', marginTop: 1 }}>{ago(p.paid_date)}</div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            )
+          })}
         </motion.div>
 
         {/* Sağ panel — Durum */}
