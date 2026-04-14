@@ -54,6 +54,7 @@ const cardBox = {
 
 export default function RentPayments() {
   const { showToast } = useToast()
+  const [allPayments, setAllPayments] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -117,8 +118,10 @@ export default function RentPayments() {
       .from('rent_payments').select('*, tenants(full_name, email, apartment_id), apartments(building, unit_no)')
       .order('due_date', { ascending: true })
     if (err) { setError(err.message); setLoading(false); return }
-    const activeOnly = (data || []).filter(p => p.tenants?.apartment_id != null)
-    setPayments(activeOnly); setLoading(false)
+    const all = data || []
+    setAllPayments(all)
+    setPayments(all.filter(p => p.tenants?.apartment_id != null))
+    setLoading(false)
   }
 
   const getTenantGroups = () => {
@@ -163,14 +166,14 @@ export default function RentPayments() {
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-  const thisMonthAll = payments.filter(p => {
+  const thisMonthAll = allPayments.filter(p => {
     const d = new Date(p.due_date)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
   const totalCollected = thisMonthAll.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
   const totalPending = thisMonthAll.filter(p => realStatus(p) === 'pending').reduce((s, p) => s + Number(p.amount), 0)
-  const overdueCount = payments.filter(p => realStatus(p) === 'overdue').length
-  const totalAll = payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
+  const overdueCount = allPayments.filter(p => realStatus(p) === 'overdue').length
+  const totalAll = allPayments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
 
   const sendEmail = async (payment, type) => {
     const tenantEmail = payment.tenants?.email
@@ -275,8 +278,13 @@ export default function RentPayments() {
           }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Bu Ay Tahsilat
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>
+                  Tahsilat
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Bu Ay
+                </div>
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
