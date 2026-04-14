@@ -1,11 +1,21 @@
-/* ── KiraciYonet — Mulk Detay Sayfasi ── */
+/* ── KiraciYonet — Mulk Detay — Complete Redesign ── */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import {
+  ArrowLeft, Building2, MapPin, Home, BedDouble, Armchair,
+  Layers, Maximize2, Clock, ChevronDown, Check, Undo2,
+  FileText, StickyNote, CreditCard, ScrollText, CalendarDays,
+  Mail, Phone, IdCard, DollarSign, Shield
+} from 'lucide-react'
 
-/* ── Tarih formatlama ── */
+const font = "'Plus Jakarta Sans', system-ui, sans-serif"
+const money = n => Number(n).toLocaleString('tr-TR')
+
 function formatDate(dateStr) {
+  if (!dateStr) return '—'
   const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
   const d = new Date(dateStr)
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
@@ -14,7 +24,7 @@ function formatDate(dateStr) {
 function daysDiff(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
   const target = new Date(dateStr); target.setHours(0,0,0,0)
-  return Math.ceil((target - today) / (1000*60*60*24))
+  return Math.ceil((target - today) / 864e5)
 }
 
 const PROPERTY_TYPES = {
@@ -22,10 +32,34 @@ const PROPERTY_TYPES = {
   dukkan: 'Dukkan', ofis: 'Ofis', arsa: 'Arsa', diger: 'Diger'
 }
 
+const C = {
+  teal: '#025864',
+  green: '#00D47E',
+  red: '#EF4444',
+  amber: '#F59E0B',
+  text: '#0F172A',
+  textMuted: '#64748B',
+  textFaint: '#94A3B8',
+  border: '#E5E7EB',
+  borderLight: '#F1F5F9',
+  card: '#FFFFFF'
+}
+
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } }
+}
+const item = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }
+}
+
 const TABS = [
-  { key: 'overview', label: 'Mulk Detaylari' },
-  { key: 'payments', label: 'Odeme Akisi' },
-  { key: 'tenant', label: 'Kiraci Bilgileri' },
+  { key: 'payments', label: 'Odeme Akisi', icon: CreditCard },
+  { key: 'details', label: 'Mulk Detaylari', icon: Building2 },
+  { key: 'lease', label: 'Kira Sozlesmesi Bilgileri', icon: ScrollText },
+  { key: 'documents', label: 'Belgeler', icon: FileText },
+  { key: 'notes', label: 'Notlar', icon: StickyNote }
 ]
 
 export default function PropertyDetail() {
@@ -35,17 +69,12 @@ export default function PropertyDetail() {
 
   const [apt, setApt] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState('details')
   const [payments, setPayments] = useState([])
   const [paymentsLoading, setPaymentsLoading] = useState(false)
 
-  useEffect(() => {
-    loadProperty()
-  }, [id])
-
-  useEffect(() => {
-    if (tab === 'payments' && apt) loadPayments()
-  }, [tab, apt])
+  useEffect(() => { loadProperty() }, [id])
+  useEffect(() => { if (tab === 'payments' && apt) loadPayments() }, [tab, apt])
 
   const loadProperty = async () => {
     setLoading(true)
@@ -54,7 +83,6 @@ export default function PropertyDetail() {
       .select('*, tenants(id, full_name, email, phone, tc_no, lease_start, lease_end, rent, deposit, notes)')
       .eq('id', id)
       .single()
-
     if (error || !data) {
       showToast('Mulk bulunamadi.', 'error')
       navigate('/properties')
@@ -71,7 +99,6 @@ export default function PropertyDetail() {
       .select('*')
       .eq('apartment_id', id)
       .order('due_date', { ascending: false })
-
     setPayments(data || [])
     setPaymentsLoading(false)
   }
@@ -82,7 +109,6 @@ export default function PropertyDetail() {
       .from('rent_payments')
       .update({ status: 'paid', paid_date: today })
       .eq('id', paymentId)
-
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     showToast('Odeme kaydedildi.', 'success')
     loadPayments()
@@ -93,270 +119,402 @@ export default function PropertyDetail() {
       .from('rent_payments')
       .update({ status: 'pending', paid_date: null })
       .eq('id', paymentId)
-
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     showToast('Odeme geri alindi.', 'success')
     loadPayments()
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>Yukleniyor...</div>
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, fontFamily: font }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+    </div>
+  )
   if (!apt) return null
 
   const tenant = apt.tenants?.[0]
-  const isOccupied = !!tenant
-  const statusLabel = isOccupied ? 'Kirada' : 'Bosta'
-  const statusCss = isOccupied ? 'active' : 'inactive'
-  const location = [apt.district, apt.city].filter(Boolean).join(', ')
+  const location = [apt.city, apt.district].filter(Boolean).join(', ')
 
-  /* Odeme istatistikleri */
-  const paidPayments = payments.filter(p => p.status === 'paid')
-  const overduePayments = payments.filter(p => p.status !== 'paid' && daysDiff(p.due_date) < 0)
-  const rentDebt = overduePayments.reduce((s, p) => s + Number(p.amount), 0)
+  /* ═══ Summary cards data ═══ */
+  const summaryCards = [
+    { icon: Building2, label: 'Mulk adi', value: `${apt.building}${apt.unit_no ? ' - No: ' + apt.unit_no : ''}` },
+    { icon: MapPin, label: 'Lokasyon', value: location || '—' },
+    { icon: Home, label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || apt.property_type || '—' },
+    { icon: BedDouble, label: 'Oda sayisi', value: apt.room_count || '—' },
+    { icon: Armchair, label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
+    { icon: Layers, label: 'Bulundugu kat', value: apt.floor_no || '—' },
+    { icon: Maximize2, label: 'm2 (Net)', value: apt.m2_net || '—' },
+    { icon: Clock, label: 'Bina yasi', value: apt.building_age != null ? apt.building_age : '—' }
+  ]
+
+  /* ═══ Detail rows ═══ */
+  const detailRows = [
+    { label: 'Adresi', value: apt.address ? `${apt.address}${location ? ', ' + location : ''}` : location || '—' },
+    { label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || '—' },
+    { label: 'm2 (Brut)', value: apt.m2_gross || '—' },
+    { label: 'm2 (Net)', value: apt.m2_net || '—' },
+    { label: 'Oda sayisi', value: apt.room_count || '—' },
+    { label: 'Bulundugu kat', value: apt.floor_no || '—' },
+    { label: 'Bina yasi', value: apt.building_age != null ? apt.building_age : '—' },
+    { label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
+    { label: 'Depozito', value: apt.deposit ? money(apt.deposit) + ' ₺' : '—' }
+  ]
 
   return (
-    <>
-      {/* Geri butonu */}
-      <button className="btn btn-outline" style={{ marginBottom: 16, fontSize: 13, padding: '6px 14px' }}
-        onClick={() => navigate('/properties')}>
-        <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }}><polyline points="15 18 9 12 15 6"/></svg>
-        Mulklerime Don
-      </button>
+    <motion.div variants={container} initial="hidden" animate="show"
+      style={{ fontFamily: font, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Header */}
-      <div className="pd-header">
-        <div className="pd-header-left">
-          <span className={`status-badge ${statusCss}`}>{statusLabel}</span>
-          <h2 className="pd-title">{apt.building}{apt.unit_no ? ` — No: ${apt.unit_no}` : ''}</h2>
-          <p className="pd-address">
-            {apt.address ? `${apt.address}, ` : ''}{location || '—'}
-          </p>
-          <div className="pd-quick-stats">
-            <div className="pd-quick-stat">
-              <span className="pd-quick-label">Guncel Kira</span>
-              <span className="pd-quick-value">{tenant?.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
+      {/* ═══ BACK BUTTON ═══ */}
+      <motion.div variants={item}>
+        <motion.button whileHover={{ x: -3 }} whileTap={{ scale: 0.97 }}
+          onClick={() => navigate('/properties')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 13, fontWeight: 600, color: C.textMuted,
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: font, padding: 0
+          }}>
+          <ArrowLeft style={{ width: 16, height: 16 }} />
+          Mulklerime Don
+        </motion.button>
+      </motion.div>
+
+      {/* ═══ TABS ═══ */}
+      <motion.div variants={item} style={{
+        display: 'flex', gap: 0, borderBottom: `2px solid ${C.borderLight}`,
+        overflowX: 'auto'
+      }}>
+        {TABS.map(t => {
+          const Icon = t.icon
+          const isActive = tab === t.key
+          return (
+            <motion.button key={t.key}
+              whileHover={{ color: C.teal }}
+              onClick={() => setTab(t.key)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '12px 20px', fontSize: 13, fontWeight: isActive ? 700 : 500,
+                color: isActive ? C.teal : C.textMuted,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: font, whiteSpace: 'nowrap', position: 'relative',
+                borderBottom: isActive ? `2px solid ${C.teal}` : '2px solid transparent',
+                marginBottom: -2,
+                transition: 'color 0.2s'
+              }}>
+              <Icon style={{ width: 15, height: 15 }} />
+              {t.label}
+            </motion.button>
+          )
+        })}
+      </motion.div>
+
+      {/* ═══ TAB CONTENT ═══ */}
+
+      {/* ── MULK DETAYLARI ── */}
+      {tab === 'details' && (
+        <>
+          {/* Mulk Ozeti — Icon cards */}
+          <motion.div variants={item}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+              Mulk Ozeti
+            </h2>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0,
+              background: C.card, borderRadius: 16,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+              overflow: 'hidden'
+            }}>
+              {summaryCards.map((c, i) => {
+                const Icon = c.icon
+                return (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.04, duration: 0.4 }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '18px 22px',
+                      borderRight: (i + 1) % 4 !== 0 ? `1px solid ${C.borderLight}` : 'none',
+                      borderBottom: i < 4 ? `1px solid ${C.borderLight}` : 'none'
+                    }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                      background: '#F0FDFA',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Icon style={{ width: 18, height: 18, color: C.teal }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: C.textFaint }}>{c.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginTop: 2 }}>{c.value}</div>
+                    </div>
+                  </motion.div>
+                )
+              })}
             </div>
-            <div className="pd-quick-stat">
-              <span className="pd-quick-label">Depozito</span>
-              <span className="pd-quick-value">{apt.deposit ? Number(apt.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
+          </motion.div>
+
+          {/* Temel Bilgiler — Table */}
+          <motion.div variants={item}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+              Temel Bilgiler
+            </h2>
+            <div style={{
+              background: C.card, borderRadius: 16,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+              overflow: 'hidden'
+            }}>
+              {detailRows.map((r, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + i * 0.03, duration: 0.35 }}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '200px 1fr',
+                    padding: '14px 24px',
+                    borderBottom: i < detailRows.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                    alignItems: 'center'
+                  }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{r.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{r.value}</div>
+                </motion.div>
+              ))}
             </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* ── ODEME AKISI ── */}
+      {tab === 'payments' && (
+        <motion.div variants={item} style={{
+          background: C.card, borderRadius: 16,
+          boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+          overflow: 'hidden'
+        }}>
+          {/* Table header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr 100px',
+            padding: '14px 24px', background: '#FAFBFC',
+            borderBottom: `1px solid ${C.borderLight}`
+          }}>
+            {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi', ''].map((h, i) => (
+              <div key={i} style={{
+                fontSize: 11, fontWeight: 700, color: C.textFaint,
+                textTransform: 'uppercase', letterSpacing: '0.06em'
+              }}>{h}</div>
+            ))}
           </div>
-        </div>
 
-        {/* Sag panel — Kiraci ozet */}
-        <div className="pd-tenant-summary">
-          {tenant ? (
-            <>
-              <div className="pd-tenant-avatar">{tenant.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
-              <div className="pd-tenant-name">{tenant.full_name}</div>
-              <div className="pd-tenant-meta">
-                <div className="pd-tenant-meta-row">
-                  <span>Kira Borcu</span>
-                  <span style={{ color: rentDebt > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
-                    {rentDebt > 0 ? rentDebt.toLocaleString('tr-TR') + ' \u20BA' : '0 \u20BA'}
+          {paymentsLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+            </div>
+          ) : payments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
+              Odeme kaydi bulunamadi.
+            </div>
+          ) : payments.map((p, i) => {
+            const isPaid = p.status === 'paid'
+            const diff = daysDiff(p.due_date)
+            const isOverdue = !isPaid && diff < 0
+
+            return (
+              <motion.div key={p.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03, duration: 0.3 }}
+                style={{
+                  display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 1fr 100px',
+                  padding: '14px 24px', alignItems: 'center',
+                  borderBottom: `1px solid ${C.borderLight}`
+                }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                  {formatDate(p.due_date)}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                  {money(p.amount)} ₺
+                </div>
+                <div>
+                  <span style={{
+                    padding: '4px 10px', borderRadius: 6,
+                    fontSize: 11, fontWeight: 700,
+                    background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
+                    color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
+                  }}>
+                    {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
                   </span>
                 </div>
-                <div className="pd-tenant-meta-row">
-                  <span>Geciken Kira</span>
-                  <span style={{ fontWeight: 600 }}>{overduePayments.length}</span>
+                <div style={{ fontSize: 13, color: C.textMuted }}>
+                  {p.paid_date ? formatDate(p.paid_date) : '—'}
                 </div>
-                <div className="pd-tenant-meta-row">
-                  <span>Sozlesme Baslangic</span>
-                  <span>{tenant.lease_start ? formatDate(tenant.lease_start) : '—'}</span>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  {isPaid ? (
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => markAsUnpaid(p.id)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '6px 12px', borderRadius: 8,
+                        fontSize: 12, fontWeight: 600, fontFamily: font,
+                        background: '#F1F5F9', color: C.textMuted,
+                        border: 'none', cursor: 'pointer'
+                      }}>
+                      <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
+                    </motion.button>
+                  ) : (
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => markAsPaid(p.id)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '6px 12px', borderRadius: 8,
+                        fontSize: 12, fontWeight: 600, fontFamily: font,
+                        background: C.teal, color: 'white',
+                        border: 'none', cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(2,88,100,0.2)'
+                      }}>
+                      <Check style={{ width: 12, height: 12 }} /> Odendi
+                    </motion.button>
+                  )}
                 </div>
-                <div className="pd-tenant-meta-row">
-                  <span>Sozlesme Bitis</span>
-                  <span>{tenant.lease_end ? formatDate(tenant.lease_end) : '—'}</span>
-                </div>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+      )}
+
+      {/* ── KIRA SOZLESMESI BILGILERI ── */}
+      {tab === 'lease' && (
+        <motion.div variants={item}>
+          {tenant ? (
+            <>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+                Kiraci & Sozlesme Bilgileri
+              </h2>
+              <div style={{
+                background: C.card, borderRadius: 16,
+                boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+                overflow: 'hidden'
+              }}>
+                {[
+                  { icon: IdCard, label: 'Ad Soyad', value: tenant.full_name },
+                  { icon: Mail, label: 'E-posta', value: tenant.email || '—' },
+                  { icon: Phone, label: 'Telefon', value: tenant.phone || '—' },
+                  { icon: Shield, label: 'TC No', value: tenant.tc_no || '—' },
+                  { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(tenant.lease_start) },
+                  { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(tenant.lease_end) },
+                  { icon: DollarSign, label: 'Aylik Kira', value: tenant.rent ? money(tenant.rent) + ' ₺' : '—' },
+                  { icon: DollarSign, label: 'Depozito', value: tenant.deposit ? money(tenant.deposit) + ' ₺' : '—' }
+                ].map((r, i, arr) => {
+                  const Icon = r.icon
+                  return (
+                    <motion.div key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.03, duration: 0.35 }}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '44px 200px 1fr',
+                        padding: '14px 24px', alignItems: 'center',
+                        borderBottom: i < arr.length - 1 ? `1px solid ${C.borderLight}` : 'none'
+                      }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: '#F0FDFA',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Icon style={{ width: 15, height: 15, color: C.teal }} />
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{r.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{r.value}</div>
+                    </motion.div>
+                  )
+                })}
               </div>
             </>
           ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', padding: 16 }}>
-              Kiraci bulunmuyor
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="pd-tabs">
-        {TABS.map(t => (
-          <button key={t.key} className={`pd-tab ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="pd-tab-content">
-        {tab === 'overview' && (
-          <>
-            <div className="detail-section">
-              <h4 className="detail-section-title">Mulk Ozeti</h4>
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Mulk Adi</span>
-                  <span className="detail-value">{apt.building} {apt.unit_no}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Lokasyon</span>
-                  <span className="detail-value">{location || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Mulk Tipi</span>
-                  <span className="detail-value">{PROPERTY_TYPES[apt.property_type] || apt.property_type || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Oda Sayisi</span>
-                  <span className="detail-value">{apt.room_count || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Esyali</span>
-                  <span className="detail-value">{apt.furnished ? 'Evet' : 'Hayir'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Kat</span>
-                  <span className="detail-value">{apt.floor_no || '—'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="detail-section">
-              <h4 className="detail-section-title">Temel Bilgiler</h4>
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Adres</span>
-                  <span className="detail-value">{apt.address || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">m2 (Brut)</span>
-                  <span className="detail-value">{apt.m2_gross || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">m2 (Net)</span>
-                  <span className="detail-value">{apt.m2_net || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Bina Yasi</span>
-                  <span className="detail-value">{apt.building_age != null ? apt.building_age : '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Depozito</span>
-                  <span className="detail-value">{apt.deposit ? Number(apt.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                </div>
-              </div>
-            </div>
-
-            {apt.notes && (
-              <div className="detail-section">
-                <h4 className="detail-section-title">Notlar</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>{apt.notes}</p>
-              </div>
-            )}
-          </>
-        )}
-
-        {tab === 'payments' && (
-          <div className="data-table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Vade Tarihi</th>
-                  <th>Tutar ({'\u20BA'})</th>
-                  <th>Durum</th>
-                  <th>Odeme Tarihi</th>
-                  <th>Aksiyon</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentsLoading ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
-                ) : payments.length === 0 ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Odeme kaydi bulunamadi.</td></tr>
-                ) : payments.map(p => {
-                  const isPaid = p.status === 'paid'
-                  const diff = daysDiff(p.due_date)
-                  const isOverdue = !isPaid && diff < 0
-
-                  return (
-                    <tr key={p.id}>
-                      <td>{formatDate(p.due_date)}</td>
-                      <td>{Number(p.amount).toLocaleString('tr-TR')}</td>
-                      <td>
-                        <span className={`status-badge ${isPaid ? 'active' : isOverdue ? 'inactive' : 'pending'}`}>
-                          {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
-                        </span>
-                      </td>
-                      <td>{p.paid_date ? formatDate(p.paid_date) : '—'}</td>
-                      <td>
-                        {isPaid ? (
-                          <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsUnpaid(p.id)}>Geri Al</button>
-                        ) : (
-                          <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsPaid(p.id)}>
-                            <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
-                            Odendi
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {tab === 'tenant' && (
-          tenant ? (
-            <div className="detail-section">
-              <h4 className="detail-section-title">Kiraci Bilgileri</h4>
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Ad Soyad</span>
-                  <span className="detail-value">{tenant.full_name}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">E-posta</span>
-                  <span className="detail-value">{tenant.email || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Telefon</span>
-                  <span className="detail-value">{tenant.phone || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">TC No</span>
-                  <span className="detail-value">{tenant.tc_no || '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Sozlesme Baslangic</span>
-                  <span className="detail-value">{tenant.lease_start ? formatDate(tenant.lease_start) : '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Sozlesme Bitis</span>
-                  <span className="detail-value">{tenant.lease_end ? formatDate(tenant.lease_end) : '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Aylik Kira</span>
-                  <span className="detail-value">{tenant.rent ? Number(tenant.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Depozito</span>
-                  <span className="detail-value">{tenant.deposit ? Number(tenant.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'}</span>
-                </div>
-              </div>
-              {tenant.notes && (
-                <div style={{ marginTop: 16 }}>
-                  <span className="detail-label">Notlar</span>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>{tenant.notes}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+            <div style={{
+              background: C.card, borderRadius: 16,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+              textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14
+            }}>
               Bu mulkte kiraci bulunmuyor.
             </div>
-          )
-        )}
-      </div>
-    </>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── BELGELER ── */}
+      {tab === 'documents' && (
+        <motion.div variants={item} style={{
+          background: C.card, borderRadius: 16,
+          boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+          textAlign: 'center', padding: 60
+        }}>
+          <FileText style={{ width: 32, height: 32, color: C.textFaint, marginBottom: 12 }} />
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>
+            Belge yonetimi yakin zamanda eklenecek.
+          </div>
+          <div style={{ fontSize: 13, color: C.textFaint, marginTop: 4 }}>
+            Kira sozlesmesi, tapu ve diger belgeleri buradan yukleyebileceksiniz.
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── NOTLAR ── */}
+      {tab === 'notes' && (
+        <motion.div variants={item} style={{
+          background: C.card, borderRadius: 16,
+          boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '18px 24px', borderBottom: `1px solid ${C.borderLight}`
+          }}>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: 0 }}>Notlar</h3>
+          </div>
+
+          <div style={{ padding: '20px 24px' }}>
+            {/* Mulk notlari */}
+            {apt.notes ? (
+              <div style={{ marginBottom: tenant?.notes ? 24 : 0 }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8
+                }}>Mulk Notu</div>
+                <div style={{
+                  fontSize: 14, color: C.text, lineHeight: 1.7,
+                  padding: '14px 18px', background: '#FAFBFC',
+                  borderRadius: 12, border: `1px solid ${C.borderLight}`
+                }}>
+                  {apt.notes}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Kiraci notlari */}
+            {tenant?.notes ? (
+              <div>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8
+                }}>Kiraci Notu</div>
+                <div style={{
+                  fontSize: 14, color: C.text, lineHeight: 1.7,
+                  padding: '14px 18px', background: '#FAFBFC',
+                  borderRadius: 12, border: `1px solid ${C.borderLight}`
+                }}>
+                  {tenant.notes}
+                </div>
+              </div>
+            ) : null}
+
+            {!apt.notes && !tenant?.notes && (
+              <div style={{ textAlign: 'center', padding: 40, color: C.textFaint, fontSize: 14 }}>
+                Henuz not eklenmemis.
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
   )
 }
