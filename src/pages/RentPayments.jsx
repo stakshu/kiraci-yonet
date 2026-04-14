@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import {
   DollarSign, Clock, XCircle, CreditCard, Search,
   ChevronDown, Check, Mail, TrendingUp, Building2,
-  User, CalendarDays, AlertTriangle, Undo2, Filter
+  User, UserMinus, CalendarDays, AlertTriangle, Undo2, Filter
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -148,7 +148,31 @@ export default function RentPayments() {
     return Object.values(groups)
   }
 
+  /* Past tenant groups — only paid payments this month from inactive tenants */
+  const getPastTenantGroups = () => {
+    const pastPayments = allPayments.filter(p => p.tenants?.apartment_id == null && p.status === 'paid')
+    const groups = {}
+    pastPayments.forEach(p => {
+      const key = p.tenant_id
+      if (!key) return
+      if (!groups[key]) {
+        groups[key] = {
+          tenantId: key, tenantName: p.tenants?.full_name || '—',
+          tenantEmail: p.tenants?.email || '',
+          aptName: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
+          paidPayments: []
+        }
+      }
+      groups[key].paidPayments.push(p)
+    })
+    Object.values(groups).forEach(g => {
+      g.paidPayments.sort((a, b) => new Date(b.due_date) - new Date(a.due_date))
+    })
+    return Object.values(groups)
+  }
+
   const tenantGroups = loading ? [] : getTenantGroups()
+  const pastTenantGroups = loading ? [] : getPastTenantGroups()
   const filtered = tenantGroups.filter(g => {
     if (filter === 'overdue') return g.overduePayments.length > 0
     if (filter === 'pending') return g.currentPayment
@@ -773,6 +797,101 @@ export default function RentPayments() {
           )
         })}
       </motion.div>
+
+      {/* ═══ PAST TENANTS SECTION ═══ */}
+      {pastTenantGroups.length > 0 && (
+        <motion.div variants={fadeItem}>
+          <div style={{
+            fontSize: 14, fontWeight: 700, color: C.textMuted,
+            marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8
+          }}>
+            <UserMinus style={{ width: 16, height: 16 }} />
+            Eski Kiracı Ödemeleri
+          </div>
+
+          <div style={cardBox}>
+            {/* Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1.5fr 1fr 120px 120px 100px',
+              padding: '12px 24px', background: '#FAFBFC',
+              borderBottom: `1px solid ${C.borderLight}`
+            }}>
+              {['Kiracı', 'Daire', 'Tutar', 'Ödeme Tarihi', 'Durum'].map((h, i) => (
+                <div key={i} style={{
+                  fontSize: 11, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em'
+                }}>{h}</div>
+              ))}
+            </div>
+
+            {/* Rows */}
+            {pastTenantGroups.map(group => {
+              const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+              return group.paidPayments.map((p, pIdx) => (
+                <div key={p.id} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.5fr 1fr 120px 120px 100px',
+                  padding: '12px 24px', alignItems: 'center',
+                  borderBottom: `1px solid ${C.borderLight}`
+                }}>
+                  {/* Kiracı */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {pIdx === 0 ? (
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                        background: '#F1F5F9', color: C.textMuted,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 800
+                      }}>{initials}</div>
+                    ) : (
+                      <div style={{ width: 36, flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: pIdx === 0 ? 700 : 500, color: pIdx === 0 ? C.text : C.textMuted }}>
+                        {pIdx === 0 ? group.tenantName : formatDate(p.due_date)}
+                      </span>
+                      {pIdx === 0 && (
+                        <div style={{ fontSize: 11, color: C.textFaint, marginTop: 1 }}>
+                          {formatDate(p.due_date)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Daire */}
+                  <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
+                    {pIdx === 0 ? group.aptName : ''}
+                  </div>
+
+                  {/* Tutar */}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                    {money(p.amount)} ₺
+                  </div>
+
+                  {/* Ödeme Tarihi */}
+                  <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
+                    {p.paid_date ? formatDate(p.paid_date) : '—'}
+                  </div>
+
+                  {/* Durum */}
+                  <div>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center',
+                      padding: '3px 10px', borderRadius: 6,
+                      fontSize: 11, fontWeight: 600,
+                      background: '#F0FDF4', color: '#059669',
+                      border: '1px solid #A7F3D0'
+                    }}>
+                      Ödendi
+                    </span>
+                  </div>
+                </div>
+              ))
+            })}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   )
 }
