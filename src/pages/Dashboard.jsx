@@ -247,8 +247,12 @@ export default function Dashboard() {
             title: 'Gerceklesen Odemeler',
             value: `${money(collectedSum)} ₺`,
             sub: paidAptCount > 0 ? `${paidAptCount} Mulk'ten gelen` : 'Henuz odeme yok',
-            color: '#059669',
-            borderColor: '#D1FAE5'
+            color: '#FFFFFF',
+            titleColor: 'rgba(255,255,255,0.8)',
+            subColor: 'rgba(255,255,255,0.65)',
+            buAyColor: 'rgba(255,255,255,0.5)',
+            bg: 'linear-gradient(135deg, #00D47E 0%, #025864 100%)',
+            borderColor: 'transparent'
           },
           {
             title: 'Geciken Odemeler',
@@ -270,15 +274,16 @@ export default function Dashboard() {
             style={{
               ...S.card,
               padding: '20px 22px',
-              borderLeft: `3px solid ${k.borderColor}`,
+              borderLeft: k.bg ? 'none' : `3px solid ${k.borderColor}`,
+              background: k.bg || S.card.background,
               cursor: 'default',
               transition: 'box-shadow 0.2s'
             }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B', letterSpacing: '0.01em' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: k.titleColor || '#64748B', letterSpacing: '0.01em' }}>
               {k.title}
             </div>
             <div style={{
-              fontSize: 11, fontWeight: 500, color: '#94A3B8',
+              fontSize: 11, fontWeight: 500, color: k.buAyColor || '#94A3B8',
               marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em'
             }}>
               Bu Ay
@@ -291,7 +296,7 @@ export default function Dashboard() {
               {k.value}
             </div>
             <div style={{
-              fontSize: 11, fontWeight: 500, color: '#94A3B8',
+              fontSize: 11, fontWeight: 500, color: k.subColor || '#94A3B8',
               marginTop: 8
             }}>
               {k.sub}
