@@ -1,27 +1,63 @@
-/* ── KiraciYonet — Kiraci Listesi — Lucide + Motion ── */
+/* ── KiraciYonet — Kiracilar — Complete Redesign ── */
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import {
-  Users, Home, XCircle, Clock, Search, Plus,
-  Pencil, Trash2, X, Check, MoreVertical
+  Users, Plus, Pencil, Trash2, X, Check, Save,
+  UserCheck, UserX, AlertTriangle, Search
 } from 'lucide-react'
 
+const font = "'Plus Jakarta Sans', system-ui, sans-serif"
+const money = n => Number(n).toLocaleString('tr-TR')
+
 function formatDate(dateStr) {
+  if (!dateStr) return '—'
   const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
   const d = new Date(dateStr)
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
 }
+
+function leaseRemaining(dateStr) {
+  if (!dateStr) return null
+  const today = new Date(); today.setHours(0,0,0,0)
+  const end = new Date(dateStr); end.setHours(0,0,0,0)
+  const diff = Math.ceil((end - today) / 864e5)
+  if (diff < 0) return { text: `${Math.abs(diff)} gun gecti`, color: '#DC2626', urgent: true }
+  if (diff === 0) return { text: 'Bugun bitiyor', color: '#DC2626', urgent: true }
+  if (diff <= 30) return { text: `${diff} gun kaldi`, color: '#D97706', urgent: true }
+  if (diff <= 90) return { text: `${diff} gun kaldi`, color: '#64748B', urgent: false }
+  const months = Math.floor(diff / 30)
+  return { text: `~${months} ay kaldi`, color: '#64748B', urgent: false }
+}
+
+const C = {
+  teal: '#025864', green: '#00D47E', red: '#EF4444', amber: '#F59E0B',
+  text: '#0F172A', textMuted: '#64748B', textFaint: '#94A3B8',
+  border: '#E5E7EB', borderLight: '#F1F5F9', card: '#FFFFFF'
+}
+
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } } }
+const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } } }
+const cardBox = {
+  background: C.card, borderRadius: 16,
+  boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+  overflow: 'hidden'
+}
+
+const inputStyle = {
+  fontFamily: font, fontSize: 13, padding: '10px 14px',
+  borderRadius: 10, border: `1.5px solid ${C.border}`,
+  background: '#FAFBFC', color: C.text, outline: 'none',
+  width: '100%', boxSizing: 'border-box'
+}
+const labelStyle = { fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }
 
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', tc_no: '',
   apartment_id: '', lease_start: '', lease_end: '',
   rent: '', deposit: '', notes: ''
 }
-
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } } }
 
 export default function TenantsList() {
   const { showToast } = useToast()
@@ -33,16 +69,10 @@ export default function TenantsList() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [openMenu, setOpenMenu] = useState(null)
+  const [tab, setTab] = useState('active')
   const [search, setSearch] = useState('')
 
   useEffect(() => { loadTenants(); loadApartments() }, [])
-
-  useEffect(() => {
-    const handler = (e) => { if (!e.target.closest('.action-menu')) setOpenMenu(null) }
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [])
 
   const loadTenants = async () => {
     setLoading(true); setError(null)
@@ -62,25 +92,28 @@ export default function TenantsList() {
 
   const vacantApartments = apartments.filter(a => !a.tenants?.[0])
 
-  const total = tenants.length
-  const withApartment = tenants.filter(t => t.apartment_id).length
-  const withoutApartment = total - withApartment
-  const expiringCount = tenants.filter(t => {
+  /* Split into active/former */
+  const activeTenants = tenants.filter(t => t.apartment_id)
+  const formerTenants = tenants.filter(t => !t.apartment_id)
+
+  const expiringCount = activeTenants.filter(t => {
     if (!t.lease_end) return false
-    const diff = (new Date(t.lease_end) - new Date()) / (1000 * 60 * 60 * 24)
+    const diff = (new Date(t.lease_end) - new Date()) / 864e5
     return diff >= 0 && diff <= 30
   }).length
 
-  const filtered = tenants.filter(t => {
+  /* Filter by search */
+  const currentList = tab === 'active' ? activeTenants : formerTenants
+  const filtered = currentList.filter(t => {
     if (!search) return true
     const q = search.toLowerCase()
-    return t.full_name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q) || t.phone.includes(q)
+    return t.full_name.toLowerCase().includes(q) || (t.phone || '').includes(q) ||
+      (t.apartments?.building || '').toLowerCase().includes(q)
   })
 
   const openAdd = () => { setEditId(null); setForm(EMPTY_FORM); setShowPopup(true) }
 
   const openEdit = async (id) => {
-    setOpenMenu(null)
     const { data, error: err } = await supabase.from('tenants').select('*').eq('id', id).single()
     if (err || !data) { showToast('Kiraci bulunamadi.', 'error'); return }
     setEditId(id)
@@ -118,7 +151,6 @@ export default function TenantsList() {
         const startDate = record.lease_start ? new Date(record.lease_start) : new Date()
         const now = new Date()
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        /* Only create payment records from lease start up to current month */
         for (let i = 0; i < 120; i++) {
           const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
           if (dueDate > endOfMonth) break
@@ -138,193 +170,393 @@ export default function TenantsList() {
   }
 
   const handleDelete = async (id, name) => {
-    setOpenMenu(null)
     if (!confirm(name + ' silinsin mi? Bu islem geri alinamaz.')) return
     const { error: err } = await supabase.from('tenants').delete().eq('id', id)
     if (err) { showToast('Silme hatasi: ' + err.message, 'error'); return }
     showToast('Kiraci silindi.', 'success'); loadTenants(); loadApartments()
   }
 
-  const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const moveToPast = async (id, name) => {
+    if (!confirm(`${name} eski kiracilara tasinsin mi?`)) return
+    const { error } = await supabase.from('tenants').update({ apartment_id: null }).eq('id', id)
+    if (error) { showToast('Hata: ' + error.message, 'error'); return }
+    showToast('Kiraci eski kiracilara tasindi.', 'success'); loadTenants(); loadApartments()
+  }
+
+  const UF = (field, val) => setForm(p => ({ ...p, [field]: val }))
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show">
-      {/* Stat Cards */}
-      <div className="stat-grid">
+    <motion.div variants={container} initial="hidden" animate="show"
+      style={{ fontFamily: font, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ═══ HEADER ═══ */}
+      <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
+          Kiracilar
+          <span style={{ fontSize: 16, fontWeight: 600, color: C.textFaint, marginLeft: 8 }}>
+            ({tenants.length})
+          </span>
+        </h1>
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          onClick={openAdd}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            padding: '10px 20px', borderRadius: 12,
+            background: C.teal, color: 'white', border: 'none',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+            boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+          }}>
+          <Plus style={{ width: 15, height: 15 }} /> Kiraci Ekle
+        </motion.button>
+      </motion.div>
+
+      {/* ═══ STAT CARDS ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {[
-          { icon: Users, color: 'blue', value: total, label: 'Toplam Kiraci' },
-          { icon: Home, color: 'green', value: withApartment, label: 'Dairesi Olan' },
-          { icon: XCircle, color: 'red', value: withoutApartment, label: 'Dairesiz' },
-          { icon: Clock, color: 'amber', value: expiringCount, label: 'Suresi Dolan' }
+          { label: 'Toplam Kiraci', value: tenants.length, color: C.teal, borderColor: '#CCE4E8' },
+          { label: 'Aktif Kiraci', value: activeTenants.length, color: '#059669', borderColor: '#D1FAE5' },
+          { label: 'Eski Kiraci', value: formerTenants.length, color: C.textMuted, borderColor: '#E2E8F0' },
+          { label: 'Suresi Dolan (30 gun)', value: expiringCount, color: expiringCount > 0 ? '#D97706' : C.text, borderColor: expiringCount > 0 ? '#FDE68A' : '#E2E8F0' }
         ].map((s, i) => (
-          <motion.div key={i} variants={fadeUp} className="stat-card">
-            <div className={`stat-icon-box ${s.color}`}>
-              <s.icon className="w-5 h-5" />
-            </div>
-            <div className="stat-info">
-              <div className="stat-number"><span>{s.value}</span></div>
-              <div className="stat-label">{s.label}</div>
+          <motion.div key={i} variants={item}
+            whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
+            style={{
+              background: 'white', borderRadius: 16,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+              padding: '20px 22px',
+              borderLeft: `3px solid ${s.borderColor}`,
+              cursor: 'default', transition: 'box-shadow 0.2s'
+            }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, letterSpacing: '0.01em' }}>{s.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: s.color, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
+              {s.value}
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Controls */}
-      <motion.div variants={fadeUp} className="table-controls">
-        <div className="table-search">
-          <Search className="w-4 h-4" style={{ stroke: 'var(--text-muted)' }} />
-          <input type="text" placeholder="Kiraci ara..." value={search} onChange={e => setSearch(e.target.value)} />
+      {/* ═══ TABS + SEARCH ═══ */}
+      <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${C.borderLight}` }}>
+          {[
+            { key: 'active', label: 'Aktif Kiracilar', icon: UserCheck, count: activeTenants.length },
+            { key: 'former', label: 'Eski Kiracilar', icon: UserX, count: formerTenants.length }
+          ].map(t => {
+            const Icon = t.icon
+            const isActive = tab === t.key
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '10px 20px', fontSize: 13, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? C.teal : C.textMuted,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: font, whiteSpace: 'nowrap',
+                  borderBottom: isActive ? `2px solid ${C.teal}` : '2px solid transparent',
+                  marginBottom: -2, transition: 'color 0.2s, border-color 0.2s'
+                }}>
+                <Icon style={{ width: 15, height: 15 }} />
+                {t.label}
+                <span style={{
+                  fontSize: 11, fontWeight: 700, marginLeft: 2,
+                  background: isActive ? '#F0FDFA' : '#F1F5F9',
+                  color: isActive ? C.teal : C.textFaint,
+                  padding: '2px 7px', borderRadius: 6
+                }}>{t.count}</span>
+              </button>
+            )
+          })}
         </div>
-        <div className="table-filter-group">
-          <button className="btn btn-primary" onClick={openAdd}>
-            <Plus className="w-4 h-4" /> Yeni Kiraci
-          </button>
+
+        {/* Search */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 14px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`, background: 'white', width: 220
+        }}>
+          <Search style={{ width: 14, height: 14, color: C.textFaint, flexShrink: 0 }} />
+          <input type="text" placeholder="Kiraci ara..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              border: 'none', outline: 'none', fontSize: 13, fontFamily: font,
+              color: C.text, background: 'transparent', width: '100%'
+            }} />
         </div>
       </motion.div>
 
-      {/* Table */}
-      <motion.div variants={fadeUp} className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className="td-check"><input type="checkbox" /></th>
-              <th>Ad Soyad</th><th>E-posta</th><th>Telefon</th>
-              <th>Daire</th><th>Sozlesme Bitis</th><th>Kira</th><th>Depozito</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
-            ) : error ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                {search ? 'Arama sonucu bulunamadi.' : 'Henuz kiraci eklenmemis. "Yeni Kiraci" butonuna tiklayin.'}
-              </td></tr>
-            ) : filtered.map(t => {
-              const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
-              const leaseEnd = t.lease_end ? formatDate(t.lease_end) : '—'
-              const rentVal = t.rent ? Number(t.rent).toLocaleString('tr-TR') + ' \u20BA' : '—'
-              const deposit = t.deposit ? Number(t.deposit).toLocaleString('tr-TR') + ' \u20BA' : '—'
-              return (
-                <tr key={t.id}>
-                  <td className="td-check"><input type="checkbox" /></td>
-                  <td>
-                    <div className="tenant-cell">
-                      <span className="tenant-name">{t.full_name}</span>
-                      <span className="tenant-email">{t.email}</span>
-                    </div>
-                  </td>
-                  <td>{t.email || '—'}</td><td>{t.phone || '—'}</td>
-                  <td>{apt}</td><td>{leaseEnd}</td><td>{rentVal}</td><td>{deposit}</td>
-                  <td className="td-actions">
-                    <div className="action-menu">
-                      <button className="action-menu-btn" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === t.id ? null : t.id) }}>
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenu === t.id && (
-                        <div className="action-dropdown show">
-                          <button onClick={() => openEdit(t.id)}>
-                            <Pencil className="w-3.5 h-3.5" /> Duzenle
-                          </button>
-                          <button onClick={() => handleDelete(t.id, t.full_name)}>
-                            <Trash2 className="w-3.5 h-3.5" /> Sil
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      {/* ═══ TABLE ═══ */}
+      <motion.div variants={item} style={cardBox}>
+        {/* Header */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: tab === 'active'
+            ? '1.5fr 1fr 1fr 1fr 1fr 80px'
+            : '1.5fr 1fr 1fr 1fr 80px',
+          padding: '14px 24px', background: '#FAFBFC',
+          borderBottom: `1px solid ${C.borderLight}`
+        }}>
+          {(tab === 'active'
+            ? ['Kiraci', 'Telefon', 'Daire', 'Sozlesme Bitis', 'Kira', '']
+            : ['Kiraci', 'Telefon', 'Son Daire', 'Son Kira', '']
+          ).map((h, i) => (
+            <div key={i} style={{
+              fontSize: 11, fontWeight: 700, color: C.textFaint,
+              textTransform: 'uppercase', letterSpacing: '0.06em'
+            }}>{h}</div>
+          ))}
+        </div>
+
+        {/* Rows */}
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>Hata: {error}</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
+            {search ? 'Arama sonucu bulunamadi.' : tab === 'active' ? 'Aktif kiraci bulunmuyor.' : 'Eski kiraci bulunmuyor.'}
+          </div>
+        ) : filtered.map((t, i) => {
+          const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
+          const rentVal = t.rent ? money(t.rent) + ' ₺' : '—'
+          const remaining = leaseRemaining(t.lease_end)
+          const initials = t.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+
+          return (
+            <motion.div key={t.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.3 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: tab === 'active'
+                  ? '1.5fr 1fr 1fr 1fr 1fr 80px'
+                  : '1.5fr 1fr 1fr 1fr 80px',
+                padding: '14px 24px', alignItems: 'center',
+                borderBottom: `1px solid ${C.borderLight}`,
+                transition: 'background 0.15s'
+              }}
+              whileHover={{ backgroundColor: '#F8FAFC' }}
+            >
+              {/* Kiraci */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  background: tab === 'active' ? '#F0FDFA' : '#F1F5F9',
+                  color: tab === 'active' ? C.teal : C.textMuted,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 800
+                }}>{initials}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.full_name}</div>
+              </div>
+
+              {/* Telefon */}
+              <div style={{ fontSize: 13, color: C.textMuted }}>{t.phone || '—'}</div>
+
+              {/* Daire */}
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{apt}</div>
+
+              {tab === 'active' ? (
+                <>
+                  {/* Sozlesme Bitis */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{formatDate(t.lease_end)}</div>
+                    {remaining && (
+                      <div style={{
+                        fontSize: 11, fontWeight: 600, color: remaining.color, marginTop: 2,
+                        display: 'flex', alignItems: 'center', gap: 4
+                      }}>
+                        {remaining.urgent && <AlertTriangle style={{ width: 10, height: 10 }} />}
+                        {remaining.text}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Kira */}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                    {rentVal}
+                  </div>
+                </>
+              ) : (
+                /* Son Kira (former tab) */
+                <div style={{ fontSize: 13, color: C.textMuted }}>{rentVal}</div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => openEdit(t.id)}
+                  title="Duzenle"
+                  style={{
+                    width: 30, height: 30, borderRadius: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                  }}>
+                  <Pencil style={{ width: 13, height: 13 }} />
+                </motion.button>
+                {tab === 'active' && (
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={() => moveToPast(t.id, t.full_name)}
+                    title="Eski kiracilara tasi"
+                    style={{
+                      width: 30, height: 30, borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                    }}>
+                    <UserX style={{ width: 13, height: 13 }} />
+                  </motion.button>
+                )}
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => handleDelete(t.id, t.full_name)}
+                  title="Sil"
+                  style={{
+                    width: 30, height: 30, borderRadius: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                  }}>
+                  <Trash2 style={{ width: 13, height: 13 }} />
+                </motion.button>
+              </div>
+            </motion.div>
+          )
+        })}
       </motion.div>
 
-      {/* Popup */}
+      {/* ═══ ADD/EDIT POPUP ═══ */}
       <AnimatePresence>
         {showPopup && (
-          <div className="popup-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPopup(false) }}>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowPopup(false) }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20
+            }}>
             <motion.div
-              className="popup"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="popup-header">
-                <h3 className="popup-title">{editId ? 'Kiraci Duzenle' : 'Yeni Kiraci Ekle'}</h3>
-                <button className="popup-close" onClick={() => setShowPopup(false)}>
-                  <X className="w-5 h-5" />
-                </button>
+              style={{
+                background: 'white', borderRadius: 20,
+                boxShadow: '0 25px 60px rgba(15,23,42,0.2)',
+                width: '100%', maxWidth: 640,
+                maxHeight: '85vh', overflowY: 'auto'
+              }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '20px 28px', borderBottom: `1px solid ${C.borderLight}`
+              }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
+                  {editId ? 'Kiraci Duzenle' : 'Yeni Kiraci Ekle'}
+                </h3>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowPopup(false)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: '#F1F5F9', border: 'none', cursor: 'pointer', color: C.textMuted
+                  }}>
+                  <X style={{ width: 18, height: 18 }} />
+                </motion.button>
               </div>
+
+              {/* Form */}
               <form onSubmit={handleSave}>
-                <div className="popup-body">
-                  <div className="popup-grid">
-                    <div className="form-group">
-                      <label className="form-label">Ad Soyad *</label>
-                      <input className="form-input" type="text" placeholder="Ahmet Yilmaz" required
-                        value={form.full_name} onChange={e => updateForm('full_name', e.target.value)} />
+                <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Ad Soyad *</label>
+                      <input style={inputStyle} type="text" placeholder="Ahmet Yilmaz" required
+                        value={form.full_name} onChange={e => UF('full_name', e.target.value)} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">E-posta *</label>
-                      <input className="form-input" type="email" placeholder="ornek@mail.com" required
-                        value={form.email} onChange={e => updateForm('email', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Telefon</label>
-                      <input className="form-input" type="text" placeholder="0532 123 4567"
-                        value={form.phone} onChange={e => updateForm('phone', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">TC Kimlik</label>
-                      <input className="form-input" type="text" placeholder="Opsiyonel" maxLength={11}
-                        value={form.tc_no} onChange={e => updateForm('tc_no', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Daire</label>
-                      <select className="form-input" value={form.apartment_id} onChange={e => updateForm('apartment_id', e.target.value)}>
-                        <option value="">Daire secin...</option>
-                        {(editId ? apartments.filter(a => !a.tenants?.[0] || a.id === form.apartment_id) : vacantApartments).map(a => (
-                          <option key={a.id} value={a.id}>{a.building} — {a.unit_no}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Sozlesme Baslangic</label>
-                      <input className="form-input" type="date" value={form.lease_start} onChange={e => updateForm('lease_start', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Sozlesme Bitis</label>
-                      <input className="form-input" type="date" value={form.lease_end} onChange={e => updateForm('lease_end', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Aylik Kira ({'\u20BA'})</label>
-                      <input className="form-input" type="number" min="0" step="0.01" placeholder="0"
-                        value={form.rent} onChange={e => updateForm('rent', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Depozito ({'\u20BA'})</label>
-                      <input className="form-input" type="number" min="0" step="0.01" placeholder="0"
-                        value={form.deposit} onChange={e => updateForm('deposit', e.target.value)} />
+                    <div>
+                      <label style={labelStyle}>E-posta</label>
+                      <input style={inputStyle} type="email" placeholder="ornek@mail.com"
+                        value={form.email} onChange={e => UF('email', e.target.value)} />
                     </div>
                   </div>
-                  <div className="form-group" style={{ marginTop: 14 }}>
-                    <label className="form-label">Notlar</label>
-                    <textarea className="form-input" rows={2} placeholder="Opsiyonel notlar..."
-                      value={form.notes} onChange={e => updateForm('notes', e.target.value)} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Telefon</label>
+                      <input style={inputStyle} type="text" placeholder="0532 123 4567"
+                        value={form.phone} onChange={e => UF('phone', e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>TC Kimlik</label>
+                      <input style={inputStyle} type="text" placeholder="Opsiyonel" maxLength={11}
+                        value={form.tc_no} onChange={e => UF('tc_no', e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Daire</label>
+                    <select style={{ ...inputStyle, cursor: 'pointer' }}
+                      value={form.apartment_id} onChange={e => UF('apartment_id', e.target.value)}>
+                      <option value="">Daire secin...</option>
+                      {(editId ? apartments.filter(a => !a.tenants?.[0] || a.id === form.apartment_id) : vacantApartments).map(a => (
+                        <option key={a.id} value={a.id}>{a.building} — {a.unit_no}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Sozlesme Baslangic</label>
+                      <input style={inputStyle} type="date" value={form.lease_start} onChange={e => UF('lease_start', e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Sozlesme Bitis</label>
+                      <input style={inputStyle} type="date" value={form.lease_end} onChange={e => UF('lease_end', e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label style={labelStyle}>Aylik Kira (₺)</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                        value={form.rent} onChange={e => UF('rent', e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Depozito (₺)</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                        value={form.deposit} onChange={e => UF('deposit', e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Notlar</label>
+                    <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
+                      placeholder="Opsiyonel notlar..."
+                      value={form.notes} onChange={e => UF('notes', e.target.value)} />
                   </div>
                 </div>
-                <div className="popup-footer">
-                  <button type="button" className="btn btn-outline" onClick={() => setShowPopup(false)}>Iptal</button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>
-                    <Check className="w-4 h-4" />
+
+                {/* Footer */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10,
+                  padding: '16px 28px', borderTop: `1px solid ${C.borderLight}`
+                }}>
+                  <button type="button" onClick={() => setShowPopup(false)}
+                    style={{ padding: '10px 20px', borderRadius: 10, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
+                    Iptal
+                  </button>
+                  <button type="submit" disabled={saving}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '10px 22px', borderRadius: 10,
+                      background: C.teal, color: 'white', border: 'none',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                      opacity: saving ? 0.7 : 1, boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+                    }}>
+                    <Check style={{ width: 15, height: 15 }} />
                     {saving ? 'Kaydediliyor...' : 'Kaydet'}
                   </button>
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
