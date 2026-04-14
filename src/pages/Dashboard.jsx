@@ -132,16 +132,17 @@ export default function Dashboard() {
 
   const monthPays = pays.filter(p => { const d = new Date(p.due_date); return d.getMonth() === cm && d.getFullYear() === cy })
   const paidThisMonth = monthPays.filter(p => p.status === 'paid')
-  const unpaidThisMonth = monthPays.filter(p => p.status !== 'paid')
   const collectedSum = paidThisMonth.reduce((s, p) => s + Number(p.amount), 0)
+  const paidAptCount = new Set(paidThisMonth.map(p => p.apartment_id).filter(Boolean)).size
+
   const overdueAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) < 0)
   const overdueSum = overdueAll.reduce((s, p) => s + Number(p.amount), 0)
-  const paidRentCount = paidThisMonth.length
+  const overdueAptCount = new Set(overdueAll.map(p => p.apartment_id).filter(Boolean)).size
 
-  /* Due payments: unpaid records where due_date <= end of current month (no future months) */
-  const endOfMonth = new Date(cy, cm + 1, 0, 23, 59, 59)
-  const dueUnpaid = pays.filter(p => p.status !== 'paid' && new Date(p.due_date) <= endOfMonth)
-  const unpaidRentCount = dueUnpaid.length
+  /* Future payments: unpaid with due_date >= today (not yet due) */
+  const upcomingAll = pays.filter(p => p.status !== 'paid' && dDiff(p.due_date) >= 0)
+  const upcomingSum = upcomingAll.reduce((s, p) => s + Number(p.amount), 0)
+  const upcomingAptCount = new Set(upcomingAll.map(p => p.apartment_id).filter(Boolean)).size
 
   const aptTotal = apts.length
   const aptOcc = apts.filter(a => a.tenants?.[0]).length
@@ -236,31 +237,28 @@ export default function Dashboard() {
       </motion.div>
 
       {/* ═══ KPI CARDS ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {[
           {
             title: 'Gerceklesen Odemeler',
             value: `${money(collectedSum)} ₺`,
+            sub: paidAptCount > 0 ? `${paidAptCount} Mulk'ten gelen` : 'Henuz odeme yok',
             color: '#059669',
             borderColor: '#D1FAE5'
           },
           {
             title: 'Geciken Odemeler',
             value: `${money(overdueSum)} ₺`,
+            sub: overdueAptCount > 0 ? `${overdueAptCount} Mulk'ten geciken` : 'Geciken odeme yok',
             color: overdueAll.length > 0 ? '#DC2626' : '#0F172A',
             borderColor: overdueAll.length > 0 ? '#FECACA' : '#E2E8F0'
           },
           {
-            title: 'Odenen Kiralar',
-            value: paidRentCount,
+            title: 'Gelecek Odemeler',
+            value: `${money(upcomingSum)} ₺`,
+            sub: upcomingAptCount > 0 ? `${upcomingAptCount} Mulk'ten beklenen` : 'Bekleyen odeme yok',
             color: '#025864',
             borderColor: '#CCE4E8'
-          },
-          {
-            title: 'Odenmemis Kiralar',
-            value: unpaidRentCount,
-            color: unpaidRentCount > 0 ? '#B45309' : '#0F172A',
-            borderColor: unpaidRentCount > 0 ? '#FDE68A' : '#E2E8F0'
           }
         ].map((k, i) => (
           <motion.div key={i} variants={item}
@@ -276,17 +274,17 @@ export default function Dashboard() {
               {k.title}
             </div>
             <div style={{
-              fontSize: 11, fontWeight: 500, color: '#94A3B8',
-              marginTop: 4, marginBottom: 8,
-              textTransform: 'uppercase', letterSpacing: '0.06em'
-            }}>
-              Bu Ay
-            </div>
-            <div style={{
               fontSize: 26, fontWeight: 800, color: k.color,
-              letterSpacing: '-0.02em', lineHeight: 1
+              letterSpacing: '-0.02em', lineHeight: 1,
+              marginTop: 10
             }}>
               {k.value}
+            </div>
+            <div style={{
+              fontSize: 11, fontWeight: 500, color: '#94A3B8',
+              marginTop: 8
+            }}>
+              {k.sub}
             </div>
           </motion.div>
         ))}
