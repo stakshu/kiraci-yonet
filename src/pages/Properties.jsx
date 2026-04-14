@@ -557,16 +557,6 @@ export default function Properties() {
                     }}>
                     <Pencil style={{ width: 14, height: 14 }} />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={(e) => handleDelete(e, apt.id, `${apt.building} ${apt.unit_no}`)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: C.textMuted
-                    }}>
-                    <Trash2 style={{ width: 14, height: 14 }} />
-                  </motion.button>
                 </div>
               </motion.div>
             )
