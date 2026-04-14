@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
   UserCheck, UserX, AlertTriangle, Search,
@@ -66,7 +66,6 @@ const EMPTY_FORM = {
 
 export default function TenantsList() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { showToast } = useToast()
   const [tenants, setTenants] = useState([])
   const [apartments, setApartments] = useState([])
@@ -80,15 +79,6 @@ export default function TenantsList() {
   const [search, setSearch] = useState('')
 
   useEffect(() => { loadTenants(); loadApartments() }, [])
-
-  /* Auto-open edit modal when navigated from TenantDetail */
-  useEffect(() => {
-    if (location.state?.editId) {
-      openEdit(location.state.editId)
-      // Clear state so it doesn't re-trigger on back/forward
-      navigate(location.pathname, { replace: true, state: {} })
-    }
-  }, [location.state])
 
   const loadTenants = async () => {
     setLoading(true); setError(null)
