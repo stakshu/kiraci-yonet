@@ -97,6 +97,12 @@ export default function Properties() {
       .filter(Boolean)
   )].sort()
 
+  /* Stats */
+  const totalApt = apartments.length
+  const occupied = apartments.filter(a => a.tenants?.[0]).length
+  const vacant = totalApt - occupied
+  const monthlyIncome = apartments.reduce((s, a) => s + Number(a.tenants?.[0]?.rent || 0), 0)
+
   /* Get next unpaid payment for a tenant */
   const getNextPayment = (tenantId) => {
     if (!tenantId) return null
@@ -227,6 +233,36 @@ export default function Properties() {
           <Plus style={{ width: 15, height: 15 }} /> Mulk Ekle
         </motion.button>
       </motion.div>
+
+      {/* ═══ STAT CARDS ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {[
+          { label: 'Toplam Mulk', value: totalApt, color: C.teal, borderColor: '#CCE4E8' },
+          { label: 'Kirada', value: occupied, color: '#059669', borderColor: '#D1FAE5' },
+          { label: 'Bosta', value: vacant, color: '#DC2626', borderColor: '#FECACA' },
+          { label: 'Aylik Toplam Gelir', value: `${money(monthlyIncome)} ₺`, color: C.teal, borderColor: '#CCE4E8' }
+        ].map((s, i) => (
+          <motion.div key={i} variants={item}
+            whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
+            style={{
+              background: 'white', borderRadius: 16,
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+              padding: '20px 22px',
+              borderLeft: `3px solid ${s.borderColor}`,
+              cursor: 'default', transition: 'box-shadow 0.2s'
+            }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, letterSpacing: '0.01em' }}>
+              {s.label}
+            </div>
+            <div style={{
+              fontSize: 26, fontWeight: 800, color: s.color,
+              letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10
+            }}>
+              {s.value}
+            </div>
+          </motion.div>
+        ))}
+      </div>
 
       {/* ═══ FILTERS ═══ */}
       <motion.div variants={item}
