@@ -361,11 +361,10 @@ export default function PropertyDetail() {
         </motion.button>
       </motion.div>
 
-      {/* ═══ TABS — fixed, no scroll ═══ */}
+      {/* ═══ TABS ═══ */}
       <motion.div variants={fadeItem} style={{
         display: 'flex', gap: 0,
         borderBottom: `2px solid ${C.borderLight}`,
-        overflow: 'hidden',
         flexShrink: 0
       }}>
         {TABS.map(t => {
@@ -379,7 +378,7 @@ export default function PropertyDetail() {
                 padding: '12px 18px', fontSize: 13, fontWeight: isActive ? 700 : 500,
                 color: isActive ? C.teal : C.textMuted,
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: font, whiteSpace: 'nowrap', position: 'relative',
+                fontFamily: font, whiteSpace: 'nowrap',
                 borderBottom: isActive ? `2px solid ${C.teal}` : '2px solid transparent',
                 marginBottom: -2,
                 transition: 'color 0.2s, border-color 0.2s'
