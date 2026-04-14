@@ -599,7 +599,7 @@ export default function RentPayments() {
                     style={{ overflow: 'hidden', borderBottom: `1px solid ${C.borderLight}` }}
                   >
                     <div style={{
-                      padding: '16px 24px 20px 72px',
+                      padding: '16px 24px 20px',
                       background: '#FAFBFC'
                     }}>
 
@@ -614,15 +614,27 @@ export default function RentPayments() {
                             <AlertTriangle style={{ width: 13, height: 13 }} />
                             Geciken Ödemeler
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {/* Overdue header */}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto',
+                            gap: 16, padding: '6px 14px',
+                            fontSize: 10, fontWeight: 600, color: C.textFaint,
+                            textTransform: 'uppercase', letterSpacing: '0.06em'
+                          }}>
+                            <span>Vade Tarihi</span>
+                            <span>Tutar</span>
+                            <span>Gecikme</span>
+                            <span style={{ minWidth: 140 }}></span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {group.overduePayments.slice(1).map(p => {
                               const d = daysDiff(p.due_date)
                               return (
                                 <div key={p.id} style={{
-                                  display: 'grid', gridTemplateColumns: '140px 100px 1fr auto',
-                                  alignItems: 'center', gap: 12,
-                                  padding: '8px 14px', borderRadius: 8,
-                                  background: '#FFFFFF', border: `1px solid ${C.borderLight}`
+                                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto',
+                                  alignItems: 'center', gap: 16,
+                                  padding: '10px 14px', borderRadius: 8,
+                                  background: '#FFFFFF', borderBottom: `1px solid ${C.borderLight}`
                                 }}>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
                                     {formatDate(p.due_date)}
@@ -633,7 +645,7 @@ export default function RentPayments() {
                                   <span style={{ fontSize: 12, fontWeight: 600, color: C.red }}>
                                     {Math.abs(d)} gün gecikti
                                   </span>
-                                  <div style={{ display: 'flex', gap: 6 }}>
+                                  <div style={{ display: 'flex', gap: 6, minWidth: 140, justifyContent: 'flex-end' }}>
                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                       onClick={(e) => markAsPaid(e, p.id)}
                                       style={{
@@ -675,8 +687,8 @@ export default function RentPayments() {
 
                           {/* Column headers */}
                           <div style={{
-                            display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto',
-                            gap: 12, padding: '6px 14px',
+                            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
+                            gap: 16, padding: '6px 14px',
                             fontSize: 10, fontWeight: 600, color: C.textFaint,
                             textTransform: 'uppercase', letterSpacing: '0.06em'
                           }}>
@@ -684,7 +696,7 @@ export default function RentPayments() {
                             <span>Tutar</span>
                             <span>Durum</span>
                             <span>Ödeme Tarihi</span>
-                            <span></span>
+                            <span style={{ minWidth: 70 }}></span>
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -692,9 +704,9 @@ export default function RentPayments() {
                               const paidLate = p.paid_date && p.due_date && new Date(p.paid_date) > new Date(p.due_date)
                               return (
                                 <div key={p.id} style={{
-                                  display: 'grid', gridTemplateColumns: '140px 100px 100px 1fr auto',
-                                  alignItems: 'center', gap: 12,
-                                  padding: '8px 14px', borderRadius: 8,
+                                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
+                                  alignItems: 'center', gap: 16,
+                                  padding: '10px 14px', borderRadius: 8,
                                   background: '#FFFFFF',
                                   borderBottom: `1px solid ${C.borderLight}`
                                 }}>
@@ -705,7 +717,7 @@ export default function RentPayments() {
                                     {money(p.amount)} ₺
                                   </span>
                                   <span style={{
-                                    display: 'inline-flex', alignItems: 'center',
+                                    display: 'inline-flex', alignItems: 'center', width: 'fit-content',
                                     padding: '3px 10px', borderRadius: 6,
                                     fontSize: 11, fontWeight: 600,
                                     background: paidLate ? '#FFFBEB' : '#F0FDF4',
@@ -714,17 +726,17 @@ export default function RentPayments() {
                                   }}>
                                     {paidLate ? 'Geç Ödendi' : 'Zamanında'}
                                   </span>
-                                  <span style={{ fontSize: 12, color: C.textFaint }}>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
                                     {p.paid_date ? formatDate(p.paid_date) : ''}
                                   </span>
                                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                     onClick={(e) => markAsUnpaid(e, p.id)}
                                     style={{
-                                      padding: '4px 10px', borderRadius: 8,
+                                      padding: '5px 12px', borderRadius: 8, minWidth: 70,
                                       border: `1.5px solid ${C.border}`, background: '#FFFFFF',
                                       color: C.textMuted, fontSize: 11, fontWeight: 600,
                                       cursor: 'pointer', fontFamily: font,
-                                      display: 'inline-flex', alignItems: 'center', gap: 4
+                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4
                                     }}>
                                     <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
                                   </motion.button>
