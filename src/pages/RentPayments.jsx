@@ -114,10 +114,11 @@ export default function RentPayments() {
   const loadPayments = async () => {
     setLoading(true); setError(null)
     const { data, error: err } = await supabase
-      .from('rent_payments').select('*, tenants(full_name, email), apartments(building, unit_no)')
+      .from('rent_payments').select('*, tenants(full_name, email, apartment_id), apartments(building, unit_no)')
       .order('due_date', { ascending: true })
     if (err) { setError(err.message); setLoading(false); return }
-    setPayments(data || []); setLoading(false)
+    const activeOnly = (data || []).filter(p => p.tenants?.apartment_id != null)
+    setPayments(activeOnly); setLoading(false)
   }
 
   const getTenantGroups = () => {
