@@ -584,7 +584,7 @@ export default function PropertyDetail() {
                 style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
             </div>
           ) : payments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
+            <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
               Odeme kaydi bulunamadi.
             </div>
           ) : payments.map((p, i) => {
@@ -660,34 +660,39 @@ export default function PropertyDetail() {
 
               {!editingLease ? (
                 <div style={cardBox}>
-                  {[
-                    { icon: IdCard, label: 'Ad Soyad', value: tenant.full_name },
-                    { icon: Mail, label: 'E-posta', value: tenant.email || '—' },
-                    { icon: Phone, label: 'Telefon', value: tenant.phone || '—' },
-                    { icon: Shield, label: 'TC No', value: tenant.tc_no || '—' },
-                    { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(tenant.lease_start) },
-                    { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(tenant.lease_end) },
-                    { icon: DollarSign, label: 'Aylik Kira', value: tenant.rent ? money(tenant.rent) + ' ₺' : '—' },
-                    { icon: DollarSign, label: 'Depozito', value: tenant.deposit ? money(tenant.deposit) + ' ₺' : '—' }
-                  ].map((r, i, arr) => {
-                    const Icon = r.icon
-                    return (
-                      <div key={i} style={{
-                        display: 'grid', gridTemplateColumns: '44px 200px 1fr',
-                        padding: '14px 24px', alignItems: 'center',
-                        borderBottom: i < arr.length - 1 ? `1px solid ${C.borderLight}` : 'none'
-                      }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8, background: '#F0FDFA',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                    {[
+                      { icon: IdCard, label: 'Ad Soyad', value: tenant.full_name },
+                      { icon: Mail, label: 'E-posta', value: tenant.email || '—' },
+                      { icon: Phone, label: 'Telefon', value: tenant.phone || '—' },
+                      { icon: Shield, label: 'TC No', value: tenant.tc_no || '—' },
+                      { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(tenant.lease_start) },
+                      { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(tenant.lease_end) },
+                      { icon: DollarSign, label: 'Aylik Kira', value: tenant.rent ? money(tenant.rent) + ' ₺' : '—' },
+                      { icon: DollarSign, label: 'Depozito', value: tenant.deposit ? money(tenant.deposit) + ' ₺' : '—' }
+                    ].map((r, i, arr) => {
+                      const Icon = r.icon
+                      return (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '14px 22px',
+                          borderBottom: i < arr.length - 2 ? `1px solid ${C.borderLight}` : 'none',
+                          borderRight: i % 2 === 0 ? `1px solid ${C.borderLight}` : 'none'
                         }}>
-                          <Icon style={{ width: 15, height: 15, color: C.teal }} />
+                          <div style={{
+                            width: 30, height: 30, borderRadius: 8, background: '#F0FDFA', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>
+                            <Icon style={{ width: 14, height: 14, color: C.teal }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint }}>{r.label}</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 1 }}>{r.value}</div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{r.label}</div>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{r.value}</div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               ) : (
                 /* Lease edit form */
@@ -757,7 +762,7 @@ export default function PropertyDetail() {
               )}
             </>
           ) : (
-            <div style={{ ...cardBox, textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
+            <div style={{ ...cardBox, textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
               Bu mulkte kiraci bulunmuyor.
             </div>
           )}
@@ -785,10 +790,10 @@ export default function PropertyDetail() {
 
           <div style={cardBox}>
             {documents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 60 }}>
-                <FileUp style={{ width: 32, height: 32, color: C.textFaint, marginBottom: 12 }} />
+              <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <FileUp style={{ width: 28, height: 28, color: C.textFaint, marginBottom: 8 }} />
                 <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>Henuz belge yuklenmemis.</div>
-                <div style={{ fontSize: 13, color: C.textFaint, marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: C.textFaint, marginTop: 4 }}>
                   PDF, Word veya gorsel dosyalarini yukleyebilirsiniz.
                 </div>
               </div>
