@@ -16,16 +16,17 @@ import {
 
 /* ── Design Tokens ── */
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const money = n => Number(n).toLocaleString('tr-TR')
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
   const d = new Date(dateStr)
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
 }
 
-const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
-const MONTH_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
+const MONTH_NAMES = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
+const MONTH_SHORT = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
 
 const C = {
   teal: '#025864', green: '#00D47E', darkTeal: '#03363D',
@@ -73,24 +74,24 @@ function CategoryIcon({ name, size = 16, color = C.textMuted }) {
 
 /* ── Default BetrKV Categories ── */
 const DEFAULT_CATEGORIES = [
-  { name: 'Grundsteuer', icon: 'Landmark', color: '#14B8A6', is_tenant_billable: true, is_recurring: false, sort_order: 1 },
-  { name: 'Wasserversorgung', icon: 'Droplets', color: '#0EA5E9', is_tenant_billable: true, is_recurring: true, sort_order: 2 },
-  { name: 'Entwässerung', icon: 'Waves', color: '#06B6D4', is_tenant_billable: true, is_recurring: true, sort_order: 3 },
-  { name: 'Heizung', icon: 'Flame', color: '#F97316', is_tenant_billable: true, is_recurring: true, sort_order: 4 },
-  { name: 'Warmwasser', icon: 'Thermometer', color: '#EF4444', is_tenant_billable: true, is_recurring: true, sort_order: 5 },
-  { name: 'Aufzug', icon: 'ArrowUpDown', color: '#8B5CF6', is_tenant_billable: true, is_recurring: true, sort_order: 6 },
-  { name: 'Straßenreinigung', icon: 'Trash2', color: '#A855F7', is_tenant_billable: true, is_recurring: false, sort_order: 7 },
-  { name: 'Müllbeseitigung', icon: 'Trash', color: '#78716C', is_tenant_billable: true, is_recurring: true, sort_order: 8 },
-  { name: 'Gebäudereinigung', icon: 'SprayCan', color: '#EC4899', is_tenant_billable: true, is_recurring: true, sort_order: 9 },
-  { name: 'Gartenpflege', icon: 'TreePine', color: '#22C55E', is_tenant_billable: true, is_recurring: false, sort_order: 10 },
-  { name: 'Beleuchtung', icon: 'Lightbulb', color: '#EAB308', is_tenant_billable: true, is_recurring: true, sort_order: 11 },
-  { name: 'Schornsteinreinigung', icon: 'Wind', color: '#64748B', is_tenant_billable: true, is_recurring: false, sort_order: 12 },
-  { name: 'Versicherung', icon: 'ShieldCheck', color: '#6366F1', is_tenant_billable: true, is_recurring: false, sort_order: 13 },
-  { name: 'Hauswart', icon: 'UserCheck', color: '#0D9488', is_tenant_billable: true, is_recurring: true, sort_order: 14 },
-  { name: 'Kabelanschluss', icon: 'Tv', color: '#7C3AED', is_tenant_billable: true, is_recurring: true, sort_order: 15 },
-  { name: 'Sonstige Betriebskosten', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16 },
-  { name: 'Reparaturen', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Nicht umlagefähig' },
-  { name: 'Verwaltungskosten', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Nicht umlagefähig' },
+  { name: 'Emlak Vergisi', icon: 'Landmark', color: '#14B8A6', is_tenant_billable: true, is_recurring: false, sort_order: 1 },
+  { name: 'Su', icon: 'Droplets', color: '#0EA5E9', is_tenant_billable: true, is_recurring: true, sort_order: 2 },
+  { name: 'Kanalizasyon', icon: 'Waves', color: '#06B6D4', is_tenant_billable: true, is_recurring: true, sort_order: 3 },
+  { name: 'Isıtma', icon: 'Flame', color: '#F97316', is_tenant_billable: true, is_recurring: true, sort_order: 4 },
+  { name: 'Sıcak Su', icon: 'Thermometer', color: '#EF4444', is_tenant_billable: true, is_recurring: true, sort_order: 5 },
+  { name: 'Asansör', icon: 'ArrowUpDown', color: '#8B5CF6', is_tenant_billable: true, is_recurring: true, sort_order: 6 },
+  { name: 'Sokak Temizliği', icon: 'Trash2', color: '#A855F7', is_tenant_billable: true, is_recurring: false, sort_order: 7 },
+  { name: 'Çöp Toplama', icon: 'Trash', color: '#78716C', is_tenant_billable: true, is_recurring: true, sort_order: 8 },
+  { name: 'Bina Temizliği', icon: 'SprayCan', color: '#EC4899', is_tenant_billable: true, is_recurring: true, sort_order: 9 },
+  { name: 'Bahçe Bakımı', icon: 'TreePine', color: '#22C55E', is_tenant_billable: true, is_recurring: false, sort_order: 10 },
+  { name: 'Ortak Alan Aydınlatma', icon: 'Lightbulb', color: '#EAB308', is_tenant_billable: true, is_recurring: true, sort_order: 11 },
+  { name: 'Baca Temizliği', icon: 'Wind', color: '#64748B', is_tenant_billable: true, is_recurring: false, sort_order: 12 },
+  { name: 'Bina Sigortası', icon: 'ShieldCheck', color: '#6366F1', is_tenant_billable: true, is_recurring: false, sort_order: 13 },
+  { name: 'Kapıcı / Görevli', icon: 'UserCheck', color: '#0D9488', is_tenant_billable: true, is_recurring: true, sort_order: 14 },
+  { name: 'Kablo TV / Anten', icon: 'Tv', color: '#7C3AED', is_tenant_billable: true, is_recurring: true, sort_order: 15 },
+  { name: 'Diğer Giderler', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16 },
+  { name: 'Tamirat / Onarım', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Kiracıya yansıtılamaz' },
+  { name: 'Yönetim Giderleri', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Kiracıya yansıtılamaz' },
 ]
 
 /* ── Empty Form ── */
@@ -355,7 +356,7 @@ export default function Expenses() {
       if (!dist[catId]) {
         dist[catId] = {
           id: catId,
-          name: e.expense_categories?.name || 'Sonstige',
+          name: e.expense_categories?.name || 'Diğer',
           color: e.expense_categories?.color || '#94A3B8',
           icon: e.expense_categories?.icon || 'Receipt',
           total: 0
@@ -386,7 +387,7 @@ export default function Expenses() {
     // Group billable by category
     const byCategory = {}
     billable.forEach(e => {
-      const catName = e.expense_categories?.name || 'Sonstige'
+      const catName = e.expense_categories?.name || 'Diğer'
       if (!byCategory[catName]) byCategory[catName] = { name: catName, icon: e.expense_categories?.icon, color: e.expense_categories?.color, total: 0 }
       byCategory[catName].total += Number(e.amount)
     })
@@ -409,7 +410,7 @@ export default function Expenses() {
     // Non-billable by category
     const nonBillableByCategory = {}
     nonBillable.forEach(e => {
-      const catName = e.expense_categories?.name || 'Sonstige'
+      const catName = e.expense_categories?.name || 'Diğer'
       if (!nonBillableByCategory[catName]) nonBillableByCategory[catName] = { name: catName, total: 0 }
       nonBillableByCategory[catName].total += Number(e.amount)
     })
@@ -461,7 +462,7 @@ export default function Expenses() {
             Gider Yönetimi
           </h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: '4px 0 0', fontWeight: 500 }}>
-            Betriebskosten & Nebenkostenabrechnung
+            Yan gider takibi & hesap kesimi
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -476,7 +477,7 @@ export default function Expenses() {
               display: 'flex', alignItems: 'center', gap: 8
             }}
           >
-            <FileText size={16} /> Abrechnung
+            <FileText size={16} /> Hesap Kesimi
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -488,7 +489,7 @@ export default function Expenses() {
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
             }}
           >
-            <Settings2 size={16} /> Kategorien
+            <Settings2 size={16} /> Kategoriler
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -500,7 +501,7 @@ export default function Expenses() {
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
             }}
           >
-            <Plus size={16} strokeWidth={2.5} /> Neue Ausgabe
+            <Plus size={16} strokeWidth={2.5} /> Gider Ekle
           </motion.button>
         </div>
       </motion.div>
@@ -509,22 +510,22 @@ export default function Expenses() {
       <motion.div variants={fadeItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
           {
-            label: 'Gesamt', sub: filterYear ? String(filterYear) : 'Alle',
+            label: 'Toplam', sub: filterYear ? String(filterYear) : 'Tümü',
             value: money(totalAll), icon: TrendingUp,
             gradient: 'linear-gradient(135deg, #025864 0%, #03363D 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Dieser Monat', sub: MONTH_SHORT[currentMonth - 1],
+            label: 'Bu Ay', sub: MONTH_SHORT[currentMonth - 1],
             value: money(totalThisMonth), icon: Calendar,
             gradient: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Umlagefähig', sub: 'Mieter',
+            label: 'Yansıtılabilir', sub: 'Kiracıya',
             value: money(totalBillableThisMonth), icon: Receipt,
             gradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Nicht umlagef.', sub: 'Eigentümer',
+            label: 'Yansıtılamaz', sub: 'Ev Sahibi',
             value: money(totalNonBillableThisMonth), icon: Wrench,
             gradient: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
@@ -552,7 +553,7 @@ export default function Expenses() {
         <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 280 }}>
           <Search size={16} color={C.textFaint} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input
-            placeholder="Suchen..."
+            placeholder="Ara..."
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             style={{ ...inputStyle, paddingLeft: 36 }}
           />
@@ -561,7 +562,7 @@ export default function Expenses() {
           value={filterApartment} onChange={e => setFilterApartment(e.target.value)}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Alle Objekte</option>
+          <option value="">Tüm Mülkler</option>
           {apartments.map(a => (
             <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
           ))}
@@ -570,7 +571,7 @@ export default function Expenses() {
           value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Alle Kategorien</option>
+          <option value="">Tüm Kategoriler</option>
           {categories.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -587,7 +588,7 @@ export default function Expenses() {
           value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
           style={{ ...inputStyle, width: 140, cursor: 'pointer' }}
         >
-          <option value="">Alle Monate</option>
+          <option value="">Tüm Aylar</option>
           {MONTH_NAMES.map((m, i) => (
             <option key={i} value={i + 1}>{m}</option>
           ))}
@@ -605,18 +606,18 @@ export default function Expenses() {
             padding: '14px 24px', borderBottom: `1px solid ${C.border}`,
             fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px'
           }}>
-            <div>Datum</div>
-            <div>Objekt</div>
-            <div>Kategorie</div>
-            <div style={{ textAlign: 'right' }}>Betrag</div>
-            <div style={{ textAlign: 'center' }}>Status</div>
+            <div>Tarih</div>
+            <div>Mülk</div>
+            <div>Kategori</div>
+            <div style={{ textAlign: 'right' }}>Tutar</div>
+            <div style={{ textAlign: 'center' }}>Durum</div>
             <div />
           </div>
 
           {/* Rows */}
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
-              {expenses.length === 0 ? 'Noch keine Ausgaben erfasst.' : 'Keine Ergebnisse für die gewählten Filter.'}
+              {expenses.length === 0 ? 'Henüz gider kaydı yok.' : 'Seçili filtrelere uygun sonuç bulunamadı.'}
             </div>
           ) : (
             <AnimatePresence>
@@ -663,7 +664,7 @@ export default function Expenses() {
                       color: exp.is_tenant_billed ? '#059669' : '#DC2626',
                       letterSpacing: '0.3px'
                     }}>
-                      {exp.is_tenant_billed ? 'Umlagef.' : 'Nicht u.'}
+                      {exp.is_tenant_billed ? 'Yansıtılır' : 'Yansıtılmaz'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
@@ -694,8 +695,8 @@ export default function Expenses() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               fontSize: 13, color: C.textMuted, fontWeight: 600
             }}>
-              <span>{filteredExpenses.length} Einträge</span>
-              <span style={{ fontWeight: 800, color: C.text }}>Gesamt: €{money(totalAll)}</span>
+              <span>{filteredExpenses.length} kayıt</span>
+              <span style={{ fontWeight: 800, color: C.text }}>Toplam: €{money(totalAll)}</span>
             </div>
           )}
         </motion.div>
@@ -703,12 +704,12 @@ export default function Expenses() {
         {/* ── Sidebar: Category Distribution ── */}
         <motion.div variants={fadeItem} style={cardBox}>
           <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid ${C.borderLight}` }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>Kostenverteilung</h3>
-            <p style={{ fontSize: 11, color: C.textFaint, margin: '2px 0 0' }}>Nach Kategorie</p>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>Gider Dağılımı</h3>
+            <p style={{ fontSize: 11, color: C.textFaint, margin: '2px 0 0' }}>Kategoriye Göre</p>
           </div>
           <div style={{ padding: '12px 20px 16px' }}>
             {categoryDistribution.length === 0 ? (
-              <p style={{ fontSize: 13, color: C.textFaint, textAlign: 'center', padding: 20 }}>Keine Daten</p>
+              <p style={{ fontSize: 13, color: C.textFaint, textAlign: 'center', padding: 20 }}>Veri yok</p>
             ) : (
               categoryDistribution.map((cat, i) => {
                 const pct = totalAll > 0 ? (cat.total / totalAll * 100) : 0
@@ -770,7 +771,7 @@ export default function Expenses() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0 }}>
-                  {editingExpense ? 'Ausgabe bearbeiten' : 'Neue Ausgabe'}
+                  {editingExpense ? 'Gider Düzenle' : 'Yeni Gider'}
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -784,13 +785,13 @@ export default function Expenses() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {/* Apartment */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Objekt *</label>
+                  <label style={labelStyle}>Mülk *</label>
                   <select
                     value={expenseForm.apartment_id}
                     onChange={e => setExpenseForm(prev => ({ ...prev, apartment_id: e.target.value }))}
                     style={{ ...inputStyle, cursor: 'pointer' }}
                   >
-                    <option value="">Objekt wählen...</option>
+                    <option value="">Mülk seçin...</option>
                     {apartments.map(a => (
                       <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
                     ))}
@@ -799,22 +800,22 @@ export default function Expenses() {
 
                 {/* Category */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Kategorie *</label>
+                  <label style={labelStyle}>Kategori *</label>
                   <select
                     value={expenseForm.category_id}
                     onChange={e => onCategorySelect(e.target.value)}
                     style={{ ...inputStyle, cursor: 'pointer' }}
                   >
-                    <option value="">Kategorie wählen...</option>
+                    <option value="">Kategori seçin...</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}{c.is_tenant_billable ? ' (umlagefähig)' : ''}</option>
+                      <option key={c.id} value={c.id}>{c.name}{c.is_tenant_billable ? ' (yansıtılabilir)' : ''}</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Amount */}
                 <div>
-                  <label style={labelStyle}>Betrag (€) *</label>
+                  <label style={labelStyle}>Tutar (€) *</label>
                   <input
                     type="number" step="0.01" min="0"
                     value={expenseForm.amount}
@@ -826,7 +827,7 @@ export default function Expenses() {
 
                 {/* Date */}
                 <div>
-                  <label style={labelStyle}>Datum</label>
+                  <label style={labelStyle}>Tarih</label>
                   <input
                     type="date"
                     value={expenseForm.expense_date}
@@ -837,7 +838,7 @@ export default function Expenses() {
 
                 {/* Period Month */}
                 <div>
-                  <label style={labelStyle}>Abrechnungsmonat</label>
+                  <label style={labelStyle}>Dönem Ayı</label>
                   <select
                     value={expenseForm.period_month}
                     onChange={e => setExpenseForm(prev => ({ ...prev, period_month: e.target.value }))}
@@ -851,7 +852,7 @@ export default function Expenses() {
 
                 {/* Period Year */}
                 <div>
-                  <label style={labelStyle}>Abrechnungsjahr</label>
+                  <label style={labelStyle}>Dönem Yılı</label>
                   <input
                     type="number" min="2020" max="2030"
                     value={expenseForm.period_year}
@@ -882,17 +883,17 @@ export default function Expenses() {
                     />
                   </motion.button>
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                    Umlagefähig (auf Mieter umlegbar)
+                    Kiracıya yansıtılabilir
                   </span>
                 </div>
 
                 {/* Notes */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Notizen</label>
+                  <label style={labelStyle}>Notlar</label>
                   <textarea
                     value={expenseForm.notes}
                     onChange={e => setExpenseForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Optionale Bemerkungen..."
+                    placeholder="İsteğe bağlı notlar..."
                     rows={3}
                     style={{ ...inputStyle, resize: 'vertical' }}
                   />
@@ -909,7 +910,7 @@ export default function Expenses() {
                     background: 'none', color: C.textMuted, border: `1.5px solid ${C.border}`, cursor: 'pointer'
                   }}
                 >
-                  Abbrechen
+                  İptal
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -921,7 +922,7 @@ export default function Expenses() {
                     display: 'flex', alignItems: 'center', gap: 8
                   }}
                 >
-                  <Check size={16} /> {editingExpense ? 'Speichern' : 'Hinzufügen'}
+                  <Check size={16} /> {editingExpense ? 'Kaydet' : 'Ekle'}
                 </motion.button>
               </div>
             </motion.div>
@@ -957,7 +958,7 @@ export default function Expenses() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0 }}>
-                  Betriebskostenarten
+                  Gider Kategorileri
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -992,12 +993,12 @@ export default function Expenses() {
                       <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
                         {cat.is_tenant_billable && (
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#ECFDF5', color: '#059669' }}>
-                            Umlagefähig
+                            Yansıtılabilir
                           </span>
                         )}
                         {cat.is_recurring && (
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#EFF6FF', color: '#2563EB' }}>
-                            Monatlich
+                            Aylık
                           </span>
                         )}
                       </div>
@@ -1028,7 +1029,7 @@ export default function Expenses() {
                 border: `1px solid ${C.borderLight}`
               }}>
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 14px' }}>
-                  {editingCategory ? 'Kategorie bearbeiten' : 'Neue Kategorie'}
+                  {editingCategory ? 'Kategori Düzenle' : 'Yeni Kategori'}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div style={{ gridColumn: '1 / -1' }}>
@@ -1036,7 +1037,7 @@ export default function Expenses() {
                     <input
                       value={categoryForm.name}
                       onChange={e => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="z.B. Grundsteuer"
+                      placeholder="ör: Emlak Vergisi"
                       style={inputStyle}
                     />
                   </div>
@@ -1065,7 +1066,7 @@ export default function Expenses() {
 
                   {/* Color Picker */}
                   <div>
-                    <label style={labelStyle}>Farbe</label>
+                    <label style={labelStyle}>Renk</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {COLOR_CHOICES.map(color => (
                         <motion.button
@@ -1104,7 +1105,7 @@ export default function Expenses() {
                         }}
                       />
                     </motion.button>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Umlagefähig</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Yansıtılabilir</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1127,7 +1128,7 @@ export default function Expenses() {
                         }}
                       />
                     </motion.button>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Monatlich</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Aylık</span>
                   </div>
                 </div>
 
@@ -1142,7 +1143,7 @@ export default function Expenses() {
                         background: 'none', color: C.textMuted, border: `1px solid ${C.border}`, cursor: 'pointer'
                       }}
                     >
-                      Abbrechen
+                      İptal
                     </motion.button>
                   )}
                   <motion.button
@@ -1155,7 +1156,7 @@ export default function Expenses() {
                       display: 'flex', alignItems: 'center', gap: 6
                     }}
                   >
-                    <Check size={14} /> {editingCategory ? 'Speichern' : 'Hinzufügen'}
+                    <Check size={14} /> {editingCategory ? 'Kaydet' : 'Ekle'}
                   </motion.button>
                 </div>
               </div>
@@ -1198,10 +1199,10 @@ export default function Expenses() {
               }}>
                 <div>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>
-                    Nebenkostenabrechnung
+                    Yan Gider Hesap Kesimi
                   </h2>
                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>
-                    Betriebskostenabrechnung erstellen
+                    Dönemsel gider raporu oluştur
                   </p>
                 </div>
                 <motion.button
@@ -1217,20 +1218,20 @@ export default function Expenses() {
                 {/* Selection */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
                   <div>
-                    <label style={labelStyle}>Objekt</label>
+                    <label style={labelStyle}>Mülk</label>
                     <select
                       value={abrechnungApt}
                       onChange={e => setAbrechnungApt(e.target.value)}
                       style={{ ...inputStyle, cursor: 'pointer' }}
                     >
-                      <option value="">Wählen...</option>
+                      <option value="">Seçin...</option>
                       {apartments.map(a => (
                         <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Von</label>
+                    <label style={labelStyle}>Başlangıç</label>
                     <input
                       type="date" value={abrechnungStart}
                       onChange={e => setAbrechnungStart(e.target.value)}
@@ -1238,7 +1239,7 @@ export default function Expenses() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Bis</label>
+                    <label style={labelStyle}>Bitiş</label>
                     <input
                       type="date" value={abrechnungEnd}
                       onChange={e => setAbrechnungEnd(e.target.value)}
@@ -1257,21 +1258,21 @@ export default function Expenses() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Objekt</div>
+                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mülk</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                             {abrechnungData.apt ? `${abrechnungData.apt.building} ${abrechnungData.apt.unit_no}` : '—'}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mieter</div>
+                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Kiracı</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {abrechnungData.tenant?.full_name || 'Kein aktiver Mieter'}
+                            {abrechnungData.tenant?.full_name || 'Aktif kiracı yok'}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Zeitraum</div>
+                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {abrechnungData.monthsInPeriod} Monate
+                            {abrechnungData.monthsInPeriod} Ay
                           </div>
                         </div>
                       </div>
@@ -1280,7 +1281,7 @@ export default function Expenses() {
                     {/* Umlagefähige Kosten */}
                     <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 4, height: 16, borderRadius: 2, background: C.green }} />
-                      Umlagefähige Betriebskosten
+                      Kiracıya Yansıtılabilir Giderler
                     </h4>
                     <div style={{
                       borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
@@ -1291,12 +1292,12 @@ export default function Expenses() {
                         fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
                         borderBottom: `1px solid ${C.borderLight}`
                       }}>
-                        <div>Betriebskostenart</div>
-                        <div>Betrag</div>
+                        <div>Gider Kalemi</div>
+                        <div>Tutar</div>
                       </div>
                       {abrechnungData.byCategory.length === 0 ? (
                         <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
-                          Keine umlagefähigen Kosten im Zeitraum
+                          Bu dönemde yansıtılabilir gider bulunamadı
                         </div>
                       ) : (
                         abrechnungData.byCategory.map((cat, i) => (
@@ -1320,7 +1321,7 @@ export default function Expenses() {
                         padding: '12px 16px', background: '#F0FDF4',
                         borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
                       }}>
-                        <div style={{ color: '#059669' }}>Gesamt umlagefähig</div>
+                        <div style={{ color: '#059669' }}>Toplam yansıtılabilir</div>
                         <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>€{money(abrechnungData.totalBillable)}</div>
                       </div>
                     </div>
@@ -1334,9 +1335,9 @@ export default function Expenses() {
                         padding: '12px 16px', alignItems: 'center'
                       }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>Ihre Vorauszahlungen</div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>Kiracı Avansları</div>
                           <div style={{ fontSize: 11, color: C.textFaint }}>
-                            {abrechnungData.monthsInPeriod} × €{money(abrechnungData.vorauszahlung)}/Monat
+                            {abrechnungData.monthsInPeriod} × €{money(abrechnungData.vorauszahlung)}/ay
                           </div>
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
@@ -1362,17 +1363,17 @@ export default function Expenses() {
                             color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
                           }}>
                             {abrechnungData.difference > 0
-                              ? 'Nachzahlung'
+                              ? 'Ek Ödeme Gerekli'
                               : abrechnungData.difference < 0
-                                ? 'Guthaben'
-                                : 'Ausgeglichen'}
+                                ? 'Kiracıya İade'
+                                : 'Dengede'}
                           </div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                             {abrechnungData.difference > 0
-                              ? 'Mieter schuldet eine Nachzahlung'
+                              ? 'Kiracı ek ödeme yapmalı'
                               : abrechnungData.difference < 0
-                                ? 'Mieter erhält eine Gutschrift'
-                                : 'Keine Differenz — genau abgeglichen'}
+                                ? 'Kiracıya geri ödeme yapılmalı'
+                                : 'Fark yok — tam dengelenmiş'}
                           </div>
                         </div>
                         <div style={{
@@ -1389,7 +1390,7 @@ export default function Expenses() {
                       <>
                         <h4 style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 4, height: 16, borderRadius: 2, background: C.red }} />
-                          Nicht umlagefähige Kosten (Referenz)
+                          Yansıtılamaz Giderler (Referans)
                         </h4>
                         <div style={{
                           borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
@@ -1409,7 +1410,7 @@ export default function Expenses() {
                             padding: '10px 16px', background: '#FEF2F2',
                             borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 13
                           }}>
-                            <div style={{ color: '#DC2626' }}>Gesamt nicht umlagefähig</div>
+                            <div style={{ color: '#DC2626' }}>Toplam yansıtılamaz</div>
                             <div style={{ color: '#DC2626' }}>€{money(abrechnungData.totalNonBillable)}</div>
                           </div>
                         </div>
@@ -1422,16 +1423,16 @@ export default function Expenses() {
                       border: `1px solid ${C.borderLight}`, fontSize: 13
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: C.textMuted }}>Kaltmiete (Zeitraum)</span>
+                        <span style={{ color: C.textMuted }}>Net Kira (Dönem)</span>
                         <span style={{ fontWeight: 700 }}>€{money(abrechnungData.annualRent)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: C.textMuted }}>+ Nebenkosten (umlagefähig)</span>
+                        <span style={{ color: C.textMuted }}>+ Yan Giderler (yansıtılabilir)</span>
                         <span style={{ fontWeight: 700 }}>€{money(abrechnungData.totalBillable)}</span>
                       </div>
                       <div style={{ height: 1, background: C.border, margin: '8px 0' }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 800, color: C.text }}>Warmmiete (Zeitraum)</span>
+                        <span style={{ fontWeight: 800, color: C.text }}>Brüt Kira (Dönem)</span>
                         <span style={{ fontWeight: 800, color: C.teal, fontSize: 15 }}>
                           €{money(abrechnungData.annualRent + abrechnungData.totalBillable)}
                         </span>
@@ -1441,7 +1442,7 @@ export default function Expenses() {
                 ) : (
                   <div style={{ padding: 32, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
                     <FileText size={32} color={C.textFaint} style={{ marginBottom: 12 }} />
-                    <div>Bitte wählen Sie ein Objekt, um die Abrechnung zu erstellen.</div>
+                    <div>Rapor oluşturmak için bir mülk seçin.</div>
                   </div>
                 )}
               </div>
