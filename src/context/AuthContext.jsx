@@ -43,8 +43,14 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  /* Sifre sifirlama */
+  const resetPassword = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    if (error) throw error
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   )
