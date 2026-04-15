@@ -205,7 +205,7 @@ export default function Expenses() {
   const loadTenants = async () => {
     const { data } = await supabase
       .from('tenants')
-      .select('id, full_name, apartment_id, rent, nebenkosten_vorauszahlung')
+      .select('id, full_name, apartment_id, rent, nebenkosten_vorauszahlung, lease_start, lease_end')
       .not('apartment_id', 'is', null)
     setTenants(data || [])
   }
@@ -424,8 +424,14 @@ export default function Expenses() {
     const tenant = tenants.find(t => t.apartment_id === abrechnungApt)
     const vorauszahlung = tenant ? Number(tenant.nebenkosten_vorauszahlung) || 0 : 0
 
-    // Calculate months in period
-    const monthsInPeriod = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
+    // Calculate months — clamp to tenant's actual lease period
+    const leaseStart = tenant?.lease_start ? new Date(tenant.lease_start) : null
+    const leaseEnd = tenant?.lease_end ? new Date(tenant.lease_end) : null
+    const effectiveStart = leaseStart && leaseStart > start ? leaseStart : start
+    const effectiveEnd = leaseEnd && leaseEnd < end ? leaseEnd : end
+    const monthsInPeriod = effectiveStart <= effectiveEnd
+      ? (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12 + (effectiveEnd.getMonth() - effectiveStart.getMonth()) + 1
+      : 0
     const totalVorauszahlung = vorauszahlung * monthsInPeriod
     const difference = totalBillable - totalVorauszahlung
 
@@ -447,7 +453,8 @@ export default function Expenses() {
       apt, tenant, byCategory: Object.values(byCategory),
       nonBillableByCategory: Object.values(nonBillableByCategory),
       totalBillable, totalNonBillable, vorauszahlung,
-      monthsInPeriod, totalVorauszahlung, difference, annualRent
+      monthsInPeriod, totalVorauszahlung, difference, annualRent,
+      effectiveStart, effectiveEnd
     }
   }, [showAbrechnung, abrechnungApt, abrechnungStart, abrechnungEnd, expenses, tenants, apartments])
 
