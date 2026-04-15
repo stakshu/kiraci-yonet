@@ -1,12 +1,12 @@
-/* ── KiraciYonet — Auth Overlay — Dark & Premium ── */
+/* ── KiraciYonet — Auth Overlay — "The Lobby" ── */
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from './Toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Building2, ShieldCheck, TrendingUp } from 'lucide-react'
 
 /* ── Turkce hata mapping ── */
-const ERROR_MAP = {
+const ERR = {
   'Invalid login credentials': 'E-posta veya şifre hatalı.',
   'Email not confirmed': 'E-posta adresiniz henüz doğrulanmadı.',
   'User already registered': 'Bu e-posta adresi zaten kayıtlı.',
@@ -14,246 +14,365 @@ const ERROR_MAP = {
   'For security purposes, you can only request this once every 60 seconds': 'Güvenlik nedeniyle 60 saniyede bir istek gönderebilirsiniz.',
 }
 
-const localizeError = (msg) => ERROR_MAP[msg] || msg
-
-/* ── Ease curve ── */
 const ease = [0.16, 1, 0.3, 1]
+
+/* ── Topografik SVG desen ── */
+function TopoPattern() {
+  return (
+    <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.04 }} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="topo" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+          <path d="M20 80 Q60 20 100 60 T180 40" fill="none" stroke="white" strokeWidth="0.8" />
+          <path d="M0 120 Q40 80 80 100 T160 80 T200 90" fill="none" stroke="white" strokeWidth="0.6" />
+          <path d="M10 160 Q50 120 90 140 T170 120 T200 130" fill="none" stroke="white" strokeWidth="0.5" />
+          <path d="M0 40 Q30 10 70 30 T140 10 T200 25" fill="none" stroke="white" strokeWidth="0.7" />
+          <path d="M20 190 Q60 160 100 175 T180 155" fill="none" stroke="white" strokeWidth="0.4" />
+          <circle cx="85" cy="95" r="20" fill="none" stroke="white" strokeWidth="0.5" />
+          <circle cx="85" cy="95" r="35" fill="none" stroke="white" strokeWidth="0.3" />
+          <circle cx="150" cy="45" r="15" fill="none" stroke="white" strokeWidth="0.4" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#topo)" />
+    </svg>
+  )
+}
+
+/* ── Input bileşeni ── */
+function AuthInput({ label, id, type = 'text', placeholder, required, minLength, value, onChange }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <div>
+      <label htmlFor={id} style={{
+        display: 'block', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 6, fontFamily: 'inherit',
+      }}>
+        {label}
+      </label>
+      <input
+        id={id} type={type} placeholder={placeholder} required={required} minLength={minLength}
+        value={value} onChange={onChange}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', padding: '14px 16px', fontSize: 14, color: 'white',
+          background: 'rgba(255,255,255,0.05)', outline: 'none', fontFamily: 'inherit',
+          border: 'none', borderRadius: 10,
+          borderLeft: focused ? '3px solid #00D47E' : '3px solid transparent',
+          boxShadow: focused ? '0 0 20px rgba(0,212,126,0.08)' : 'none',
+          transition: 'all 0.25s ease',
+        }}
+      />
+    </div>
+  )
+}
 
 export default function AuthOverlay() {
   const { signIn, signUp, resetPassword } = useAuth()
   const { showToast } = useToast()
 
-  const [tab, setTab] = useState('login')        // 'login' | 'register'
-  const [view, setView] = useState('form')        // 'form' | 'forgot'
+  const [view, setView] = useState('login') // 'login' | 'register' | 'forgot'
   const [message, setMessage] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  /* Login */
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
-
-  /* Register */
   const [regEmail, setRegEmail] = useState('')
   const [regPassword, setRegPassword] = useState('')
-  const [regPasswordConfirm, setRegPasswordConfirm] = useState('')
-
-  /* Forgot */
+  const [regConfirm, setRegConfirm] = useState('')
   const [forgotEmail, setForgotEmail] = useState('')
 
   const clearMsg = () => setMessage(null)
-  const switchTab = (t) => { setTab(t); setView('form'); clearMsg() }
+  const switchView = (v) => { setView(v); clearMsg() }
 
-  /* ── Handlers ── */
   const handleLogin = async (e) => {
-    e.preventDefault()
-    clearMsg()
-    setLoading(true)
+    e.preventDefault(); clearMsg(); setLoading(true)
     try {
       await signIn(loginEmail.trim(), loginPassword)
       showToast('Başarıyla giriş yapıldı!')
     } catch (err) {
-      setMessage({ type: 'error', text: localizeError(err.message) })
-    } finally {
-      setLoading(false)
-    }
+      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+    } finally { setLoading(false) }
   }
 
   const handleRegister = async (e) => {
-    e.preventDefault()
-    clearMsg()
-    if (regPassword !== regPasswordConfirm) {
-      setMessage({ type: 'error', text: 'Şifreler eşleşmiyor.' })
-      return
-    }
+    e.preventDefault(); clearMsg()
+    if (regPassword !== regConfirm) { setMessage({ type: 'error', text: 'Şifreler eşleşmiyor.' }); return }
     setLoading(true)
     try {
       const data = await signUp(regEmail.trim(), regPassword)
       if (data.user && !data.session) {
         setMessage({ type: 'success', text: 'Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.' })
-        switchTab('login')
-      } else {
-        showToast('Kayıt başarılı! Hoş geldiniz.')
-      }
+        switchView('login')
+      } else { showToast('Kayıt başarılı! Hoş geldiniz.') }
     } catch (err) {
-      setMessage({ type: 'error', text: localizeError(err.message) })
-    } finally {
-      setLoading(false)
-    }
+      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+    } finally { setLoading(false) }
   }
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault()
-    clearMsg()
-    setLoading(true)
+  const handleForgot = async (e) => {
+    e.preventDefault(); clearMsg(); setLoading(true)
     try {
       await resetPassword(forgotEmail.trim())
       setMessage({ type: 'success', text: 'Sıfırlama linki e-posta adresinize gönderildi.' })
     } catch (err) {
-      setMessage({ type: 'error', text: localizeError(err.message) })
-    } finally {
-      setLoading(false)
-    }
+      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+    } finally { setLoading(false) }
   }
 
-  /* ── Input stili ── */
-  const inputClass = [
-    'w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30',
-    'bg-white/[0.06] border border-white/[0.1]',
-    'outline-none transition-all duration-200',
-    'focus:border-[#00D47E]/50 focus:ring-2 focus:ring-[#00D47E]/20',
-  ].join(' ')
+  /* ── Titles ── */
+  const titles = {
+    login: { h: 'Hoş Geldiniz', p: 'Hesabınıza giriş yapın' },
+    register: { h: 'Hesap Oluşturun', p: 'Hemen başlayın' },
+    forgot: { h: 'Şifre Sıfırlama', p: 'E-posta adresinize sıfırlama linki göndereceğiz' },
+  }
 
-  const labelClass = 'block text-white/70 text-sm font-medium mb-1.5'
+  /* ── Stats ── */
+  const stats = [
+    { icon: Building2, label: '1.200+ Mülk', sub: 'Yönetiliyor' },
+    { icon: ShieldCheck, label: '%98 Tahsilat', sub: 'Oranı' },
+    { icon: TrendingUp, label: '₺2.4M+', sub: 'Aylık Takip' },
+  ]
+
+  /* ── Submit button ── */
+  const SubmitBtn = ({ children }) => (
+    <motion.button
+      type="submit" disabled={loading}
+      style={{
+        width: '100%', padding: '14px', borderRadius: 10, border: 'none',
+        background: '#00D47E', color: '#03363D', fontSize: 14, fontWeight: 700,
+        fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.6 : 1, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: 8, letterSpacing: '0.3px',
+        boxShadow: '0 0 30px rgba(0,212,126,0.15)',
+        transition: 'box-shadow 0.3s ease',
+      }}
+      whileHover={{ scale: 1.01, boxShadow: '0 0 40px rgba(0,212,126,0.25)' }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {loading && <Loader2 size={16} className="animate-spin" />}
+      {children}
+    </motion.button>
+  )
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #080d19 0%, #0d1520 50%, #080d19 100%)' }}>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200, display: 'flex',
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+    }}>
 
-      {/* ── Animated Gradient Orbs ── */}
-      <div className="absolute -top-40 -right-32 w-[500px] h-[500px] rounded-full blur-3xl opacity-60 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(0,212,126,0.12) 0%, transparent 65%)' }}>
-        <motion.div className="w-full h-full"
-          animate={{ x: [0, -30, 10, 0], y: [0, 20, -15, 0] }}
-          transition={{ duration: 10, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }} />
-      </div>
-      <div className="absolute -bottom-60 -left-40 w-[600px] h-[600px] rounded-full blur-3xl opacity-50 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(2,88,100,0.18) 0%, transparent 65%)' }}>
-        <motion.div className="w-full h-full"
-          animate={{ x: [0, 20, -15, 0], y: [0, -25, 10, 0] }}
-          transition={{ duration: 12, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }} />
-      </div>
-      <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] rounded-full blur-3xl opacity-40 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(0,212,126,0.08) 0%, transparent 70%)' }}>
-        <motion.div className="w-full h-full"
-          animate={{ x: [0, 15, -20, 0], y: [0, -10, 20, 0] }}
-          transition={{ duration: 8, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }} />
-      </div>
-
-      {/* ── Glassmorphism Card ── */}
+      {/* ══════════ SOL PANEL — Marka Alanı ══════════ */}
       <motion.div
-        className="relative z-10 w-[420px] max-w-[92vw] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/30"
-        style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
-        initial={{ opacity: 0, y: 30, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease }}
+        className="hidden md:flex"
+        style={{
+          width: '55%', position: 'relative', overflow: 'hidden',
+          background: 'linear-gradient(155deg, #025864 0%, #03363D 60%, #022a33 100%)',
+          flexDirection: 'column', justifyContent: 'center', padding: '60px 64px',
+        }}
+        initial={{ x: -60, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.7, ease }}
       >
-        {/* ── Header ── */}
-        <div className="pt-10 pb-2 px-10 text-center">
+        {/* Topografik desen */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 1.2 }}
+        >
+          <TopoPattern />
+        </motion.div>
+
+        {/* Büyük dekoratif K */}
+        <motion.div
+          style={{
+            position: 'absolute', top: -40, right: -30,
+            fontSize: 380, fontWeight: 900, lineHeight: 1,
+            color: 'white', opacity: 0.04, userSelect: 'none',
+            letterSpacing: '-20px',
+          }}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.04 }}
+          transition={{ delay: 0.2, duration: 1, ease }}
+        >
+          K
+        </motion.div>
+
+        {/* İçerik */}
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 440 }}>
+          {/* Logo */}
           <motion.div
-            className="mx-auto mb-5 w-14 h-14 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #025864, #00D47E)', boxShadow: '0 8px 32px rgba(0,212,126,0.3)' }}
-            initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 56 }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease }}
           >
-            <span className="text-white text-2xl font-extrabold tracking-tight">K</span>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(135deg, #00D47E, #00B86E)',
+              boxShadow: '0 4px 16px rgba(0,212,126,0.3)',
+            }}>
+              <span style={{ color: 'white', fontSize: 18, fontWeight: 800 }}>K</span>
+            </div>
+            <span style={{ color: 'white', fontSize: 18, fontWeight: 700, letterSpacing: '-0.3px' }}>
+              KiraciYonet
+            </span>
           </motion.div>
-          <motion.h1
-            className="text-white text-2xl font-bold tracking-tight"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.5, ease }}
-          >
-            KiraciYonet
-          </motion.h1>
+
+          {/* Ana başlık */}
+          {['Mülklerinizi', 'yönetmenin', 'en akıllı yolu.'].map((line, i) => (
+            <motion.div
+              key={i}
+              style={{
+                fontSize: i === 2 ? 42 : 40, fontWeight: 800, color: 'white',
+                lineHeight: 1.15, letterSpacing: '-1.5px',
+                ...(i === 2 ? { color: '#00D47E' } : {}),
+              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.12, duration: 0.6, ease }}
+            >
+              {line}
+            </motion.div>
+          ))}
+
+          {/* Accent çizgi */}
+          <motion.div
+            style={{ width: 48, height: 3, background: '#00D47E', borderRadius: 2, marginTop: 28, marginBottom: 28 }}
+            initial={{ width: 0 }}
+            animate={{ width: 48 }}
+            transition={{ delay: 0.7, duration: 0.5, ease }}
+          />
+
+          {/* Alt metin */}
           <motion.p
-            className="text-white/40 text-xs tracking-[3px] uppercase mt-1.5"
+            style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, lineHeight: 1.7, maxWidth: 360 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
           >
-            Mülk Yönetim Sistemi
+            Kira takibi, gider yönetimi ve finansal raporlama — tek platformda.
           </motion.p>
+
+          {/* İstatistikler */}
+          <motion.div
+            style={{ display: 'flex', gap: 24, marginTop: 48 }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.6, ease }}
+          >
+            {stats.map(({ icon: Icon, label, sub }, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 16px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <Icon size={18} style={{ color: '#00D47E', opacity: 0.8 }} />
+                <div>
+                  <div style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>{label}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{sub}</div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
         </div>
 
-        {/* ── Tabs ── */}
-        {view === 'form' && (
-          <div className="flex mx-10 mt-6 border-b border-white/[0.08]">
-            {[
-              { key: 'login', label: 'Giriş Yap' },
-              { key: 'register', label: 'Kayıt Ol' },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => switchTab(key)}
-                className={`flex-1 pb-3 text-sm font-semibold transition-all duration-200 border-b-2 ${
-                  tab === key
-                    ? 'text-white border-[#00D47E]'
-                    : 'text-white/40 border-transparent hover:text-white/60'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* Footer */}
+        <motion.div
+          style={{
+            position: 'absolute', bottom: 32, left: 64,
+            color: 'rgba(255,255,255,0.25)', fontSize: 12,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.5 }}
+        >
+          © 2026 KiraciYonet. Tüm hakları saklıdır.
+        </motion.div>
+      </motion.div>
+
+      {/* ══════════ SAĞ PANEL — Form Alanı ══════════ */}
+      <motion.div
+        style={{
+          flex: 1, background: '#0a1628', display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', alignItems: 'center', padding: '40px 24px',
+          position: 'relative', overflow: 'hidden',
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.1, ease }}
+      >
+        {/* Dekoratif arka plan deseni */}
+        <div style={{
+          position: 'absolute', top: -100, right: -100,
+          width: 300, height: 300, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,212,126,0.04) 0%, transparent 70%)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -80, left: -80,
+          width: 250, height: 250, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(2,88,100,0.06) 0%, transparent 70%)',
+        }} />
+
+        <div style={{ width: '100%', maxWidth: 380, position: 'relative', zIndex: 1 }}>
+
+          {/* Mobilde logo */}
+          <div className="flex md:hidden" style={{
+            alignItems: 'center', gap: 10, marginBottom: 40, justifyContent: 'center',
+          }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(135deg, #00D47E, #00B86E)',
+            }}>
+              <span style={{ color: 'white', fontSize: 16, fontWeight: 800 }}>K</span>
+            </div>
+            <span style={{ color: 'white', fontSize: 17, fontWeight: 700 }}>KiraciYonet</span>
           </div>
-        )}
 
-        {/* ── Body ── */}
-        <div className="px-10 pt-6 pb-10">
+          {/* Başlık */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={view + '-title'}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25, ease }}
+              style={{ marginBottom: 36 }}
+            >
+              <h1 style={{ color: 'white', fontSize: 28, fontWeight: 800, letterSpacing: '-0.8px', margin: 0 }}>
+                {titles[view].h}
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 6 }}>
+                {titles[view].p}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
-          {/* Message */}
+          {/* Mesaj */}
           <AnimatePresence mode="wait">
             {message && (
               <motion.div
                 key="msg"
-                initial={{ opacity: 0, y: -8, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                exit={{ opacity: 0, y: -8, height: 0 }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25, ease }}
-                className={`mb-5 px-4 py-3 rounded-xl text-sm font-medium ${
-                  message.type === 'error'
-                    ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                    : 'bg-[#00D47E]/10 border border-[#00D47E]/20 text-[#00D47E]'
-                }`}
+                style={{
+                  marginBottom: 20, padding: '12px 16px', borderRadius: 10,
+                  fontSize: 13, fontWeight: 500,
+                  background: message.type === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(0,212,126,0.1)',
+                  borderLeft: `3px solid ${message.type === 'error' ? '#ef4444' : '#00D47E'}`,
+                  color: message.type === 'error' ? '#f87171' : '#00D47E',
+                }}
               >
                 {message.text}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Forms */}
+          {/* Formlar */}
           <AnimatePresence mode="wait">
-            {view === 'forgot' ? (
-              /* ── Sifremi Unuttum ── */
-              <motion.form
-                key="forgot"
-                onSubmit={handleForgotPassword}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3, ease }}
-                className="space-y-4"
-              >
-                <div className="text-center mb-6">
-                  <h2 className="text-white text-lg font-bold">Şifre Sıfırlama</h2>
-                  <p className="text-white/40 text-sm mt-1">E-posta adresinize sıfırlama linki göndereceğiz</p>
-                </div>
-                <div>
-                  <label className={labelClass} htmlFor="forgotEmail">E-posta</label>
-                  <input className={inputClass} id="forgotEmail" type="email" placeholder="ornek@email.com" required
-                    value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
-                </div>
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #025864, #00D47E)', boxShadow: '0 4px 20px rgba(0,212,126,0.25)' }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? 'Gönderiliyor...' : 'Sıfırlama Linki Gönder'}
-                </motion.button>
-                <button
-                  type="button"
-                  onClick={() => { setView('form'); clearMsg() }}
-                  className="w-full text-center text-sm text-white/50 hover:text-[#00D47E] transition-colors duration-200 mt-2"
-                >
-                  ← Giriş ekranına dön
-                </button>
-              </motion.form>
-            ) : tab === 'login' ? (
-              /* ── Giris Formu ── */
+            {view === 'login' && (
               <motion.form
                 key="login"
                 onSubmit={handleLogin}
@@ -261,48 +380,52 @@ export default function AuthOverlay() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3, ease }}
-                className="space-y-4"
+                style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
               >
-                <div>
-                  <label className={labelClass} htmlFor="loginEmail">E-posta</label>
-                  <input className={inputClass} id="loginEmail" type="email" placeholder="ornek@email.com" required
-                    value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
-                </div>
-                <div>
-                  <label className={labelClass} htmlFor="loginPassword">Şifre</label>
-                  <input className={inputClass} id="loginPassword" type="password" placeholder="••••••••" required minLength={6}
-                    value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => { setView('forgot'); clearMsg(); setForgotEmail(loginEmail) }}
-                    className="text-xs text-white/50 hover:text-[#00D47E] transition-colors duration-200"
+                <AuthInput label="E-posta" id="loginEmail" type="email" placeholder="ornek@email.com"
+                  required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
+                <AuthInput label="Şifre" id="loginPass" type="password" placeholder="••••••••"
+                  required minLength={6} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+                  <button type="button"
+                    onClick={() => { switchView('forgot'); setForgotEmail(loginEmail) }}
+                    style={{
+                      background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                      fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => e.target.style.color = '#00D47E'}
+                    onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
                   >
                     Şifremi unuttum?
                   </button>
                 </div>
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #025864, #00D47E)', boxShadow: '0 4px 20px rgba(0,212,126,0.25)' }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-                </motion.button>
-                <p className="text-center text-sm text-white/40 mt-2">
+
+                <SubmitBtn>{loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}</SubmitBtn>
+
+                {/* Ayırıcı */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)',
+                  }} />
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                </div>
+
+                <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
                   Hesabınız yok mu?{' '}
-                  <button type="button" onClick={() => switchTab('register')}
-                    className="text-[#00D47E] font-semibold hover:text-[#00D47E]/80 transition-colors">
+                  <button type="button" onClick={() => switchView('register')}
+                    style={{
+                      background: 'none', border: 'none', color: '#00D47E',
+                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                    }}>
                     Kayıt Ol
                   </button>
                 </p>
               </motion.form>
-            ) : (
-              /* ── Kayit Formu ── */
+            )}
+
+            {view === 'register' && (
               <motion.form
                 key="register"
                 onSubmit={handleRegister}
@@ -310,41 +433,62 @@ export default function AuthOverlay() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3, ease }}
-                className="space-y-4"
+                style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
               >
-                <div>
-                  <label className={labelClass} htmlFor="regEmail">E-posta</label>
-                  <input className={inputClass} id="regEmail" type="email" placeholder="ornek@email.com" required
-                    value={regEmail} onChange={e => setRegEmail(e.target.value)} />
+                <AuthInput label="E-posta" id="regEmail" type="email" placeholder="ornek@email.com"
+                  required value={regEmail} onChange={e => setRegEmail(e.target.value)} />
+                <AuthInput label="Şifre" id="regPass" type="password" placeholder="En az 6 karakter"
+                  required minLength={6} value={regPassword} onChange={e => setRegPassword(e.target.value)} />
+                <AuthInput label="Şifre Tekrar" id="regConfirm" type="password" placeholder="Şifrenizi tekrarlayın"
+                  required minLength={6} value={regConfirm} onChange={e => setRegConfirm(e.target.value)} />
+
+                <SubmitBtn>{loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}</SubmitBtn>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
                 </div>
-                <div>
-                  <label className={labelClass} htmlFor="regPassword">Şifre</label>
-                  <input className={inputClass} id="regPassword" type="password" placeholder="En az 6 karakter" required minLength={6}
-                    value={regPassword} onChange={e => setRegPassword(e.target.value)} />
-                </div>
-                <div>
-                  <label className={labelClass} htmlFor="regPasswordConfirm">Şifre Tekrar</label>
-                  <input className={inputClass} id="regPasswordConfirm" type="password" placeholder="Şifrenizi tekrarlayın" required minLength={6}
-                    value={regPasswordConfirm} onChange={e => setRegPasswordConfirm(e.target.value)} />
-                </div>
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #025864, #00D47E)', boxShadow: '0 4px 20px rgba(0,212,126,0.25)' }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}
-                </motion.button>
-                <p className="text-center text-sm text-white/40 mt-2">
+
+                <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
                   Zaten hesabınız var mı?{' '}
-                  <button type="button" onClick={() => switchTab('login')}
-                    className="text-[#00D47E] font-semibold hover:text-[#00D47E]/80 transition-colors">
+                  <button type="button" onClick={() => switchView('login')}
+                    style={{
+                      background: 'none', border: 'none', color: '#00D47E',
+                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                    }}>
                     Giriş Yap
                   </button>
                 </p>
+              </motion.form>
+            )}
+
+            {view === 'forgot' && (
+              <motion.form
+                key="forgot"
+                onSubmit={handleForgot}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
+              >
+                <AuthInput label="E-posta" id="forgotEmail" type="email" placeholder="ornek@email.com"
+                  required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
+
+                <SubmitBtn>{loading ? 'Gönderiliyor...' : 'Sıfırlama Linki Gönder'}</SubmitBtn>
+
+                <button type="button" onClick={() => switchView('login')}
+                  style={{
+                    background: 'none', border: 'none', textAlign: 'center',
+                    color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer',
+                    fontFamily: 'inherit', marginTop: 4,
+                  }}
+                  onMouseEnter={e => e.target.style.color = '#00D47E'}
+                  onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
+                >
+                  ← Giriş ekranına dön
+                </button>
               </motion.form>
             )}
           </AnimatePresence>
