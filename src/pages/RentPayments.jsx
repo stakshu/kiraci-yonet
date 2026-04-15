@@ -62,6 +62,7 @@ export default function RentPayments() {
   const [expandedTenant, setExpandedTenant] = useState(null)
   const [expandedPast, setExpandedPast] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState('rent')
 
   useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
 
@@ -80,14 +81,14 @@ export default function RentPayments() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     const { data: tenants } = await supabase
-      .from('tenants').select('id, apartment_id, lease_start, rent')
+      .from('tenants').select('id, apartment_id, lease_start, rent, nebenkosten_vorauszahlung')
       .eq('user_id', session.user.id).not('apartment_id', 'is', null)
     if (!tenants || tenants.length === 0) return
     const { data: existingPayments } = await supabase
-      .from('rent_payments').select('tenant_id, due_date').eq('user_id', session.user.id)
+      .from('rent_payments').select('tenant_id, due_date, type').eq('user_id', session.user.id)
 
     const existingKeys = new Set(
-      (existingPayments || []).map(p => `${p.tenant_id}_${p.due_date.slice(0, 7)}`)
+      (existingPayments || []).map(p => `${p.tenant_id}_${p.due_date.slice(0, 7)}_${p.type || 'rent'}`)
     )
 
     const now = new Date()
@@ -95,19 +96,36 @@ export default function RentPayments() {
     const newPayments = []
 
     for (const t of tenants) {
-      const rentAmount = Number(t.rent) || 0
-      if (rentAmount <= 0 || !t.apartment_id) continue
+      if (!t.apartment_id) continue
       const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
+      const rentAmount = Number(t.rent) || 0
+      const aidatAmount = Number(t.nebenkosten_vorauszahlung) || 0
 
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
         if (dueDate > endOfNextMonth) break
-        const key = `${t.id}_${dueDate.toISOString().slice(0, 7)}`
-        if (existingKeys.has(key)) continue
-        newPayments.push({
-          user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
-          due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
-        })
+        const month = dueDate.toISOString().slice(0, 7)
+        const dueDateStr = dueDate.toISOString().split('T')[0]
+
+        if (rentAmount > 0) {
+          const rentKey = `${t.id}_${month}_rent`
+          if (!existingKeys.has(rentKey)) {
+            newPayments.push({
+              user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+              due_date: dueDateStr, amount: rentAmount, status: 'pending', type: 'rent'
+            })
+          }
+        }
+
+        if (aidatAmount > 0) {
+          const aidatKey = `${t.id}_${month}_aidat`
+          if (!existingKeys.has(aidatKey)) {
+            newPayments.push({
+              user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+              due_date: dueDateStr, amount: aidatAmount, status: 'pending', type: 'aidat'
+            })
+          }
+        }
       }
     }
     if (newPayments.length > 0) { await supabase.from('rent_payments').insert(newPayments); loadPayments() }
@@ -127,7 +145,7 @@ export default function RentPayments() {
 
   const getTenantGroups = () => {
     const groups = {}
-    payments.forEach(p => {
+    tabPayments.forEach(p => {
       const key = p.tenant_id
       if (!key) return
       if (!groups[key]) {
@@ -151,7 +169,7 @@ export default function RentPayments() {
 
   /* Past tenant groups — only paid payments this month from inactive tenants */
   const getPastTenantGroups = () => {
-    const pastPayments = allPayments.filter(p => p.tenants?.apartment_id == null && p.status === 'paid')
+    const pastPayments = tabAllPayments.filter(p => p.tenants?.apartment_id == null && p.status === 'paid')
     const groups = {}
     pastPayments.forEach(p => {
       const key = p.tenant_id
@@ -172,6 +190,9 @@ export default function RentPayments() {
     return Object.values(groups)
   }
 
+  const tabPayments = payments.filter(p => (p.type || 'rent') === activeTab)
+  const tabAllPayments = allPayments.filter(p => (p.type || 'rent') === activeTab)
+
   const tenantGroups = loading ? [] : getTenantGroups()
   const pastTenantGroups = loading ? [] : getPastTenantGroups()
   const filtered = tenantGroups.filter(g => {
@@ -191,14 +212,14 @@ export default function RentPayments() {
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-  const thisMonthAll = allPayments.filter(p => {
+  const thisMonthAll = tabAllPayments.filter(p => {
     const d = new Date(p.due_date)
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
   const totalCollected = thisMonthAll.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
   const totalPending = thisMonthAll.filter(p => realStatus(p) === 'pending').reduce((s, p) => s + Number(p.amount), 0)
-  const overdueCount = allPayments.filter(p => realStatus(p) === 'overdue').length
-  const totalAll = allPayments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
+  const overdueCount = tabAllPayments.filter(p => realStatus(p) === 'overdue').length
+  const totalAll = tabAllPayments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0)
 
   const sendEmail = async (payment, type) => {
     const tenantEmail = payment.tenants?.email
@@ -276,11 +297,32 @@ export default function RentPayments() {
       <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
-            Kira Ödemeleri
+            {activeTab === 'rent' ? 'Kira Ödemeleri' : 'Aidat Ödemeleri'}
           </h1>
           <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
             {monthLabel} — Ödeme takibi ve tahsilat yönetimi
           </p>
+        </div>
+
+        {/* Tab buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F1F5F9', borderRadius: 12, padding: 4 }}>
+          {[
+            { key: 'rent', label: 'Kira' },
+            { key: 'aidat', label: 'Aidat' }
+          ].map(tab => (
+            <motion.button key={tab.key} whileTap={{ scale: 0.96 }}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: '8px 20px', borderRadius: 10,
+                fontSize: 13, fontWeight: 700, fontFamily: font,
+                cursor: 'pointer', border: 'none', transition: 'all 0.2s',
+                background: activeTab === tab.key ? C.teal : 'transparent',
+                color: activeTab === tab.key ? '#FFFFFF' : C.textMuted,
+                boxShadow: activeTab === tab.key ? '0 2px 8px rgba(2,88,100,0.25)' : 'none'
+              }}>
+              {tab.label}
+            </motion.button>
+          ))}
         </div>
       </motion.div>
 
