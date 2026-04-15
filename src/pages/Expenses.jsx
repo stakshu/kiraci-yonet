@@ -168,6 +168,27 @@ export default function Expenses() {
       await seedDefaultCategories()
       const res = await supabase.from('expense_categories').select('*').order('sort_order', { ascending: true })
       data = res.data
+    } else {
+      // Migrate German category names to Turkish if detected
+      const germanToTurkish = {
+        'Grundsteuer': 'Emlak Vergisi', 'Wasserversorgung': 'Su', 'Entwässerung': 'Kanalizasyon',
+        'Heizung': 'Isıtma', 'Warmwasser': 'Sıcak Su', 'Aufzug': 'Asansör',
+        'Straßenreinigung': 'Sokak Temizliği', 'Müllbeseitigung': 'Çöp Toplama',
+        'Gebäudereinigung': 'Bina Temizliği', 'Gartenpflege': 'Bahçe Bakımı',
+        'Beleuchtung': 'Ortak Alan Aydınlatma', 'Schornsteinreinigung': 'Baca Temizliği',
+        'Versicherung': 'Bina Sigortası', 'Hauswart': 'Kapıcı / Görevli',
+        'Kabelanschluss': 'Kablo TV / Anten', 'Waschraum': 'Çamaşırhane',
+        'Sonstige': 'Diğer Giderler', 'Reparaturen (nicht umlagefähig)': 'Tamirat / Onarım',
+        'Verwaltungskosten': 'Yönetim Giderleri'
+      }
+      const toUpdate = data.filter(c => germanToTurkish[c.name])
+      if (toUpdate.length > 0) {
+        for (const cat of toUpdate) {
+          await supabase.from('expense_categories').update({ name: germanToTurkish[cat.name] }).eq('id', cat.id)
+        }
+        const res = await supabase.from('expense_categories').select('*').order('sort_order', { ascending: true })
+        data = res.data
+      }
     }
     setCategories(data || [])
   }
@@ -543,7 +564,7 @@ export default function Expenses() {
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.85, marginBottom: 2 }}>{kpi.label}</div>
             <div style={{ fontSize: 11, fontWeight: 500, opacity: 0.6, marginBottom: 10 }}>{kpi.sub}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>€{kpi.value}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>₺{kpi.value}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -655,7 +676,7 @@ export default function Expenses() {
                     <span style={{ fontWeight: 500, fontSize: 12 }}>{exp.expense_categories?.name || '—'}</span>
                   </div>
                   <div style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                    €{money(exp.amount)}
+                    ₺{money(exp.amount)}
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <span style={{
@@ -696,7 +717,7 @@ export default function Expenses() {
               fontSize: 13, color: C.textMuted, fontWeight: 600
             }}>
               <span>{filteredExpenses.length} kayıt</span>
-              <span style={{ fontWeight: 800, color: C.text }}>Toplam: €{money(totalAll)}</span>
+              <span style={{ fontWeight: 800, color: C.text }}>Toplam: ₺{money(totalAll)}</span>
             </div>
           )}
         </motion.div>
@@ -721,7 +742,7 @@ export default function Expenses() {
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{cat.name}</span>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-                        €{money(cat.total)}
+                        ₺{money(cat.total)}
                       </span>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: C.borderLight, overflow: 'hidden' }}>
@@ -815,7 +836,7 @@ export default function Expenses() {
 
                 {/* Amount */}
                 <div>
-                  <label style={labelStyle}>Tutar (€) *</label>
+                  <label style={labelStyle}>Tutar (₺) *</label>
                   <input
                     type="number" step="0.01" min="0"
                     value={expenseForm.amount}
@@ -1311,7 +1332,7 @@ export default function Expenses() {
                               {cat.name}
                             </div>
                             <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                              €{money(cat.total)}
+                              ₺{money(cat.total)}
                             </div>
                           </div>
                         ))
@@ -1322,7 +1343,7 @@ export default function Expenses() {
                         borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
                       }}>
                         <div style={{ color: '#059669' }}>Toplam yansıtılabilir</div>
-                        <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>€{money(abrechnungData.totalBillable)}</div>
+                        <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
                       </div>
                     </div>
 
@@ -1337,11 +1358,11 @@ export default function Expenses() {
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>Kiracı Avansları</div>
                           <div style={{ fontSize: 11, color: C.textFaint }}>
-                            {abrechnungData.monthsInPeriod} × €{money(abrechnungData.vorauszahlung)}/ay
+                            {abrechnungData.monthsInPeriod} ay × ₺{money(abrechnungData.vorauszahlung)}/ay
                           </div>
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          €{money(abrechnungData.totalVorauszahlung)}
+                          ₺{money(abrechnungData.totalVorauszahlung)}
                         </div>
                       </div>
                     </div>
@@ -1380,7 +1401,7 @@ export default function Expenses() {
                           fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
                           color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
                         }}>
-                          {abrechnungData.difference > 0 ? '+' : ''}€{money(Math.abs(abrechnungData.difference))}
+                          {abrechnungData.difference > 0 ? '+' : ''}₺{money(Math.abs(abrechnungData.difference))}
                         </div>
                       </div>
                     </div>
@@ -1402,7 +1423,7 @@ export default function Expenses() {
                               borderBottom: i < abrechnungData.nonBillableByCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
                             }}>
                               <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>€{money(cat.total)}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₺{money(cat.total)}</div>
                             </div>
                           ))}
                           <div style={{
@@ -1411,7 +1432,7 @@ export default function Expenses() {
                             borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 13
                           }}>
                             <div style={{ color: '#DC2626' }}>Toplam yansıtılamaz</div>
-                            <div style={{ color: '#DC2626' }}>€{money(abrechnungData.totalNonBillable)}</div>
+                            <div style={{ color: '#DC2626' }}>₺{money(abrechnungData.totalNonBillable)}</div>
                           </div>
                         </div>
                       </>
@@ -1424,17 +1445,17 @@ export default function Expenses() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <span style={{ color: C.textMuted }}>Net Kira (Dönem)</span>
-                        <span style={{ fontWeight: 700 }}>€{money(abrechnungData.annualRent)}</span>
+                        <span style={{ fontWeight: 700 }}>₺{money(abrechnungData.annualRent)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <span style={{ color: C.textMuted }}>+ Yan Giderler (yansıtılabilir)</span>
-                        <span style={{ fontWeight: 700 }}>€{money(abrechnungData.totalBillable)}</span>
+                        <span style={{ fontWeight: 700 }}>₺{money(abrechnungData.totalBillable)}</span>
                       </div>
                       <div style={{ height: 1, background: C.border, margin: '8px 0' }} />
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ fontWeight: 800, color: C.text }}>Brüt Kira (Dönem)</span>
                         <span style={{ fontWeight: 800, color: C.teal, fontSize: 15 }}>
-                          €{money(abrechnungData.annualRent + abrechnungData.totalBillable)}
+                          ₺{money(abrechnungData.annualRent + abrechnungData.totalBillable)}
                         </span>
                       </div>
                     </div>
