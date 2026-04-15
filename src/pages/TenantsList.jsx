@@ -580,7 +580,7 @@ export default function TenantsList() {
                           value={form.iban} onChange={e => UF('iban', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Yan Gider Avansı (₺/ay)</label>
+                        <label style={labelStyle}>Aylık Aidat (₺/ay)</label>
                         <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0,00"
                           value={form.nebenkosten_vorauszahlung} onChange={e => UF('nebenkosten_vorauszahlung', e.target.value)} />
                       </div>

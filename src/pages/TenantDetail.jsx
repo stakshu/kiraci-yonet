@@ -528,7 +528,7 @@ export default function TenantDetail() {
                       <input style={inputStyle} value={form.iban} onChange={e => f('iban', e.target.value)} placeholder="DE..." />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Yan Gider Avansı (₺/ay)</label>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Aylık Aidat (₺/ay)</label>
                       <input type="number" min="0" step="0.01" style={inputStyle} value={form.nebenkosten_vorauszahlung} onChange={e => f('nebenkosten_vorauszahlung', e.target.value)} placeholder="0,00" />
                     </div>
                   </div>
@@ -549,7 +549,7 @@ export default function TenantDetail() {
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Yan Gider Avansı</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Aylık Aidat</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
                         {tenant.nebenkosten_vorauszahlung ? money(tenant.nebenkosten_vorauszahlung) + ' ₺' : '—'}
                       </div>
@@ -558,7 +558,7 @@ export default function TenantDetail() {
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F0FDF4', border: `1px solid #BBF7D0`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Toplam (Kira + Avans)</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Toplam (Kira + Aidat)</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>
                         ₺{money((Number(tenant.rent) || 0) + (Number(tenant.nebenkosten_vorauszahlung) || 0))}
                       </div>

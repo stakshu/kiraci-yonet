@@ -475,7 +475,7 @@ export default function Expenses() {
 
     const diffSign = d.difference > 0 ? '+' : ''
     const diffLabel = d.difference > 0 ? 'Ek Ödeme Gerekli' : d.difference < 0 ? 'Kiracıya İade' : 'Dengede'
-    const diffSub = d.difference > 0 ? 'Kiracı fark tutarını ek olarak ödemelidir.' : d.difference < 0 ? 'Fazla ödenen tutar kiracıya iade edilmelidir.' : 'Avans ödemeleri ile giderler dengelenmiştir.'
+    const diffSub = d.difference > 0 ? 'Kiracı fark tutarını ek olarak ödemelidir.' : d.difference < 0 ? 'Fazla ödenen tutar kiracıya iade edilmelidir.' : 'Aidat ödemeleri ile giderler dengelenmiştir.'
     const diffBg = d.difference > 0 ? '#FEF2F2' : d.difference < 0 ? '#F0FDF4' : '#F8FAFC'
     const diffBorder = d.difference > 0 ? '#FECACA' : d.difference < 0 ? '#BBF7D0' : '#E2E8F0'
     const diffColor = d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'
@@ -548,7 +548,7 @@ export default function Expenses() {
             <div style="font-size:16px;font-weight:800;color:#0F172A">${tenantLabel}</div>
           </div>
           <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Avans</div>
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Aidat</div>
             <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.vorauszahlung)}</div>
           </div>
         </div>
@@ -574,10 +574,10 @@ export default function Expenses() {
           </tbody>
         </table>
 
-        <!-- Vorauszahlung -->
+        <!-- Aidat -->
         <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px 20px;margin:20px 0;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:14px;font-weight:600;color:#0F172A">Kiracı Avansları (Vorauszahlung)</div>
+            <div style="font-size:14px;font-weight:600;color:#0F172A">Aylık Aidat Ödemeleri</div>
             <div style="font-size:12px;color:#94A3B8;margin-top:2px">${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)} / ay</div>
           </div>
           <div style="font-size:16px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</div>
@@ -1578,7 +1578,7 @@ export default function Expenses() {
                       </div>
                     </div>
 
-                    {/* Vorauszahlungen */}
+                    {/* Aidat */}
                     <div style={{
                       borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
                     }}>
@@ -1587,7 +1587,7 @@ export default function Expenses() {
                         padding: '12px 16px', alignItems: 'center'
                       }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>Kiracı Avansları</div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>Aylık Aidat</div>
                           <div style={{ fontSize: 11, color: C.textFaint }}>
                             {abrechnungData.monthsInPeriod} ay × ₺{money(abrechnungData.vorauszahlung)}/ay
                           </div>
