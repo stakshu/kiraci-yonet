@@ -1,9 +1,10 @@
 /* ── KiraciYonet — Gider Yönetimi (Betriebskosten / Nebenkostenabrechnung) ── */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
+import { jsPDF } from 'jspdf'
 import {
   Receipt, Plus, Pencil, Trash2, X, Check, Search,
   Settings2, ChevronDown, ChevronRight, Building2,
@@ -11,7 +12,8 @@ import {
   Landmark, Droplets, Waves, Flame, Thermometer,
   ArrowUpDown, Trash, TreePine, Lightbulb, Wind,
   ShieldCheck, UserCheck, Tv, MoreHorizontal, Wrench,
-  Briefcase, FileText, SprayCan, AlertTriangle, Euro
+  Briefcase, FileText, SprayCan, AlertTriangle, Euro,
+  Download
 } from 'lucide-react'
 
 /* ── Design Tokens ── */
@@ -446,6 +448,250 @@ export default function Expenses() {
       monthsInPeriod, totalVorauszahlung, difference, annualRent
     }
   }, [showAbrechnung, abrechnungApt, abrechnungStart, abrechnungEnd, expenses, tenants, apartments])
+
+  /* ── PDF Export ── */
+  const generatePDF = useCallback(() => {
+    if (!abrechnungData) return
+    const d = abrechnungData
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const pw = 210 // page width
+    const mx = 20  // margin x
+    const cw = pw - mx * 2 // content width
+    let y = 20
+
+    const formatDate = (ds) => {
+      const dt = new Date(ds)
+      return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    }
+    const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+    // Header background
+    doc.setFillColor(2, 88, 100) // #025864
+    doc.rect(0, 0, pw, 42, 'F')
+
+    // Header text
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Yan Gider Hesap Kesimi', mx, y + 6)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Rapor Tarihi: ${formatDate(new Date().toISOString())}`, mx, y + 14)
+    y = 50
+
+    // Property & tenant info box
+    doc.setFillColor(248, 250, 252) // #F8FAFC
+    doc.roundedRect(mx, y, cw, 24, 3, 3, 'F')
+    doc.setDrawColor(229, 231, 235)
+    doc.roundedRect(mx, y, cw, 24, 3, 3, 'S')
+
+    doc.setTextColor(148, 163, 184)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.text('MÜLK', mx + 6, y + 7)
+    doc.text('KİRACI', mx + 65, y + 7)
+    doc.text('DÖNEM', mx + 125, y + 7)
+
+    doc.setTextColor(15, 23, 42)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text(d.apt ? `${d.apt.building} ${d.apt.unit_no}` : '—', mx + 6, y + 16)
+    doc.text(d.tenant?.full_name || 'Aktif kiracı yok', mx + 65, y + 16)
+    doc.text(`${formatDate(abrechnungStart)} — ${formatDate(abrechnungEnd)}  (${d.monthsInPeriod} Ay)`, mx + 125, y + 16)
+    y += 32
+
+    // Billable expenses table
+    doc.setFillColor(0, 212, 126) // green accent bar
+    doc.rect(mx, y, 3, 6, 'F')
+    doc.setTextColor(15, 23, 42)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Kiracıya Yansıtılabilir Giderler', mx + 7, y + 5)
+    y += 12
+
+    // Table header
+    doc.setFillColor(248, 250, 252)
+    doc.rect(mx, y, cw, 8, 'F')
+    doc.setDrawColor(229, 231, 235)
+    doc.line(mx, y + 8, mx + cw, y + 8)
+    doc.setTextColor(148, 163, 184)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.text('GİDER KALEMİ', mx + 6, y + 5.5)
+    doc.text('TUTAR', mx + cw - 6, y + 5.5, { align: 'right' })
+    y += 10
+
+    if (d.byCategory.length === 0) {
+      doc.setTextColor(148, 163, 184)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'italic')
+      doc.text('Bu dönemde yansıtılabilir gider bulunamadı', mx + 6, y + 5)
+      y += 10
+    } else {
+      doc.setFontSize(9)
+      d.byCategory.forEach((cat, i) => {
+        if (y > 270) { doc.addPage(); y = 20 }
+        doc.setTextColor(15, 23, 42)
+        doc.setFont('helvetica', 'normal')
+        doc.text(cat.name, mx + 6, y + 5)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`₺${m(cat.total)}`, mx + cw - 6, y + 5, { align: 'right' })
+        if (i < d.byCategory.length - 1) {
+          doc.setDrawColor(241, 245, 249)
+          doc.line(mx, y + 8, mx + cw, y + 8)
+        }
+        y += 8
+      })
+    }
+
+    // Total billable row
+    doc.setFillColor(240, 253, 244) // #F0FDF4
+    doc.rect(mx, y, cw, 10, 'F')
+    doc.setDrawColor(229, 231, 235)
+    doc.line(mx, y, mx + cw, y)
+    doc.setTextColor(5, 150, 105) // #059669
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Toplam yansıtılabilir', mx + 6, y + 7)
+    doc.text(`₺${m(d.totalBillable)}`, mx + cw - 6, y + 7, { align: 'right' })
+    y += 16
+
+    // Vorauszahlung
+    if (y > 260) { doc.addPage(); y = 20 }
+    doc.setDrawColor(229, 231, 235)
+    doc.roundedRect(mx, y, cw, 14, 3, 3, 'S')
+    doc.setTextColor(15, 23, 42)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Kiracı Avansları', mx + 6, y + 6)
+    doc.setFontSize(8)
+    doc.setTextColor(148, 163, 184)
+    doc.text(`${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)}/ay`, mx + 6, y + 11)
+    doc.setTextColor(15, 23, 42)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`₺${m(d.totalVorauszahlung)}`, mx + cw - 6, y + 8, { align: 'right' })
+    y += 20
+
+    // Difference box
+    if (y > 250) { doc.addPage(); y = 20 }
+    const isNach = d.difference > 0
+    const isGut = d.difference < 0
+    if (isNach) {
+      doc.setFillColor(254, 242, 242) // red bg
+      doc.setDrawColor(254, 202, 202)
+    } else if (isGut) {
+      doc.setFillColor(240, 253, 244) // green bg
+      doc.setDrawColor(187, 247, 208)
+    } else {
+      doc.setFillColor(248, 250, 252)
+      doc.setDrawColor(229, 231, 235)
+    }
+    doc.roundedRect(mx, y, cw, 18, 3, 3, 'FD')
+
+    const diffColor = isNach ? [220, 38, 38] : isGut ? [5, 150, 105] : [15, 23, 42]
+    doc.setTextColor(...diffColor)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      isNach ? 'Ek Ödeme Gerekli' : isGut ? 'Kiracıya İade' : 'Dengede',
+      mx + 6, y + 8
+    )
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      isNach ? 'Kiracı ek ödeme yapmalı' : isGut ? 'Kiracıya geri ödeme yapılmalı' : 'Fark yok — tam dengelenmiş',
+      mx + 6, y + 14
+    )
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${d.difference > 0 ? '+' : ''}₺${m(Math.abs(d.difference))}`,
+      mx + cw - 6, y + 12, { align: 'right' }
+    )
+    y += 26
+
+    // Non-billable costs
+    if (d.nonBillableByCategory.length > 0) {
+      if (y > 250) { doc.addPage(); y = 20 }
+      doc.setFillColor(220, 38, 38) // red accent bar
+      doc.rect(mx, y, 3, 6, 'F')
+      doc.setTextColor(100, 116, 139)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Yansıtılamaz Giderler (Referans)', mx + 7, y + 5)
+      y += 12
+
+      doc.setFontSize(9)
+      d.nonBillableByCategory.forEach((cat, i) => {
+        if (y > 270) { doc.addPage(); y = 20 }
+        doc.setTextColor(15, 23, 42)
+        doc.setFont('helvetica', 'normal')
+        doc.text(cat.name, mx + 6, y + 5)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`₺${m(cat.total)}`, mx + cw - 6, y + 5, { align: 'right' })
+        if (i < d.nonBillableByCategory.length - 1) {
+          doc.setDrawColor(241, 245, 249)
+          doc.line(mx, y + 8, mx + cw, y + 8)
+        }
+        y += 8
+      })
+
+      doc.setFillColor(254, 242, 242)
+      doc.rect(mx, y, cw, 10, 'F')
+      doc.setDrawColor(229, 231, 235)
+      doc.line(mx, y, mx + cw, y)
+      doc.setTextColor(220, 38, 38)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Toplam yansıtılamaz', mx + 6, y + 7)
+      doc.text(`₺${m(d.totalNonBillable)}`, mx + cw - 6, y + 7, { align: 'right' })
+      y += 16
+    }
+
+    // Summary box
+    if (y > 250) { doc.addPage(); y = 20 }
+    doc.setFillColor(248, 250, 252)
+    doc.roundedRect(mx, y, cw, 30, 3, 3, 'F')
+    doc.setDrawColor(229, 231, 235)
+    doc.roundedRect(mx, y, cw, 30, 3, 3, 'S')
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Net Kira (Dönem)', mx + 6, y + 7)
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`₺${m(d.annualRent)}`, mx + cw - 6, y + 7, { align: 'right' })
+
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    doc.text('+ Yan Giderler (yansıtılabilir)', mx + 6, y + 14)
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`₺${m(d.totalBillable)}`, mx + cw - 6, y + 14, { align: 'right' })
+
+    doc.setDrawColor(229, 231, 235)
+    doc.line(mx + 6, y + 18, mx + cw - 6, y + 18)
+
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(2, 88, 100) // teal
+    doc.text('Brüt Kira (Dönem)', mx + 6, y + 26)
+    doc.text(`₺${m(d.annualRent + d.totalBillable)}`, mx + cw - 6, y + 26, { align: 'right' })
+    y += 38
+
+    // Footer
+    doc.setTextColor(148, 163, 184)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'italic')
+    doc.text('Bu rapor KiraciYonet sistemi tarafından otomatik oluşturulmuştur.', pw / 2, 285, { align: 'center' })
+
+    // Save
+    const aptName = d.apt ? `${d.apt.building}_${d.apt.unit_no}` : 'rapor'
+    const fileName = `Hesap_Kesimi_${aptName}_${abrechnungStart}_${abrechnungEnd}.pdf`
+    doc.save(fileName.replace(/\s+/g, '_'))
+  }, [abrechnungData, abrechnungStart, abrechnungEnd])
 
   /* ── Available years for filter ── */
   const availableYears = useMemo(() => {
@@ -1226,13 +1472,29 @@ export default function Expenses() {
                     Dönemsel gider raporu oluştur
                   </p>
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowAbrechnung(false)}
-                  style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 8, borderRadius: 8 }}
-                >
-                  <X size={18} color="#fff" />
-                </motion.button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {abrechnungData && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={generatePDF}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                        cursor: 'pointer', padding: '8px 14px', borderRadius: 8,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        color: '#fff', fontSize: 12, fontWeight: 600, fontFamily: font
+                      }}
+                    >
+                      <Download size={14} /> PDF İndir
+                    </motion.button>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowAbrechnung(false)}
+                    style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', padding: 8, borderRadius: 8 }}
+                  >
+                    <X size={18} color="#fff" />
+                  </motion.button>
+                </div>
               </div>
 
               <div style={{ padding: '24px 32px 32px' }}>
