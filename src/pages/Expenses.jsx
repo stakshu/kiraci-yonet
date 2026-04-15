@@ -142,6 +142,9 @@ export default function Expenses() {
   const [abrechnungEnd, setAbrechnungEnd] = useState(`${new Date().getFullYear()}-12-31`)
   const reportRef = useRef(null)
 
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null) // { message, onConfirm }
+
   // Filters
   const [filterApartment, setFilterApartment] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -272,12 +275,17 @@ export default function Expenses() {
     loadExpenses()
   }
 
-  const handleDeleteExpense = async (id) => {
-    if (!confirm('Bu gider silinsin mi? Bu işlem geri alınamaz.')) return
-    const { error } = await supabase.from('property_expenses').delete().eq('id', id)
-    if (error) { showToast(error.message, 'error'); return }
-    showToast('Gider silindi.', 'success')
-    loadExpenses()
+  const handleDeleteExpense = (id) => {
+    setConfirmDelete({
+      message: 'Bu gideri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      onConfirm: async () => {
+        const { error } = await supabase.from('property_expenses').delete().eq('id', id)
+        if (error) { showToast(error.message, 'error'); return }
+        showToast('Gider silindi.', 'success')
+        loadExpenses()
+        setConfirmDelete(null)
+      }
+    })
   }
 
   /* ── Category CRUD ── */
@@ -326,12 +334,17 @@ export default function Expenses() {
     loadCategories()
   }
 
-  const handleDeleteCategory = async (id) => {
-    if (!confirm('Bu kategori silinsin mi? Bu işlem geri alınamaz.')) return
-    const { error } = await supabase.from('expense_categories').delete().eq('id', id)
-    if (error) { showToast(error.message, 'error'); return }
-    showToast('Kategori silindi.', 'success')
-    loadCategories()
+  const handleDeleteCategory = (id) => {
+    setConfirmDelete({
+      message: 'Bu kategoriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      onConfirm: async () => {
+        const { error } = await supabase.from('expense_categories').delete().eq('id', id)
+        if (error) { showToast(error.message, 'error'); return }
+        showToast('Kategori silindi.', 'success')
+        loadCategories()
+        setConfirmDelete(null)
+      }
+    })
   }
 
   /* ── When category is selected in expense form, auto-fill is_tenant_billed ── */
@@ -1706,6 +1719,80 @@ export default function Expenses() {
                     <div>Rapor oluşturmak için bir mülk seçin.</div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {/* ── Delete Confirmation Modal ── */}
+        {confirmDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1100, backdropFilter: 'blur(4px)'
+            }}
+            onClick={() => setConfirmDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: C.card, borderRadius: 16, padding: 0, width: 400,
+                boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+                padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 14
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: 'rgba(255,255,255,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <AlertTriangle size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>Silme Onayı</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Bu işlem geri alınamaz</p>
+                </div>
+              </div>
+              <div style={{ padding: '24px 28px' }}>
+                <p style={{ margin: 0, fontSize: 14, color: C.text, lineHeight: 1.6 }}>
+                  {confirmDelete.message}
+                </p>
+              </div>
+              <div style={{
+                padding: '16px 28px', borderTop: `1px solid ${C.borderLight}`,
+                display: 'flex', justifyContent: 'flex-end', gap: 10
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => setConfirmDelete(null)}
+                  style={{
+                    padding: '10px 20px', borderRadius: 10, border: `1px solid ${C.border}`,
+                    background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    color: C.textMuted, fontFamily: font
+                  }}
+                >
+                  Vazgeç
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={confirmDelete.onConfirm}
+                  style={{
+                    padding: '10px 20px', borderRadius: 10, border: 'none',
+                    background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    color: '#fff', fontFamily: font
+                  }}
+                >
+                  Evet, Sil
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
