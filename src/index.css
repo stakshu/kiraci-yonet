@@ -41,6 +41,26 @@
   --blue-text: #025864;
 }
 
+/* ── Dark Mode ── */
+.dark {
+  --bg: #0F1419;
+  --card: #1A2332;
+  --border: #2D3748;
+  --text: #E2E8F0;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --primary-bg: #0D2B30;
+  --accent-bg: #0D2B1E;
+  --green-bg: #0D2B1E;
+  --green-text: #34D399;
+  --red-bg: #2D1B1B;
+  --red-text: #F87171;
+  --amber-bg: #2D2510;
+  --amber-text: #FBBF24;
+  --blue-bg: #0D2B30;
+  --blue-text: #5EEAD4;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 #root {

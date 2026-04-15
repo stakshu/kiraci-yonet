@@ -1,7 +1,8 @@
-/* ── KiraciYonet — Topbar — Lucide Icons ── */
+/* ── KiraciYonet — Topbar ── */
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { useToast } from './Toast'
-import { Monitor, Bell, Download, Plus, LogOut } from 'lucide-react'
+import { Sun, Moon, LogOut } from 'lucide-react'
 
 const ROUTE_TITLES = {
   '/dashboard': 'Ozet',
@@ -18,6 +19,7 @@ const ROUTE_TITLES = {
 
 export default function Topbar({ pathname }) {
   const { user, signOut } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const { showToast } = useToast()
 
   const title = ROUTE_TITLES[pathname] || (pathname.startsWith('/properties/') ? 'Mulk Detay' : pathname.startsWith('/tenants/list/') ? 'Kiraci Detay' : 'Mulklerim')
@@ -35,19 +37,15 @@ export default function Topbar({ pathname }) {
     <header className="topbar">
       <h1 className="topbar-title">{title}</h1>
       <div className="topbar-actions">
-        <button className="topbar-icon-btn" title="Tam ekran">
-          <Monitor className="w-[16px] h-[16px]" />
-        </button>
-        <button className="topbar-icon-btn" title="Bildirimler">
-          <Bell className="w-[16px] h-[16px]" />
-        </button>
-        <button className="btn btn-outline">
-          <Download className="w-[14px] h-[14px]" />
-          CSV Indir
-        </button>
-        <button className="btn btn-primary">
-          <Plus className="w-[14px] h-[14px]" />
-          Yeni Ekle
+        <button
+          className="topbar-icon-btn"
+          title={theme === 'dark' ? 'Açık Tema' : 'Koyu Tema'}
+          onClick={toggleTheme}
+        >
+          {theme === 'dark'
+            ? <Sun className="w-[16px] h-[16px]" />
+            : <Moon className="w-[16px] h-[16px]" />
+          }
         </button>
 
         {user && (

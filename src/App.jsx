@@ -1,6 +1,7 @@
 /* ── KiraciYonet — Ana Uygulama ── */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import AuthOverlay from './components/AuthOverlay'
@@ -15,6 +16,7 @@ import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
 import Accounting from './pages/Accounting'
 import EmptyPage from './pages/EmptyPage'
+import Settings from './pages/Settings'
 
 /* ── Auth korumasi ── */
 function ProtectedApp() {
@@ -40,7 +42,7 @@ function ProtectedApp() {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/accounting" element={<Accounting />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />
-        <Route path="/settings" element={<EmptyPage path="/settings" />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
@@ -50,11 +52,13 @@ function ProtectedApp() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <ProtectedApp />
-        </AuthProvider>
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <ProtectedApp />
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }
