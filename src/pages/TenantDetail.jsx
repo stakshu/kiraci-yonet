@@ -73,7 +73,8 @@ function buildForm(t) {
   return {
     full_name: t.full_name || '', phone: t.phone || '', email: t.email || '',
     tc_no: t.tc_no || '', rent: t.rent || '', deposit: t.deposit || '',
-    iban: t.iban || '', lease_start: t.lease_start || '', lease_end: t.lease_end || '',
+    iban: t.iban || '', nebenkosten_vorauszahlung: t.nebenkosten_vorauszahlung || '',
+    lease_start: t.lease_start || '', lease_end: t.lease_end || '',
     notes: t.notes || '',
     emergency_contact_name: t.emergency_contact_name || '',
     emergency_contact_phone: t.emergency_contact_phone || '',
@@ -142,6 +143,7 @@ export default function TenantDetail() {
       phone: form.phone.trim(), email: form.email.trim(),
       tc_no: form.tc_no.trim(), rent: parseFloat(form.rent) || 0,
       deposit: parseFloat(form.deposit) || 0, iban: form.iban.trim(),
+      nebenkosten_vorauszahlung: parseFloat(form.nebenkosten_vorauszahlung) || 0,
       lease_start: form.lease_start || null, lease_end: form.lease_end || null,
       notes: form.notes.trim(),
       emergency_contact_name: form.emergency_contact_name.trim(),
@@ -520,30 +522,56 @@ export default function TenantDetail() {
                       <input type="number" style={inputStyle} value={form.deposit} onChange={e => f('deposit', e.target.value)} />
                     </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>IBAN</label>
-                    <input style={inputStyle} value={form.iban} onChange={e => f('iban', e.target.value)} placeholder="TR..." />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>IBAN</label>
+                      <input style={inputStyle} value={form.iban} onChange={e => f('iban', e.target.value)} placeholder="DE..." />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>NK-Vorauszahlung (€/Monat)</label>
+                      <input type="number" min="0" step="0.01" style={inputStyle} value={form.nebenkosten_vorauszahlung} onChange={e => f('nebenkosten_vorauszahlung', e.target.value)} placeholder="0,00" />
+                    </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                     <div style={{
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Aylık Kira</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Kaltmiete</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-                        {tenant.rent ? money(tenant.rent) + ' ₺' : '—'}
+                        {tenant.rent ? '€' + money(tenant.rent) : '—'}
                       </div>
                     </div>
                     <div style={{
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Depozito</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>NK-Vorauszahlung</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-                        {tenant.deposit ? money(tenant.deposit) + ' ₺' : '—'}
+                        {tenant.nebenkosten_vorauszahlung ? '€' + money(tenant.nebenkosten_vorauszahlung) : '—'}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: '14px 16px', borderRadius: 12,
+                      background: '#F0FDF4', border: `1px solid #BBF7D0`
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Warmmiete</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>
+                        €{money((Number(tenant.rent) || 0) + (Number(tenant.nebenkosten_vorauszahlung) || 0))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 12 }}>
+                    <div style={{
+                      padding: '14px 16px', borderRadius: 12,
+                      background: '#F8FAFC', border: `1px solid ${C.borderLight}`
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Kaution</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
+                        {tenant.deposit ? '€' + money(tenant.deposit) : '—'}
                       </div>
                     </div>
                   </div>

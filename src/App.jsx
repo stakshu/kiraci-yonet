@@ -12,6 +12,7 @@ import RentPayments from './pages/RentPayments'
 import OverduePayments from './pages/OverduePayments'
 import PaymentHistory from './pages/PaymentHistory'
 import Dashboard from './pages/Dashboard'
+import Expenses from './pages/Expenses'
 import EmptyPage from './pages/EmptyPage'
 
 /* ── Auth korumasi ── */
@@ -35,7 +36,7 @@ function ProtectedApp() {
         <Route path="/payments/rent" element={<RentPayments />} />
         <Route path="/payments/overdue" element={<OverduePayments />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
-        <Route path="/expenses" element={<EmptyPage path="/expenses" />} />
+        <Route path="/expenses" element={<Expenses />} />
         <Route path="/accounting" element={<EmptyPage path="/accounting" />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />
         <Route path="/settings" element={<EmptyPage path="/settings" />} />

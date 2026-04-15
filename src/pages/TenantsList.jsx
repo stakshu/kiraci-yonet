@@ -60,7 +60,7 @@ const EMPTY_FORM = {
   apartment_id: '', lease_start: '', lease_end: '',
   rent: '', deposit: '', notes: '',
   emergency_contact_name: '', emergency_contact_phone: '',
-  iban: '',
+  iban: '', nebenkosten_vorauszahlung: '',
   household_spouse: 0, household_children: 0, household_roommate: 0
 }
 
@@ -132,6 +132,7 @@ export default function TenantsList() {
       emergency_contact_name: data.emergency_contact_name || '',
       emergency_contact_phone: data.emergency_contact_phone || '',
       iban: data.iban || '',
+      nebenkosten_vorauszahlung: data.nebenkosten_vorauszahlung || '',
       household_spouse: data.household_info?.spouse || 0,
       household_children: data.household_info?.children || 0,
       household_roommate: data.household_info?.roommate || 0
@@ -153,6 +154,7 @@ export default function TenantsList() {
       emergency_contact_name: form.emergency_contact_name.trim(),
       emergency_contact_phone: form.emergency_contact_phone.trim(),
       iban: form.iban.trim(),
+      nebenkosten_vorauszahlung: parseFloat(form.nebenkosten_vorauszahlung) || 0,
       household_info: {
         spouse: parseInt(form.household_spouse) || 0,
         children: parseInt(form.household_children) || 0,
@@ -571,10 +573,17 @@ export default function TenantsList() {
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <CreditCard style={{ width: 13, height: 13 }} /> Finansal Bilgiler
                     </div>
-                    <div>
-                      <label style={labelStyle}>IBAN</label>
-                      <input style={inputStyle} type="text" placeholder="TR00 0000 0000 0000 0000 0000 00"
-                        value={form.iban} onChange={e => UF('iban', e.target.value)} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>IBAN</label>
+                        <input style={inputStyle} type="text" placeholder="DE00 0000 0000 0000 0000 00"
+                          value={form.iban} onChange={e => UF('iban', e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Nebenkosten Vorauszahlung (€/Monat)</label>
+                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0,00"
+                          value={form.nebenkosten_vorauszahlung} onChange={e => UF('nebenkosten_vorauszahlung', e.target.value)} />
+                      </div>
                     </div>
                   </div>
 
