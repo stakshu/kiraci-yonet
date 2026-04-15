@@ -114,14 +114,14 @@ export default function Settings() {
   const initials = [firstName, lastName].filter(Boolean).map(n => n[0]?.toUpperCase()).join('') || user?.email?.[0]?.toUpperCase() || '?'
 
   return (
-    <div className="flex gap-8 max-w-[960px]">
+    <div className="flex gap-6 w-full">
 
       {/* ════ LEFT NAV ════ */}
       <motion.div
         initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.35 }}
-        className="hidden lg:block w-[200px] shrink-0"
+        className="hidden xl:block w-[190px] shrink-0"
       >
         <div
           className="sticky top-[84px] rounded-2xl p-3 space-y-0.5"
@@ -147,7 +147,7 @@ export default function Settings() {
       </motion.div>
 
       {/* ════ SECTIONS ════ */}
-      <div className="flex-1 min-w-0 space-y-5 pb-12">
+      <div className="flex-1 min-w-0 max-w-[720px] space-y-5 pb-12">
 
         {/* ─── Profil ─── */}
         <Card id="profil" icon={User} title="Profil Bilgileri" desc="Hesap bilgilerinizi yönetin" i={0}>
