@@ -273,6 +273,7 @@ export default function Expenses() {
   }
 
   const handleDeleteExpense = async (id) => {
+    if (!confirm('Bu gider silinsin mi? Bu işlem geri alınamaz.')) return
     const { error } = await supabase.from('property_expenses').delete().eq('id', id)
     if (error) { showToast(error.message, 'error'); return }
     showToast('Gider silindi.', 'success')
@@ -326,6 +327,7 @@ export default function Expenses() {
   }
 
   const handleDeleteCategory = async (id) => {
+    if (!confirm('Bu kategori silinsin mi? Bu işlem geri alınamaz.')) return
     const { error } = await supabase.from('expense_categories').delete().eq('id', id)
     if (error) { showToast(error.message, 'error'); return }
     showToast('Kategori silindi.', 'success')
