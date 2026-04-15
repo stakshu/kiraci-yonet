@@ -642,14 +642,14 @@ export default function Expenses() {
     `
 
     const canvas = await html2canvas(wrapper, {
-      scale: 2,
+      scale: 1.5,
       useCORS: true,
       backgroundColor: '#FFFFFF',
       logging: false
     })
     document.body.removeChild(wrapper)
 
-    const imgData = canvas.toDataURL('image/png')
+    const imgData = canvas.toDataURL('image/jpeg', 0.82)
     const imgW = canvas.width
     const imgH = canvas.height
     const pdfW = 210
@@ -657,10 +657,10 @@ export default function Expenses() {
     const contentW = pdfW
     const contentH = (imgH * contentW) / imgW
     const pageH = 297
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
 
     if (contentH <= pageH) {
-      doc.addImage(imgData, 'PNG', pdfMargin, 0, contentW, contentH)
+      doc.addImage(imgData, 'JPEG', pdfMargin, 0, contentW, contentH)
     } else {
       const pageContentPx = (pageH / contentH) * imgH
       let srcY = 0
@@ -674,7 +674,7 @@ export default function Expenses() {
         const ctx = sliceCanvas.getContext('2d')
         ctx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH)
         const sliceMMH = (sliceH * contentW) / imgW
-        doc.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', pdfMargin, 0, contentW, sliceMMH)
+        doc.addImage(sliceCanvas.toDataURL('image/jpeg', 0.82), 'JPEG', pdfMargin, 0, contentW, sliceMMH)
         srcY += sliceH
         page++
       }
