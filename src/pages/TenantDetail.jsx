@@ -1,14 +1,17 @@
 /* ── KiraciYonet — Kiracı Detay — Full Page + Inline Edit ── */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 import {
   ArrowLeft, Phone, Mail, IdCard, Shield, CreditCard, Users,
   Home, CalendarDays, Clock, CheckCircle, AlertTriangle,
   Banknote, Heart, Baby, UserPlus, StickyNote,
-  TrendingUp, Building2, Pencil, Save, X
+  TrendingUp, Building2, Pencil, Save, X,
+  FileText, Download, Calculator, Percent
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -166,7 +169,206 @@ export default function TenantDetail() {
     loadTenant()
   }
 
+  const [showRentCalc, setShowRentCalc] = useState(false)
+  const [tufeRate, setTufeRate] = useState('')
+
   const f = (key, val) => setForm(p => ({ ...p, [key]: val }))
+
+  /* ── Contract PDF ── */
+  const generateContract = useCallback(async () => {
+    if (!tenant) return
+    const t = tenant
+    const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
+    const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const today = formatDate(new Date().toISOString())
+    const household = t.household_info || {}
+    const totalMonthly = (Number(t.rent) || 0) + (Number(t.nebenkosten_vorauszahlung) || 0)
+
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = `
+      position: fixed; left: -9999px; top: 0;
+      width: 794px; background: #fff;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+      color: #0F172A; line-height: 1.6;
+    `
+    document.body.appendChild(wrapper)
+
+    wrapper.innerHTML = `
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#025864,#03363D);padding:36px 48px 28px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,212,126,0.08)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">KiraciYonet</div>
+            <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">Kira Sözleşmesi</h1>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.6)">Konut Kira Sözleşmesi</p>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Sözleşme No</div>
+            <div style="font-size:13px;font-weight:700;color:#fff">${Date.now().toString(36).toUpperCase()}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">Düzenlenme: ${today}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:32px 48px 40px">
+
+        <!-- Taraflar -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Taraflar</h3>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:28px">
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Kiraya Veren (Mal Sahibi)</div>
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">Mülk Sahibi</div>
+            <div style="font-size:12px;color:#64748B">Mülk: ${apt}</div>
+          </div>
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Kiracı</div>
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">${t.full_name}</div>
+            ${t.tc_no ? `<div style="font-size:12px;color:#64748B">TC: ${t.tc_no}</div>` : ''}
+            ${t.phone ? `<div style="font-size:12px;color:#64748B">Tel: ${t.phone}</div>` : ''}
+            ${t.email ? `<div style="font-size:12px;color:#64748B">E-posta: ${t.email}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- Kiralanan -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Kiralanan Taşınmaz</h3>
+        </div>
+        <div style="background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:16px 20px;margin-bottom:28px">
+          <div style="font-size:16px;font-weight:800;color:#025864">${apt}</div>
+          <div style="font-size:12px;color:#025864;margin-top:4px">Konut olarak kullanılmak üzere</div>
+        </div>
+
+        <!-- Sözleşme Süresi -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Sözleşme Süresi</h3>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:28px">
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Başlangıç</div>
+            <div style="font-size:15px;font-weight:700;color:#0F172A">${formatDate(t.lease_start)}</div>
+          </div>
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Bitiş</div>
+            <div style="font-size:15px;font-weight:700;color:#0F172A">${formatDate(t.lease_end)}</div>
+          </div>
+        </div>
+
+        <!-- Finansal Koşullar -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#00D47E"></div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Finansal Koşullar</h3>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin-bottom:28px">
+          <tbody>
+            <tr style="border-bottom:1px solid #F1F5F9">
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B;width:50%">Aylık Kira Bedeli</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.rent || 0)}</td>
+            </tr>
+            ${Number(t.nebenkosten_vorauszahlung) > 0 ? `
+            <tr style="border-bottom:1px solid #F1F5F9">
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">Aylık Aidat</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.nebenkosten_vorauszahlung)}</td>
+            </tr>` : ''}
+            <tr style="background:#F0FDF4;border-bottom:1px solid #BBF7D0">
+              <td style="padding:12px 20px;font-size:13px;font-weight:700;color:#059669">Toplam Aylık Ödeme</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:800;color:#059669;text-align:right;font-variant-numeric:tabular-nums">₺${m(totalMonthly)}</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">Depozito</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.deposit || 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${t.iban ? `
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px;margin-bottom:28px">
+          <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı IBAN</div>
+          <div style="font-size:14px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">${t.iban}</div>
+        </div>` : ''}
+
+        ${(household.spouse || household.children || household.roommate) ? `
+        <!-- Hane Bilgisi -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Birlikte Yaşayanlar</h3>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:28px">
+          ${household.spouse ? `<div style="padding:10px 20px;border-radius:10px;background:#FDF2F8;border:1px solid #FBCFE8;font-size:13px;font-weight:600;color:#BE185D">Eş: ${household.spouse}</div>` : ''}
+          ${household.children ? `<div style="padding:10px 20px;border-radius:10px;background:#EFF6FF;border:1px solid #BFDBFE;font-size:13px;font-weight:600;color:#1D4ED8">Çocuk: ${household.children}</div>` : ''}
+          ${household.roommate ? `<div style="padding:10px 20px;border-radius:10px;background:#F5F3FF;border:1px solid #DDD6FE;font-size:13px;font-weight:600;color:#6D28D9">Oda Ark.: ${household.roommate}</div>` : ''}
+        </div>` : ''}
+
+        <!-- İmza -->
+        <div style="display:flex;gap:48px;margin-top:48px;padding-top:32px;border-top:2px solid #E5E7EB">
+          <div style="flex:1;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">Kiraya Veren</div>
+            <div style="border-top:1.5px solid #CBD5E1;padding-top:8px">
+              <div style="font-size:13px;font-weight:600;color:#0F172A">Ad Soyad / İmza</div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:2px">Tarih: ___/___/______</div>
+            </div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">Kiracı</div>
+            <div style="border-top:1.5px solid #CBD5E1;padding-top:8px">
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${t.full_name}</div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:2px">Tarih: ___/___/______</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top:1px solid #E5E7EB;padding:16px 48px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:#94A3B8">Bu belge KiraciYonet sistemi tarafından oluşturulmuştur.</span>
+        <span style="font-size:10px;color:#94A3B8">${today}</span>
+      </div>
+    `
+
+    const canvas = await html2canvas(wrapper, {
+      scale: 1.5, useCORS: true, backgroundColor: '#FFFFFF', logging: false
+    })
+    document.body.removeChild(wrapper)
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.82)
+    const imgW = canvas.width
+    const imgH = canvas.height
+    const pdfW = 210
+    const contentW = pdfW
+    const contentH = (imgH * contentW) / imgW
+    const pageH = 297
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
+
+    if (contentH <= pageH) {
+      doc.addImage(imgData, 'JPEG', 0, 0, contentW, contentH)
+    } else {
+      const pageContentPx = (pageH / contentH) * imgH
+      let srcY = 0
+      let page = 0
+      while (srcY < imgH) {
+        if (page > 0) doc.addPage()
+        const sliceH = Math.min(pageContentPx, imgH - srcY)
+        const sliceCanvas = document.createElement('canvas')
+        sliceCanvas.width = imgW
+        sliceCanvas.height = sliceH
+        const ctx = sliceCanvas.getContext('2d')
+        ctx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH)
+        const sliceMMH = (sliceH * contentW) / imgW
+        doc.addImage(sliceCanvas.toDataURL('image/jpeg', 0.82), 'JPEG', 0, 0, contentW, sliceMMH)
+        srcY += sliceH
+        page++
+      }
+    }
+
+    doc.save(`Kira_Sozlesmesi_${t.full_name.replace(/\s+/g, '_')}.pdf`)
+    showToast('Sözleşme PDF olarak indirildi.', 'success')
+  }, [tenant])
 
   const stats = useMemo(() => {
     if (!payments.length) return { totalPaid: 0, totalOverdue: 0, successRate: 0, paidCount: 0, overdueCount: 0 }
@@ -258,18 +460,33 @@ export default function TenantDetail() {
           </div>
         </div>
         {!editing ? (
-          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-            onClick={startEdit}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 20px', borderRadius: 12,
-              background: C.teal, color: 'white', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
-            }}>
-            <Pencil style={{ width: 14, height: 14 }} />
-            Düzenle
-          </motion.button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isActive && (
+              <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                onClick={generateContract}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 18px', borderRadius: 12,
+                  background: 'white', color: C.teal, border: `1.5px solid ${C.border}`,
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer'
+                }}>
+                <FileText style={{ width: 14, height: 14 }} />
+                Sözleşme PDF
+              </motion.button>
+            )}
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={startEdit}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 12,
+                background: C.teal, color: 'white', border: 'none',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
+              }}>
+              <Pencil style={{ width: 14, height: 14 }} />
+              Düzenle
+            </motion.button>
+          </div>
         ) : (
           <div style={{ display: 'flex', gap: 8 }}>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
@@ -655,6 +872,80 @@ export default function TenantDetail() {
               )}
             </div>
           </motion.div>
+
+          {/* Kira Artışı Hesaplayıcı */}
+          {isActive && Number(tenant.rent) > 0 && (
+            <motion.div variants={fadeItem} style={cardBox}>
+              <div style={{ padding: '20px 24px' }}>
+                <div style={{
+                  ...sectionTitle, cursor: 'pointer', justifyContent: 'space-between'
+                }} onClick={() => setShowRentCalc(!showRentCalc)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Calculator style={{ width: 13, height: 13 }} /> Kira Artışı Hesapla
+                  </div>
+                  <motion.div animate={{ rotate: showRentCalc ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </motion.div>
+                </div>
+                <AnimatePresence>
+                  {showRentCalc && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div style={{ marginTop: 8 }}>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>
+                          TÜFE Oranı (%)
+                        </label>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <input type="number" step="0.01" min="0" max="200"
+                              style={{ ...inputStyle, paddingRight: 32 }}
+                              value={tufeRate}
+                              onChange={e => setTufeRate(e.target.value)}
+                              placeholder="Ör: 44.38"
+                            />
+                            <Percent style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: C.textFaint }} />
+                          </div>
+                        </div>
+                        {tufeRate && Number(tufeRate) > 0 && (
+                          <div style={{ marginTop: 12 }}>
+                            <div style={{
+                              padding: '14px 16px', borderRadius: 12,
+                              background: '#F0FDF4', border: '1px solid #BBF7D0'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>Mevcut Kira</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                                  ₺{money(tenant.rent)}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>Artış Tutarı (%{Number(tufeRate).toLocaleString('tr-TR')})</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: C.amber, fontVariantNumeric: 'tabular-nums' }}>
+                                  +₺{money(Math.round(Number(tenant.rent) * Number(tufeRate) / 100))}
+                                </span>
+                              </div>
+                              <div style={{ height: 1, background: '#BBF7D0', margin: '4px 0 8px' }} />
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>Yeni Kira</span>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                                  ₺{money(Math.round(Number(tenant.rent) * (1 + Number(tufeRate) / 100)))}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
 
           {/* Ödeme Özeti */}
           <motion.div variants={fadeItem} style={cardBox}>
