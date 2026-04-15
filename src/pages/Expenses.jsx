@@ -452,40 +452,197 @@ export default function Expenses() {
   }, [showAbrechnung, abrechnungApt, abrechnungStart, abrechnungEnd, expenses, tenants, apartments])
 
   /* ── PDF Export ── */
-  const generatePDF = useCallback(async () => {
-    if (!abrechnungData || !reportRef.current) return
-    const el = reportRef.current
+  const formatDateTR = (ds) => new Date(ds).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
-    const canvas = await html2canvas(el, {
+  const generatePDF = useCallback(async () => {
+    if (!abrechnungData) return
+    const d = abrechnungData
+    const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+    // Build off-screen document
+    const wrapper = document.createElement('div')
+    wrapper.style.cssText = `
+      position: fixed; left: -9999px; top: 0;
+      width: 794px; background: #fff;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+      color: #0F172A; line-height: 1.5;
+    `
+    document.body.appendChild(wrapper)
+
+    const aptLabel = d.apt ? `${d.apt.building} ${d.apt.unit_no}` : '—'
+    const tenantLabel = d.tenant?.full_name || 'Aktif kiracı yok'
+    const periodLabel = `${formatDateTR(abrechnungStart)} — ${formatDateTR(abrechnungEnd)}`
+
+    const diffSign = d.difference > 0 ? '+' : ''
+    const diffLabel = d.difference > 0 ? 'Ek Ödeme Gerekli' : d.difference < 0 ? 'Kiracıya İade' : 'Dengede'
+    const diffSub = d.difference > 0 ? 'Kiracı fark tutarını ek olarak ödemelidir.' : d.difference < 0 ? 'Fazla ödenen tutar kiracıya iade edilmelidir.' : 'Avans ödemeleri ile giderler dengelenmiştir.'
+    const diffBg = d.difference > 0 ? '#FEF2F2' : d.difference < 0 ? '#F0FDF4' : '#F8FAFC'
+    const diffBorder = d.difference > 0 ? '#FECACA' : d.difference < 0 ? '#BBF7D0' : '#E2E8F0'
+    const diffColor = d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'
+
+    // Billable rows
+    const billableRows = d.byCategory.length > 0
+      ? d.byCategory.map(cat => `
+          <tr>
+            <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+            <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="2" style="padding:20px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic">Bu dönemde yansıtılabilir gider bulunamadı</td></tr>`
+
+    // Non-billable rows
+    const nonBillableSection = d.nonBillableByCategory.length > 0 ? `
+      <div style="margin-top:28px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#DC2626"></div>
+          <h3 style="margin:0;font-size:14px;font-weight:700;color:#64748B">Yansıtılamaz Giderler (Referans)</h3>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
+          ${d.nonBillableByCategory.map(cat => `
+            <tr>
+              <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+              <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
+            </tr>`).join('')}
+          <tr style="background:#FEF2F2">
+            <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#DC2626;border-top:1px solid #E5E7EB">Toplam yansıtılamaz</td>
+            <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#DC2626;text-align:right;border-top:1px solid #E5E7EB;font-variant-numeric:tabular-nums">₺${m(d.totalNonBillable)}</td>
+          </tr>
+        </table>
+      </div>` : ''
+
+    wrapper.innerHTML = `
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#025864,#03363D);padding:36px 48px 28px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,212,126,0.08)"></div>
+        <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">KiraciYonet</div>
+            <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">Yan Gider Hesap Kesimi</h1>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.6)">Dönemsel Gider Raporu</p>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Belge No</div>
+            <div style="font-size:13px;font-weight:700;color:#fff">${Date.now().toString(36).toUpperCase()}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">Oluşturma: ${formatDateTR(new Date().toISOString())}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Range Bar -->
+      <div style="background:#F0FDF4;border-bottom:2px solid #BBF7D0;padding:14px 48px;display:flex;justify-content:center;align-items:center;gap:12px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span style="font-size:15px;font-weight:700;color:#059669;letter-spacing:0.3px">${periodLabel}</span>
+        <span style="font-size:12px;color:#059669;opacity:0.7">(${d.monthsInPeriod} Ay)</span>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:32px 48px 40px">
+        <!-- Property & Tenant Cards -->
+        <div style="display:flex;gap:16px;margin-bottom:32px">
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Mülk</div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">${aptLabel}</div>
+          </div>
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı</div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">${tenantLabel}</div>
+          </div>
+          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Avans</div>
+            <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.vorauszahlung)}</div>
+          </div>
+        </div>
+
+        <!-- Billable Expenses -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:4px;height:18px;border-radius:2px;background:#00D47E"></div>
+          <h3 style="margin:0;font-size:14px;font-weight:700;color:#0F172A">Kiracıya Yansıtılabilir Giderler</h3>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:8px">
+          <thead>
+            <tr style="background:#F8FAFC">
+              <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Gider Kalemi</th>
+              <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Tutar</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${billableRows}
+            <tr style="background:#F0FDF4">
+              <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
+              <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Vorauszahlung -->
+        <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px 20px;margin:20px 0;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#0F172A">Kiracı Avansları (Vorauszahlung)</div>
+            <div style="font-size:12px;color:#94A3B8;margin-top:2px">${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)} / ay</div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</div>
+        </div>
+
+        <!-- Difference Box -->
+        <div style="background:${diffBg};border:2px solid ${diffBorder};border-radius:12px;padding:20px 24px;margin:24px 0;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:${diffColor}">${diffLabel}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:4px">${diffSub}</div>
+          </div>
+          <div style="font-size:32px;font-weight:800;color:${diffColor};font-variant-numeric:tabular-nums;letter-spacing:-1px">${diffSign}₺${m(Math.abs(d.difference))}</div>
+        </div>
+
+        ${nonBillableSection}
+
+        <!-- Summary -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:18px 24px;margin-top:28px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:#64748B">Net Kira (Dönem)</span>
+            <span style="font-size:13px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.annualRent)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:13px;color:#64748B">+ Yan Giderler (yansıtılabilir)</span>
+            <span style="font-size:13px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</span>
+          </div>
+          <div style="height:1px;background:#CBD5E1;margin:4px 0 12px"></div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:15px;font-weight:800;color:#025864">Brüt Kira (Dönem)</span>
+            <span style="font-size:15px;font-weight:800;color:#025864;font-variant-numeric:tabular-nums">₺${m(d.annualRent + d.totalBillable)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top:1px solid #E5E7EB;padding:16px 48px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;color:#94A3B8">Bu belge KiraciYonet sistemi tarafından otomatik oluşturulmuştur.</span>
+        <span style="font-size:10px;color:#94A3B8">${formatDateTR(new Date().toISOString())} • Sayfa 1/1</span>
+      </div>
+    `
+
+    const canvas = await html2canvas(wrapper, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#FFFFFF',
       logging: false
     })
+    document.body.removeChild(wrapper)
 
     const imgData = canvas.toDataURL('image/png')
     const imgW = canvas.width
     const imgH = canvas.height
-
-    // A4 dimensions in mm
     const pdfW = 210
-    const margin = 16
-    const contentW = pdfW - margin * 2
+    const pdfMargin = 0
+    const contentW = pdfW
     const contentH = (imgH * contentW) / imgW
     const pageH = 297
-    const maxContentH = pageH - margin * 2
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-
-    if (contentH <= maxContentH) {
-      // Fits in one page
-      doc.addImage(imgData, 'PNG', margin, margin, contentW, contentH)
+    if (contentH <= pageH) {
+      doc.addImage(imgData, 'PNG', pdfMargin, 0, contentW, contentH)
     } else {
-      // Multi-page: slice the canvas
-      const pageContentPx = (maxContentH / contentH) * imgH
+      const pageContentPx = (pageH / contentH) * imgH
       let srcY = 0
       let page = 0
-
       while (srcY < imgH) {
         if (page > 0) doc.addPage()
         const sliceH = Math.min(pageContentPx, imgH - srcY)
@@ -494,17 +651,15 @@ export default function Expenses() {
         sliceCanvas.height = sliceH
         const ctx = sliceCanvas.getContext('2d')
         ctx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH)
-        const sliceData = sliceCanvas.toDataURL('image/png')
         const sliceMMH = (sliceH * contentW) / imgW
-        doc.addImage(sliceData, 'PNG', margin, margin, contentW, sliceMMH)
+        doc.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', pdfMargin, 0, contentW, sliceMMH)
         srcY += sliceH
         page++
       }
     }
 
-    const aptName = abrechnungData.apt ? `${abrechnungData.apt.building}_${abrechnungData.apt.unit_no}` : 'rapor'
-    const fileName = `Hesap_Kesimi_${aptName}_${abrechnungStart}_${abrechnungEnd}.pdf`
-    doc.save(fileName.replace(/\s+/g, '_'))
+    const aptName = d.apt ? `${d.apt.building}_${d.apt.unit_no}` : 'rapor'
+    doc.save(`Hesap_Kesimi_${aptName}_${abrechnungStart}_${abrechnungEnd}.pdf`.replace(/\s+/g, '_'))
   }, [abrechnungData, abrechnungStart, abrechnungEnd])
 
   /* ── Available years for filter ── */
@@ -1347,7 +1502,7 @@ export default function Expenses() {
 
                 {/* Report Content */}
                 {abrechnungData ? (
-                  <div ref={reportRef}>
+                  <div>
                     {/* Tenant & Property Info */}
                     <div style={{
                       background: '#F8FAFC', borderRadius: 12, padding: '14px 18px',
