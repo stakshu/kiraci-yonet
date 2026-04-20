@@ -151,6 +151,7 @@ export default function Expenses() {
   const [confirmDelete, setConfirmDelete] = useState(null) // { message, onConfirm }
 
   // Filters
+  const [filterBuilding, setFilterBuilding] = useState('')
   const [filterApartment, setFilterApartment] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterYear, setFilterYear] = useState(new Date().getFullYear())
@@ -169,7 +170,7 @@ export default function Expenses() {
   const loadExpenses = async () => {
     const { data } = await supabase
       .from('property_expenses')
-      .select('*, expense_categories(id, name, icon, color, is_tenant_billable), apartments(unit_no, floor_no, buildings(name))')
+      .select('*, expense_categories(id, name, icon, color, is_tenant_billable), apartments(unit_no, floor_no, building_id, buildings(id, name))')
       .order('expense_date', { ascending: false })
     setExpenses(data || [])
   }
@@ -409,6 +410,7 @@ export default function Expenses() {
   /* ── Computed: Filtered & KPI ── */
   const filteredExpenses = useMemo(() => {
     return expenses.filter(e => {
+      if (filterBuilding && e.apartments?.building_id !== filterBuilding) return false
       if (filterApartment && e.apartment_id !== filterApartment) return false
       if (filterCategory && e.category_id !== filterCategory) return false
       if (filterYear && e.period_year && e.period_year !== filterYear) return false
@@ -422,7 +424,22 @@ export default function Expenses() {
       }
       return true
     })
-  }, [expenses, filterApartment, filterCategory, filterYear, filterMonth, searchQuery])
+  }, [expenses, filterBuilding, filterApartment, filterCategory, filterYear, filterMonth, searchQuery])
+
+  /* Group filtered expenses by building for the list view */
+  const groupedByBuilding = useMemo(() => {
+    const groups = {}
+    filteredExpenses.forEach(e => {
+      const bid = e.apartments?.buildings?.id || e.apartments?.building_id || 'unknown'
+      const bname = e.apartments?.buildings?.name || 'Bilinmeyen Bina'
+      if (!groups[bid]) groups[bid] = { key: bid, building: { id: bid, name: bname }, rows: [], total: 0 }
+      groups[bid].rows.push(e)
+      groups[bid].total += Number(e.amount)
+    })
+    return Object.values(groups).sort((a, b) =>
+      a.building.name.localeCompare(b.building.name, 'tr')
+    )
+  }, [filteredExpenses])
 
   const now = new Date()
   const currentMonth = now.getMonth() + 1
@@ -964,13 +981,26 @@ export default function Expenses() {
           />
         </div>
         <select
+          value={filterBuilding}
+          onChange={e => { setFilterBuilding(e.target.value); setFilterApartment('') }}
+          style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
+        >
+          <option value="">Tüm Binalar</option>
+          {buildings.map(b => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+        <select
           value={filterApartment} onChange={e => setFilterApartment(e.target.value)}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Tüm Mülkler</option>
-          {apartments.map(a => (
-            <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
-          ))}
+          <option value="">Tüm Daireler</option>
+          {apartments
+            .filter(a => !filterBuilding || a.building_id === filterBuilding)
+            .map(a => {
+              const floor = a.floor_no ? `Kat ${a.floor_no} ` : ''
+              return <option key={a.id} value={a.id}>{floor}Daire {a.unit_no || '—'}</option>
+            })}
         </select>
         <select
           value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
@@ -1019,76 +1049,125 @@ export default function Expenses() {
             <div />
           </div>
 
-          {/* Rows */}
+          {/* Rows — grouped by building */}
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
               {expenses.length === 0 ? 'Henüz gider kaydı yok.' : 'Seçili filtrelere uygun sonuç bulunamadı.'}
             </div>
           ) : (
             <AnimatePresence>
-              {filteredExpenses.map((exp, idx) => (
-                <motion.div
-                  key={exp.id}
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  whileHover={{ backgroundColor: '#F8FAFC' }}
-                  style={{
+              {groupedByBuilding.map((group, gIdx) => (
+                <div key={group.key}>
+                  {/* Building header */}
+                  <div style={{
                     display: 'grid', gridTemplateColumns: '100px 1.2fr 1.2fr 100px 110px 70px',
-                    padding: '14px 24px', alignItems: 'center',
-                    borderBottom: idx < filteredExpenses.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-                    fontSize: 13, color: C.text, cursor: 'pointer',
-                    transition: 'background 0.15s'
-                  }}
-                  onClick={() => openEditExpense(exp)}
-                >
-                  <div style={{ fontWeight: 500, color: C.textMuted, fontSize: 12 }}>
-                    {formatDate(exp.expense_date)}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Building2 size={14} color={C.textFaint} />
-                    <span style={{ fontWeight: 600 }}>
-                      {apartmentLabel(exp.apartments)}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 26, height: 26, borderRadius: 8,
-                      background: `${exp.expense_categories?.color || '#94A3B8'}15`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <CategoryIcon name={exp.expense_categories?.icon} size={14} color={exp.expense_categories?.color || '#94A3B8'} />
+                    alignItems: 'center',
+                    padding: '10px 24px',
+                    background: 'linear-gradient(90deg, rgba(2,88,100,0.07), rgba(2,88,100,0.02))',
+                    borderTop: gIdx > 0 ? `1px solid ${C.border}` : 'none',
+                    borderBottom: `1px solid ${C.borderLight}`
+                  }}>
+                    <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 26, height: 26, borderRadius: 8,
+                        background: C.teal, color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(2,88,100,0.25)'
+                      }}>
+                        <Building2 size={13} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: '-0.1px' }}>
+                        {group.building.name}
+                      </span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, color: C.teal,
+                        background: 'rgba(2,88,100,0.10)', padding: '2px 8px', borderRadius: 12
+                      }}>
+                        {group.rows.length} kayıt
+                      </span>
                     </div>
-                    <span style={{ fontWeight: 500, fontSize: 12 }}>{exp.expense_categories?.name || '—'}</span>
-                  </div>
-                  <div style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                    ₺{money(exp.amount)}
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
-                      background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
-                      color: exp.is_tenant_billed ? '#059669' : '#DC2626',
-                      letterSpacing: '0.3px'
+                    <div style={{
+                      gridColumn: '4 / 6', textAlign: 'right',
+                      fontSize: 13, fontWeight: 800, color: C.teal,
+                      fontVariantNumeric: 'tabular-nums'
                     }}>
-                      {exp.is_tenant_billed ? 'Yansıtılır' : 'Yansıtılmaz'}
-                    </span>
+                      ₺{money(group.total)}
+                    </div>
+                    <div />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                    <motion.button
-                      whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); openEditExpense(exp) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
-                    >
-                      <Pencil size={14} color={C.textFaint} />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
-                    >
-                      <Trash2 size={14} color={C.red} />
-                    </motion.button>
-                  </div>
-                </motion.div>
+
+                  {/* Apartment rows */}
+                  {group.rows.map((exp, idx) => {
+                    const floor = exp.apartments?.floor_no ? `Kat ${exp.apartments.floor_no} ` : ''
+                    const unitLabel = exp.apartments
+                      ? `${floor}Daire ${exp.apartments.unit_no || '—'}`
+                      : '—'
+                    return (
+                      <motion.div
+                        key={exp.id}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        whileHover={{ backgroundColor: '#F8FAFC' }}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '100px 1.2fr 1.2fr 100px 110px 70px',
+                          padding: '14px 24px', alignItems: 'center',
+                          borderBottom: idx < group.rows.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                          fontSize: 13, color: C.text, cursor: 'pointer',
+                          transition: 'background 0.15s'
+                        }}
+                        onClick={() => openEditExpense(exp)}
+                      >
+                        <div style={{ fontWeight: 500, color: C.textMuted, fontSize: 12 }}>
+                          {formatDate(exp.expense_date)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 36 }}>
+                          <span style={{
+                            width: 4, height: 4, borderRadius: '50%', background: C.textFaint, flexShrink: 0
+                          }} />
+                          <span style={{ fontWeight: 600 }}>{unitLabel}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 26, height: 26, borderRadius: 8,
+                            background: `${exp.expense_categories?.color || '#94A3B8'}15`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>
+                            <CategoryIcon name={exp.expense_categories?.icon} size={14} color={exp.expense_categories?.color || '#94A3B8'} />
+                          </div>
+                          <span style={{ fontWeight: 500, fontSize: 12 }}>{exp.expense_categories?.name || '—'}</span>
+                        </div>
+                        <div style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                          ₺{money(exp.amount)}
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                            background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
+                            color: exp.is_tenant_billed ? '#059669' : '#DC2626',
+                            letterSpacing: '0.3px'
+                          }}>
+                            {exp.is_tenant_billed ? 'Yansıtılır' : 'Yansıtılmaz'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                          <motion.button
+                            whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); openEditExpense(exp) }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                          >
+                            <Pencil size={14} color={C.textFaint} />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id) }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                          >
+                            <Trash2 size={14} color={C.red} />
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
               ))}
             </AnimatePresence>
           )}
