@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { apartmentLabel } from '../lib/apartmentLabel'
 import {
   DollarSign, Clock, XCircle, CreditCard, Search,
   ChevronDown, Check, Mail, TrendingUp, Building2,
@@ -134,7 +135,7 @@ export default function RentPayments() {
   const loadPayments = async () => {
     setLoading(true); setError(null)
     const { data, error: err } = await supabase
-      .from('rent_payments').select('*, tenants(full_name, email, apartment_id), apartments(building, unit_no)')
+      .from('rent_payments').select('*, tenants(full_name, email, apartment_id), apartments(unit_no, floor_no, buildings(name))')
       .order('due_date', { ascending: true })
     if (err) { setError(err.message); setLoading(false); return }
     const all = data || []
@@ -152,7 +153,7 @@ export default function RentPayments() {
         groups[key] = {
           tenantId: key, tenantName: p.tenants?.full_name || '—',
           tenantEmail: p.tenants?.email || '',
-          aptName: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
+          aptName: apartmentLabel(p.apartments),
           currentPayment: null, overduePayments: [], paidPayments: []
         }
       }
@@ -178,7 +179,7 @@ export default function RentPayments() {
         groups[key] = {
           tenantId: key, tenantName: p.tenants?.full_name || '—',
           tenantEmail: p.tenants?.email || '',
-          aptName: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
+          aptName: apartmentLabel(p.apartments),
           paidPayments: []
         }
       }

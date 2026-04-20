@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { apartmentLabel, unitLabel } from '../lib/apartmentLabel'
 import {
   ArrowLeft, Building2, MapPin, Home, BedDouble, Armchair,
   Layers, Maximize2, Clock, Check, Undo2, Pencil, X, Save,
@@ -84,6 +85,7 @@ export default function PropertyDetail() {
   const fileRef = useRef(null)
 
   const [apt, setApt] = useState(null)
+  const [buildings, setBuildings] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('details')
 
@@ -129,7 +131,7 @@ export default function PropertyDetail() {
     setLoading(true)
     const { data, error } = await supabase
       .from('apartments')
-      .select('*, tenants(id, full_name, email, phone, tc_no, lease_start, lease_end, rent, deposit, notes)')
+      .select('*, buildings(id, name, city, district, address, building_age), tenants(id, full_name, email, phone, tc_no, lease_start, lease_end, rent, deposit, notes)')
       .eq('id', id)
       .single()
     if (error || !data) {
@@ -139,6 +141,14 @@ export default function PropertyDetail() {
     }
     setApt(data)
     setLoading(false)
+  }
+
+  const loadBuildings = async () => {
+    const { data } = await supabase
+      .from('buildings')
+      .select('id, name, city, district, address, building_age')
+      .order('name', { ascending: true })
+    setBuildings(data || [])
   }
 
   const loadPayments = async () => {
@@ -209,33 +219,30 @@ export default function PropertyDetail() {
 
   /* ── Detail edit ── */
   const startEditDetails = () => {
+    loadBuildings()
     setDetailForm({
-      building: apt.building || '', unit_no: apt.unit_no || '',
-      city: apt.city || '', district: apt.district || '',
-      address: apt.address || '', property_type: apt.property_type || 'daire',
+      building_id: apt.building_id || '', unit_no: apt.unit_no || '',
+      property_type: apt.property_type || 'daire',
       room_count: apt.room_count || '', floor_no: apt.floor_no || '',
       m2_gross: apt.m2_gross || '', m2_net: apt.m2_net || '',
-      furnished: apt.furnished || false, building_age: apt.building_age ?? '',
+      furnished: apt.furnished || false,
       deposit: apt.deposit || ''
     })
     setEditingDetails(true)
   }
 
   const saveDetails = async () => {
+    if (!detailForm.building_id) { showToast('Bina seciniz.', 'error'); return }
     setSavingDetails(true)
     const { error } = await supabase.from('apartments').update({
-      building: detailForm.building.trim(),
+      building_id: detailForm.building_id,
       unit_no: detailForm.unit_no.trim(),
-      city: detailForm.city.trim(),
-      district: detailForm.district.trim(),
-      address: detailForm.address.trim(),
       property_type: detailForm.property_type,
       room_count: detailForm.room_count.toString().trim(),
       floor_no: detailForm.floor_no.toString().trim(),
       m2_gross: parseFloat(detailForm.m2_gross) || null,
       m2_net: parseFloat(detailForm.m2_net) || null,
       furnished: detailForm.furnished,
-      building_age: parseInt(detailForm.building_age) || null,
       deposit: parseFloat(detailForm.deposit) || 0
     }).eq('id', id)
     setSavingDetails(false)
@@ -319,27 +326,29 @@ export default function PropertyDetail() {
   if (!apt) return null
 
   const tenant = apt.tenants?.[0]
-  const location = [apt.city, apt.district].filter(Boolean).join(', ')
+  const bld = apt.buildings || {}
+  const location = [bld.city, bld.district].filter(Boolean).join(', ')
 
   const summaryCards = [
-    { icon: Building2, label: 'Mulk adi', value: `${apt.building}${apt.unit_no ? ' - No: ' + apt.unit_no : ''}` },
+    { icon: Building2, label: 'Bina', value: bld.name || '—' },
+    { icon: Home, label: 'Daire', value: unitLabel(apt) },
     { icon: MapPin, label: 'Lokasyon', value: location || '—' },
     { icon: Home, label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || apt.property_type || '—' },
     { icon: BedDouble, label: 'Oda sayisi', value: apt.room_count || '—' },
     { icon: Armchair, label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
-    { icon: Layers, label: 'Bulundugu kat', value: apt.floor_no || '—' },
     { icon: Maximize2, label: 'm2 (Net)', value: apt.m2_net || '—' },
-    { icon: Clock, label: 'Bina yasi', value: apt.building_age != null ? apt.building_age : '—' }
+    { icon: Clock, label: 'Bina yasi', value: bld.building_age != null ? bld.building_age : '—' }
   ]
 
   const detailRows = [
-    { label: 'Adresi', value: apt.address ? `${apt.address}${location ? ', ' + location : ''}` : location || '—' },
+    { label: 'Bina', value: bld.name || '—' },
+    { label: 'Adresi', value: bld.address ? `${bld.address}${location ? ', ' + location : ''}` : location || '—' },
     { label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || '—' },
     { label: 'm2 (Brut)', value: apt.m2_gross || '—' },
     { label: 'm2 (Net)', value: apt.m2_net || '—' },
     { label: 'Oda sayisi', value: apt.room_count || '—' },
     { label: 'Bulundugu kat', value: apt.floor_no || '—' },
-    { label: 'Bina yasi', value: apt.building_age != null ? apt.building_age : '—' },
+    { label: 'Bina yasi', value: bld.building_age != null ? bld.building_age : '—' },
     { label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
     { label: 'Depozito', value: apt.deposit ? money(apt.deposit) + ' ₺' : '—' }
   ]
@@ -529,13 +538,22 @@ export default function PropertyDetail() {
             /* ── Edit form ── */
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={cardBox}>
               <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Mulk Adi / Bina</label>
-                    <input style={inputStyle} value={detailForm.building} onChange={e => DF('building', e.target.value)} />
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Bina *</label>
+                    <select
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                      value={detailForm.building_id}
+                      onChange={e => DF('building_id', e.target.value)}
+                    >
+                      <option value="">Bina seciniz</option>
+                      {buildings.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>No / Daire</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Daire No</label>
                     <input style={inputStyle} value={detailForm.unit_no} onChange={e => DF('unit_no', e.target.value)} />
                   </div>
                 </div>
@@ -547,20 +565,6 @@ export default function PropertyDetail() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Sehir</label>
-                    <input style={inputStyle} value={detailForm.city} onChange={e => DF('city', e.target.value)} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Ilce</label>
-                    <input style={inputStyle} value={detailForm.district} onChange={e => DF('district', e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Adres</label>
-                  <input style={inputStyle} value={detailForm.address} onChange={e => DF('address', e.target.value)} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-                  <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Oda Sayisi</label>
                     <input style={inputStyle} value={detailForm.room_count} onChange={e => DF('room_count', e.target.value)} />
                   </div>
@@ -568,6 +572,8 @@ export default function PropertyDetail() {
                     <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Kat</label>
                     <input style={inputStyle} value={detailForm.floor_no} onChange={e => DF('floor_no', e.target.value)} />
                   </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Brut m²</label>
                     <input style={inputStyle} type="number" value={detailForm.m2_gross} onChange={e => DF('m2_gross', e.target.value)} />
@@ -577,14 +583,13 @@ export default function PropertyDetail() {
                     <input style={inputStyle} type="number" value={detailForm.m2_net} onChange={e => DF('m2_net', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Bina Yasi</label>
-                    <input style={inputStyle} type="number" value={detailForm.building_age} onChange={e => DF('building_age', e.target.value)} />
-                  </div>
-                  <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Depozito (₺)</label>
                     <input style={inputStyle} type="number" value={detailForm.deposit} onChange={e => DF('deposit', e.target.value)} />
                   </div>
                 </div>
+                <p style={{ fontSize: 12, color: C.textFaint, margin: 0, fontStyle: 'italic' }}>
+                  Bina bilgileri (sehir, ilce, adres, bina yasi) bina seviyesinde duzenlenir.
+                </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" id="furn" checked={detailForm.furnished}
                     onChange={e => DF('furnished', e.target.checked)}
@@ -1154,7 +1159,7 @@ export default function PropertyDetail() {
                 fontSize: 14, color: C.textMuted, textAlign: 'center',
                 margin: '0 0 24px', lineHeight: 1.6
               }}>
-                <strong style={{ color: C.text }}>{apt?.building} {apt?.unit_no}</strong> adli mulk kalici olarak silinecektir.
+                <strong style={{ color: C.text }}>{apartmentLabel(apt)}</strong> adli mulk kalici olarak silinecektir.
                 Bu mulke ait tum veriler (odemeler, belgeler) de silinecektir.
                 <br />Bu islemi onayliyor musunuz?
               </p>

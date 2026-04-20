@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { apartmentLabel } from '../lib/apartmentLabel'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { ArrowRight, Plus, AlertTriangle, Mail, UserPlus, Building2, TrendingUp, Clock, CalendarCheck } from 'lucide-react'
 
@@ -77,18 +78,21 @@ export default function Dashboard() {
   const [apts, setApts] = useState([])
   const [pays, setPays] = useState([])
   const [tens, setTens] = useState([])
+  const [blds, setBlds] = useState([])
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     ensurePayments().then(() => {
       Promise.all([
-        supabase.from('apartments').select('*, tenants(id, full_name, rent)').order('created_at', { ascending: false }),
-        supabase.from('rent_payments').select('*, tenants(full_name, email), apartments(building, unit_no)').order('due_date', { ascending: false }),
-        supabase.from('tenants').select('id, full_name, apartment_id, lease_end').order('created_at', { ascending: false })
-      ]).then(([a, p, t]) => {
+        supabase.from('apartments').select('*, buildings(name), tenants(id, full_name, rent)').order('created_at', { ascending: false }),
+        supabase.from('rent_payments').select('*, tenants(full_name, email), apartments(unit_no, floor_no, buildings(name))').order('due_date', { ascending: false }),
+        supabase.from('tenants').select('id, full_name, apartment_id, lease_end').order('created_at', { ascending: false }),
+        supabase.from('buildings').select('id, name').order('created_at', { ascending: false })
+      ]).then(([a, p, t, b]) => {
         setApts(a.data || [])
         setPays(p.data || [])
         setTens(t.data || [])
+        setBlds(b.data || [])
         setReady(true)
       })
     })
@@ -162,7 +166,7 @@ export default function Dashboard() {
         groups[p.tenant_id] = {
           name: p.tenants?.full_name || '—',
           email: p.tenants?.email || '',
-          apt: p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—',
+          apt: apartmentLabel(p.apartments),
           amount: 0,
           daysLate: 0
         }
@@ -517,7 +521,7 @@ export default function Dashboard() {
                     {p.tenants?.full_name || '—'}
                   </div>
                   <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
-                    {p.apartments ? `${p.apartments.building} — ${p.apartments.unit_no}` : '—'}
+                    {apartmentLabel(p.apartments)}
                     {' · '}{ago(p.paid_date)}
                   </div>
                 </div>
@@ -587,7 +591,7 @@ export default function Dashboard() {
             display: 'flex', justifyContent: 'space-between',
             marginTop: 8, fontSize: 11, color: '#94A3B8'
           }}>
-            <span>{aptTotal} toplam mulk</span>
+            <span>{blds.length} bina · {aptTotal} daire</span>
             <span>%{aptTotal > 0 ? Math.round((aptOcc / aptTotal) * 100) : 0} doluluk</span>
           </div>
         </motion.div>

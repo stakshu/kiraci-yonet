@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { apartmentLabel } from '../lib/apartmentLabel'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
@@ -105,7 +106,7 @@ export default function TenantDetail() {
     setLoading(true)
     const { data, error } = await supabase
       .from('tenants')
-      .select('*, apartments(building, unit_no)')
+      .select('*, apartments(unit_no, floor_no, buildings(name))')
       .eq('id', id)
       .single()
     if (error || !data) {
@@ -178,7 +179,7 @@ export default function TenantDetail() {
   const generateContract = useCallback(async () => {
     if (!tenant) return
     const t = tenant
-    const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
+    const apt = apartmentLabel(t.apartments)
     const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     const today = formatDate(new Date().toISOString())
     const household = t.household_info || {}
@@ -406,7 +407,7 @@ export default function TenantDetail() {
 
   const isActive = !!tenant.apartment_id
   const initials = tenant.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'
-  const apt = tenant.apartments ? `${tenant.apartments.building} ${tenant.apartments.unit_no}` : '—'
+  const apt = apartmentLabel(tenant.apartments)
   const household = tenant.household_info || {}
   const hasHousehold = (household.spouse || 0) + (household.children || 0) + (household.roommate || 0) > 0
   const hasEmergency = tenant.emergency_contact_name || tenant.emergency_contact_phone

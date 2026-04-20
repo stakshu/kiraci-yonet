@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
@@ -83,7 +84,7 @@ export default function TenantsList() {
   const loadTenants = async () => {
     setLoading(true); setError(null)
     const { data, error: err } = await supabase
-      .from('tenants').select('*, apartments(building, unit_no)')
+      .from('tenants').select('*, apartments(unit_no, floor_no, buildings(name))')
       .order('created_at', { ascending: false })
     if (err) { setError(err.message); setLoading(false); return }
     setTenants(data || []); setLoading(false)
@@ -91,8 +92,8 @@ export default function TenantsList() {
 
   const loadApartments = async () => {
     const { data } = await supabase
-      .from('apartments').select('id, building, unit_no, tenants(id)')
-      .order('building', { ascending: true })
+      .from('apartments').select('id, unit_no, floor_no, buildings(name), tenants(id)')
+      .order('unit_no', { ascending: true })
     setApartments(data || [])
   }
 
@@ -114,7 +115,7 @@ export default function TenantsList() {
     if (!search) return true
     const q = search.toLowerCase()
     return t.full_name.toLowerCase().includes(q) || (t.phone || '').includes(q) ||
-      (t.apartments?.building || '').toLowerCase().includes(q)
+      buildingLabel(t.apartments).toLowerCase().includes(q)
   })
 
   const openAdd = () => { setEditId(null); setForm(EMPTY_FORM); setShowPopup(true) }
@@ -341,7 +342,7 @@ export default function TenantsList() {
             {search ? 'Arama sonucu bulunamadi.' : tab === 'active' ? 'Aktif kiraci bulunmuyor.' : 'Eski kiraci bulunmuyor.'}
           </div>
         ) : filtered.map((t, i) => {
-          const apt = t.apartments ? `${t.apartments.building} ${t.apartments.unit_no}` : '—'
+          const apt = apartmentLabel(t.apartments)
           const rentVal = t.rent ? money(t.rent) + ' ₺' : '—'
           const remaining = leaseRemaining(t.lease_end)
           const initials = t.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -523,7 +524,7 @@ export default function TenantsList() {
                       value={form.apartment_id} onChange={e => UF('apartment_id', e.target.value)}>
                       <option value="">Daire secin...</option>
                       {(editId ? apartments.filter(a => !a.tenants?.[0] || a.id === form.apartment_id) : vacantApartments).map(a => (
-                        <option key={a.id} value={a.id}>{a.building} — {a.unit_no}</option>
+                        <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
                       ))}
                     </select>
                   </div>

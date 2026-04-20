@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
+import { apartmentLabel } from '../lib/apartmentLabel'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
@@ -164,7 +165,7 @@ export default function Expenses() {
   const loadExpenses = async () => {
     const { data } = await supabase
       .from('property_expenses')
-      .select('*, expense_categories(id, name, icon, color, is_tenant_billable), apartments(building, unit_no)')
+      .select('*, expense_categories(id, name, icon, color, is_tenant_billable), apartments(unit_no, floor_no, buildings(name))')
       .order('expense_date', { ascending: false })
     setExpenses(data || [])
   }
@@ -201,7 +202,7 @@ export default function Expenses() {
   }
 
   const loadApartments = async () => {
-    const { data } = await supabase.from('apartments').select('id, building, unit_no').order('building')
+    const { data } = await supabase.from('apartments').select('id, unit_no, floor_no, buildings(name)').order('unit_no')
     setApartments(data || [])
   }
 
@@ -367,7 +368,7 @@ export default function Expenses() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         const catName = e.expense_categories?.name?.toLowerCase() || ''
-        const aptName = e.apartments ? `${e.apartments.building} ${e.apartments.unit_no}`.toLowerCase() : ''
+        const aptName = apartmentLabel(e.apartments).toLowerCase()
         const notes = (e.notes || '').toLowerCase()
         if (!catName.includes(q) && !aptName.includes(q) && !notes.includes(q)) return false
       }
@@ -491,7 +492,7 @@ export default function Expenses() {
     `
     document.body.appendChild(wrapper)
 
-    const aptLabel = d.apt ? `${d.apt.building} ${d.apt.unit_no}` : '—'
+    const aptLabel = apartmentLabel(d.apt)
     const tenantLabel = d.tenant?.full_name || 'Aktif kiracı yok'
     const periodLabel = `${formatDateTR(abrechnungStart)} — ${formatDateTR(abrechnungEnd)}`
 
@@ -680,7 +681,7 @@ export default function Expenses() {
       }
     }
 
-    const aptName = d.apt ? `${d.apt.building}_${d.apt.unit_no}` : 'rapor'
+    const aptName = d.apt ? `${d.apt.buildings?.name || ''}_${d.apt.unit_no || ''}`.replace(/^_|_$/g, '') || 'rapor' : 'rapor'
     doc.save(`Hesap_Kesimi_${aptName}_${abrechnungStart}_${abrechnungEnd}.pdf`.replace(/\s+/g, '_'))
   }, [abrechnungData, abrechnungStart, abrechnungEnd])
 
@@ -822,7 +823,7 @@ export default function Expenses() {
         >
           <option value="">Tüm Mülkler</option>
           {apartments.map(a => (
-            <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
+            <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
           ))}
         </select>
         <select
@@ -899,7 +900,7 @@ export default function Expenses() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Building2 size={14} color={C.textFaint} />
                     <span style={{ fontWeight: 600 }}>
-                      {exp.apartments ? `${exp.apartments.building} ${exp.apartments.unit_no}` : '—'}
+                      {apartmentLabel(exp.apartments)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1051,7 +1052,7 @@ export default function Expenses() {
                   >
                     <option value="">Mülk seçin...</option>
                     {apartments.map(a => (
-                      <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
+                      <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
                     ))}
                   </select>
                 </div>
@@ -1500,7 +1501,7 @@ export default function Expenses() {
                     >
                       <option value="">Seçin...</option>
                       {apartments.map(a => (
-                        <option key={a.id} value={a.id}>{a.building} {a.unit_no}</option>
+                        <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
                       ))}
                     </select>
                   </div>
@@ -1534,7 +1535,7 @@ export default function Expenses() {
                         <div>
                           <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mülk</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {abrechnungData.apt ? `${abrechnungData.apt.building} ${abrechnungData.apt.unit_no}` : '—'}
+                            {apartmentLabel(abrechnungData.apt)}
                           </div>
                         </div>
                         <div>

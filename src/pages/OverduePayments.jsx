@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
 
 /* ── Tarih formatlama ── */
 function formatDate(dateStr) {
@@ -36,7 +37,7 @@ export default function OverduePayments() {
     const today = new Date().toISOString().split('T')[0]
     const { data, error: err } = await supabase
       .from('rent_payments')
-      .select('*, tenants(full_name, email, phone), apartments(building, unit_no)')
+      .select('*, tenants(full_name, email, phone), apartments(unit_no, floor_no, buildings(name))')
       .eq('status', 'pending')
       .lt('due_date', today)
       .order('due_date', { ascending: true })
@@ -128,7 +129,7 @@ export default function OverduePayments() {
     if (!search) return true
     const q = search.toLowerCase()
     return (p.tenants?.full_name || '').toLowerCase().includes(q) ||
-           (p.apartments?.building || '').toLowerCase().includes(q) ||
+           buildingLabel(p.apartments).toLowerCase().includes(q) ||
            (p.apartments?.unit_no || '').toLowerCase().includes(q)
   })
 
@@ -210,7 +211,7 @@ export default function OverduePayments() {
             ) : filtered.map(p => {
               const diff = Math.abs(daysDiff(p.due_date))
               const tenantName = p.tenants?.full_name || '—'
-              const aptName = p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—'
+              const aptName = apartmentLabel(p.apartments)
 
               return (
                 <tr key={p.id}>

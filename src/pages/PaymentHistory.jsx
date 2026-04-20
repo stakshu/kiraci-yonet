@@ -1,6 +1,7 @@
 /* ── KiraciYonet — Odeme Gecmisi ── */
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
 
 /* ── Tarih formatlama ── */
 function formatDate(dateStr) {
@@ -30,7 +31,7 @@ export default function PaymentHistory() {
     setError(null)
     const { data, error: err } = await supabase
       .from('rent_payments')
-      .select('*, tenants(full_name, email), apartments(building, unit_no)')
+      .select('*, tenants(full_name, email), apartments(unit_no, floor_no, buildings(name))')
       .eq('status', 'paid')
       .order('paid_date', { ascending: false })
 
@@ -73,7 +74,7 @@ export default function PaymentHistory() {
     if (search) {
       const q = search.toLowerCase()
       const match = (p.tenants?.full_name || '').toLowerCase().includes(q) ||
-                    (p.apartments?.building || '').toLowerCase().includes(q) ||
+                    buildingLabel(p.apartments).toLowerCase().includes(q) ||
                     (p.apartments?.unit_no || '').toLowerCase().includes(q)
       if (!match) return false
     }
@@ -171,7 +172,7 @@ export default function PaymentHistory() {
               </td></tr>
             ) : filtered.map(p => {
               const tenantName = p.tenants?.full_name || '—'
-              const aptName = p.apartments ? `${p.apartments.building} ${p.apartments.unit_no}` : '—'
+              const aptName = apartmentLabel(p.apartments)
               const dueD = new Date(p.due_date)
               const paidD = p.paid_date ? new Date(p.paid_date) : null
               const isLate = paidD && paidD > dueD

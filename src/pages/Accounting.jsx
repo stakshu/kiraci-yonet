@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { apartmentLabel } from '../lib/apartmentLabel'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   Cell, PieChart, Pie
@@ -89,12 +90,12 @@ export default function Accounting() {
     setLoading(true)
     const [paymentsRes, expensesRes, aptsRes] = await Promise.all([
       supabase.from('rent_payments')
-        .select('id, amount, status, due_date, paid_date, type, apartment_id, apartments(building, unit_no)')
+        .select('id, amount, status, due_date, paid_date, type, apartment_id, apartments(unit_no, floor_no, buildings(name))')
         .order('due_date', { ascending: true }),
       supabase.from('property_expenses')
-        .select('id, amount, expense_date, apartment_id, category_id, is_tenant_billed, expense_categories(name, color, icon), apartments(building, unit_no)')
+        .select('id, amount, expense_date, apartment_id, category_id, is_tenant_billed, expense_categories(name, color, icon), apartments(unit_no, floor_no, buildings(name))')
         .order('expense_date', { ascending: true }),
-      supabase.from('apartments').select('id, building, unit_no')
+      supabase.from('apartments').select('id, unit_no, floor_no, buildings(name)')
     ])
     setPayments(paymentsRes.data || [])
     setExpenses(expensesRes.data || [])
@@ -170,7 +171,7 @@ export default function Accounting() {
     const map = {}
     apartments.forEach(a => {
       map[a.id] = {
-        id: a.id, name: `${a.building} ${a.unit_no}`,
+        id: a.id, name: apartmentLabel(a),
         rentIncome: 0, aidatIncome: 0, expense: 0
       }
     })
