@@ -15,7 +15,7 @@ import {
   ArrowUpDown, Trash, TreePine, Lightbulb, Wind,
   ShieldCheck, UserCheck, Tv, MoreHorizontal, Wrench,
   Briefcase, FileText, SprayCan, AlertTriangle, Euro,
-  Download
+  Download, Home
 } from 'lucide-react'
 
 /* ── Design Tokens ── */
@@ -100,7 +100,8 @@ const DEFAULT_CATEGORIES = [
 
 /* ── Empty Form ── */
 const EMPTY_EXPENSE = {
-  apartment_id: '', category_id: '', amount: '',
+  scope: 'apartment', // 'apartment' | 'building'
+  apartment_id: '', building_id: '', category_id: '', amount: '',
   expense_date: new Date().toISOString().split('T')[0],
   period_month: new Date().getMonth() + 1,
   period_year: new Date().getFullYear(),
@@ -123,6 +124,7 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState([])
   const [categories, setCategories] = useState([])
   const [apartments, setApartments] = useState([])
+  const [buildings, setBuildings] = useState([])
   const [tenants, setTenants] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -158,7 +160,7 @@ export default function Expenses() {
 
   const loadAll = async () => {
     setLoading(true)
-    await Promise.all([loadExpenses(), loadCategories(), loadApartments(), loadTenants()])
+    await Promise.all([loadExpenses(), loadCategories(), loadApartments(), loadBuildings(), loadTenants()])
     setLoading(false)
   }
 
@@ -202,8 +204,13 @@ export default function Expenses() {
   }
 
   const loadApartments = async () => {
-    const { data } = await supabase.from('apartments').select('id, unit_no, floor_no, buildings(name)').order('unit_no')
+    const { data } = await supabase.from('apartments').select('id, unit_no, floor_no, building_id, buildings(name)').order('unit_no')
     setApartments(data || [])
+  }
+
+  const loadBuildings = async () => {
+    const { data } = await supabase.from('buildings').select('id, name').order('name')
+    setBuildings(data || [])
   }
 
   const loadTenants = async () => {
@@ -231,7 +238,9 @@ export default function Expenses() {
   const openEditExpense = (expense) => {
     setEditingExpense(expense)
     setExpenseForm({
+      scope: 'apartment',
       apartment_id: expense.apartment_id || '',
+      building_id: '',
       category_id: expense.category_id || '',
       amount: expense.amount || '',
       expense_date: expense.expense_date || '',
@@ -244,17 +253,15 @@ export default function Expenses() {
   }
 
   const handleSaveExpense = async () => {
-    if (!expenseForm.apartment_id || !expenseForm.category_id || !expenseForm.amount) {
-      showToast('Mülk, kategori ve tutar zorunludur.', 'error'); return
+    if (!expenseForm.category_id || !expenseForm.amount) {
+      showToast('Kategori ve tutar zorunludur.', 'error'); return
     }
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    const record = {
+    const base = {
       user_id: session.user.id,
-      apartment_id: expenseForm.apartment_id,
       category_id: expenseForm.category_id,
-      amount: Number(expenseForm.amount),
       expense_date: expenseForm.expense_date,
       period_month: Number(expenseForm.period_month) || null,
       period_year: Number(expenseForm.period_year) || null,
@@ -262,16 +269,55 @@ export default function Expenses() {
       notes: expenseForm.notes
     }
 
-    let err
+    // Düzenleme: her zaman tek daire
     if (editingExpense) {
-      const res = await supabase.from('property_expenses').update(record).eq('id', editingExpense.id)
-      err = res.error
-    } else {
-      const res = await supabase.from('property_expenses').insert(record)
-      err = res.error
+      if (!expenseForm.apartment_id) { showToast('Mülk seçin.', 'error'); return }
+      const record = { ...base, apartment_id: expenseForm.apartment_id, amount: Number(expenseForm.amount) }
+      const { error } = await supabase.from('property_expenses').update(record).eq('id', editingExpense.id)
+      if (error) { showToast(error.message, 'error'); return }
+      showToast('Gider güncellendi.', 'success')
+      setShowExpenseModal(false)
+      loadExpenses()
+      return
     }
-    if (err) { showToast(err.message, 'error'); return }
-    showToast(editingExpense ? 'Gider güncellendi.' : 'Gider eklendi.', 'success')
+
+    // Ekleme: bina kapsamı → her daireye eşit dağıt
+    if (expenseForm.scope === 'building') {
+      if (!expenseForm.building_id) { showToast('Bina seçin.', 'error'); return }
+      const bldApts = apartments.filter(a => a.building_id === expenseForm.building_id)
+      if (bldApts.length === 0) { showToast('Bu binada daire bulunmuyor.', 'error'); return }
+
+      const total = Number(expenseForm.amount)
+      const n = bldApts.length
+      const perApt = Math.round((total / n) * 100) / 100
+      // Yuvarlama farkını ilk satıra ekle ki toplam birebir tutsun
+      const firstAmount = Math.round((total - perApt * (n - 1)) * 100) / 100
+      const bldName = buildings.find(b => b.id === expenseForm.building_id)?.name || ''
+      const bldNote = expenseForm.notes
+        ? `${expenseForm.notes} · Bina geneli: ${bldName}`
+        : `Bina geneli: ${bldName}`
+
+      const records = bldApts.map((apt, idx) => ({
+        ...base,
+        apartment_id: apt.id,
+        amount: idx === 0 ? firstAmount : perApt,
+        notes: bldNote
+      }))
+
+      const { error } = await supabase.from('property_expenses').insert(records)
+      if (error) { showToast(error.message, 'error'); return }
+      showToast(`${n} daireye toplam ${money(total)} ₺ dağıtıldı (${money(perApt)} ₺ / daire).`, 'success')
+      setShowExpenseModal(false)
+      loadExpenses()
+      return
+    }
+
+    // Ekleme: tek daire
+    if (!expenseForm.apartment_id) { showToast('Mülk seçin.', 'error'); return }
+    const record = { ...base, apartment_id: expenseForm.apartment_id, amount: Number(expenseForm.amount) }
+    const { error } = await supabase.from('property_expenses').insert(record)
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Gider eklendi.', 'success')
     setShowExpenseModal(false)
     loadExpenses()
   }
@@ -1042,20 +1088,82 @@ export default function Expenses() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {/* Apartment */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Mülk *</label>
-                  <select
-                    value={expenseForm.apartment_id}
-                    onChange={e => setExpenseForm(prev => ({ ...prev, apartment_id: e.target.value }))}
-                    style={{ ...inputStyle, cursor: 'pointer' }}
-                  >
-                    <option value="">Mülk seçin...</option>
-                    {apartments.map(a => (
-                      <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Scope Toggle — only when adding */}
+                {!editingExpense && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Kapsam</label>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
+                      background: '#FAFBFC', border: `1.5px solid ${C.border}`,
+                      borderRadius: 10, padding: 4
+                    }}>
+                      {[
+                        { key: 'apartment', label: 'Tek Daire', Icon: Home },
+                        { key: 'building', label: 'Tüm Bina', Icon: Building2 }
+                      ].map(opt => {
+                        const active = expenseForm.scope === opt.key
+                        const Icon = opt.Icon
+                        return (
+                          <motion.button
+                            key={opt.key}
+                            type="button"
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setExpenseForm(prev => ({
+                              ...prev, scope: opt.key, apartment_id: '', building_id: ''
+                            }))}
+                            style={{
+                              fontFamily: font, fontSize: 12, fontWeight: 700,
+                              padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                              background: active ? C.teal : 'transparent',
+                              color: active ? '#fff' : C.textMuted,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              transition: 'background 0.15s, color 0.15s'
+                            }}
+                          >
+                            <Icon size={14} />
+                            {opt.label}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Building picker (when scope=building) */}
+                {!editingExpense && expenseForm.scope === 'building' ? (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Bina *</label>
+                    <select
+                      value={expenseForm.building_id}
+                      onChange={e => setExpenseForm(prev => ({ ...prev, building_id: e.target.value }))}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                      <option value="">Bina seçin...</option>
+                      {buildings.map(b => {
+                        const count = apartments.filter(a => a.building_id === b.id).length
+                        return (
+                          <option key={b.id} value={b.id} disabled={count === 0}>
+                            {b.name} ({count} daire)
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Mülk *</label>
+                    <select
+                      value={expenseForm.apartment_id}
+                      onChange={e => setExpenseForm(prev => ({ ...prev, apartment_id: e.target.value }))}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                      <option value="">Mülk seçin...</option>
+                      {apartments.map(a => (
+                        <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Category */}
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -1082,6 +1190,20 @@ export default function Expenses() {
                     placeholder="0,00"
                     style={inputStyle}
                   />
+                  {!editingExpense && expenseForm.scope === 'building' && expenseForm.building_id && Number(expenseForm.amount) > 0 && (() => {
+                    const count = apartments.filter(a => a.building_id === expenseForm.building_id).length
+                    if (count === 0) return null
+                    const perApt = Number(expenseForm.amount) / count
+                    return (
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, color: C.teal,
+                        marginTop: 8, display: 'flex', alignItems: 'center', gap: 6
+                      }}>
+                        <ChevronRight size={12} />
+                        {count} daireye {money(perApt.toFixed(2))} ₺ / daire
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Date */}
