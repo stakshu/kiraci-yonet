@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import AuthOverlay from './components/AuthOverlay'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
+import BuildingDetail from './pages/BuildingDetail'
 import TenantsList from './pages/TenantsList'
 import TenantDetail from './pages/TenantDetail'
 import RentPayments from './pages/RentPayments'
@@ -31,6 +32,7 @@ function ProtectedApp() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/properties" element={<Properties />} />
+        <Route path="/properties/building/:id" element={<BuildingDetail />} />
         <Route path="/properties/:id" element={<PropertyDetail />} />
         <Route path="/apartments/list" element={<Navigate to="/properties" replace />} />
         <Route path="/tenants/list" element={<TenantsList />} />
