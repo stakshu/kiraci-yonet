@@ -140,7 +140,9 @@ export default function Expenses() {
 
   // Abrechnung
   const [showAbrechnung, setShowAbrechnung] = useState(false)
+  const [abrechnungScope, setAbrechnungScope] = useState('apartment') // 'apartment' | 'building'
   const [abrechnungApt, setAbrechnungApt] = useState('')
+  const [abrechnungBld, setAbrechnungBld] = useState('')
   const [abrechnungStart, setAbrechnungStart] = useState(`${new Date().getFullYear()}-01-01`)
   const [abrechnungEnd, setAbrechnungEnd] = useState(`${new Date().getFullYear()}-12-31`)
   const reportRef = useRef(null)
@@ -458,67 +460,106 @@ export default function Expenses() {
 
   /* ── Abrechnung Calculation ── */
   const abrechnungData = useMemo(() => {
-    if (!showAbrechnung || !abrechnungApt) return null
+    if (!showAbrechnung) return null
+    if (abrechnungScope === 'apartment' && !abrechnungApt) return null
+    if (abrechnungScope === 'building' && !abrechnungBld) return null
+
     const start = new Date(abrechnungStart)
     const end = new Date(abrechnungEnd)
+    const periodMonths = (end.getFullYear() - start.getFullYear()) * 12
+      + (end.getMonth() - start.getMonth()) + 1
 
-    const periodExpenses = expenses.filter(e => {
-      if (e.apartment_id !== abrechnungApt) return false
-      const d = new Date(e.expense_date)
-      return d >= start && d <= end
-    })
+    // Tek daire rollup'unu hesapla
+    const computeForApt = (aptId) => {
+      const apt = apartments.find(a => a.id === aptId)
+      const periodExpenses = expenses.filter(e => {
+        if (e.apartment_id !== aptId) return false
+        const d = new Date(e.expense_date)
+        return d >= start && d <= end
+      })
+      const billable = periodExpenses.filter(e => e.is_tenant_billed)
+      const nonBillable = periodExpenses.filter(e => !e.is_tenant_billed)
 
-    const billable = periodExpenses.filter(e => e.is_tenant_billed)
-    const nonBillable = periodExpenses.filter(e => !e.is_tenant_billed)
+      const byCategory = {}
+      billable.forEach(e => {
+        const name = e.expense_categories?.name || 'Diğer'
+        if (!byCategory[name]) byCategory[name] = {
+          name, icon: e.expense_categories?.icon, color: e.expense_categories?.color, total: 0
+        }
+        byCategory[name].total += Number(e.amount)
+      })
+      const nonBillableByCategory = {}
+      nonBillable.forEach(e => {
+        const name = e.expense_categories?.name || 'Diğer'
+        if (!nonBillableByCategory[name]) nonBillableByCategory[name] = { name, total: 0 }
+        nonBillableByCategory[name].total += Number(e.amount)
+      })
 
-    // Group billable by category
-    const byCategory = {}
-    billable.forEach(e => {
-      const catName = e.expense_categories?.name || 'Diğer'
-      if (!byCategory[catName]) byCategory[catName] = { name: catName, icon: e.expense_categories?.icon, color: e.expense_categories?.color, total: 0 }
-      byCategory[catName].total += Number(e.amount)
-    })
+      const totalBillable = billable.reduce((s, e) => s + Number(e.amount), 0)
+      const totalNonBillable = nonBillable.reduce((s, e) => s + Number(e.amount), 0)
 
-    const totalBillable = billable.reduce((s, e) => s + Number(e.amount), 0)
-    const totalNonBillable = nonBillable.reduce((s, e) => s + Number(e.amount), 0)
+      const tenant = tenants.find(t => t.apartment_id === aptId)
+      const vorauszahlung = tenant ? Number(tenant.nebenkosten_vorauszahlung) || 0 : 0
+      const leaseStart = tenant?.lease_start ? new Date(tenant.lease_start) : null
+      const leaseEnd = tenant?.lease_end ? new Date(tenant.lease_end) : null
+      const effectiveStart = leaseStart && leaseStart > start ? leaseStart : start
+      const effectiveEnd = leaseEnd && leaseEnd < end ? leaseEnd : end
+      const monthsInPeriod = effectiveStart <= effectiveEnd
+        ? (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12
+          + (effectiveEnd.getMonth() - effectiveStart.getMonth()) + 1
+        : 0
+      const totalVorauszahlung = vorauszahlung * monthsInPeriod
+      const difference = totalBillable - totalVorauszahlung
+      const annualRent = tenant ? (Number(tenant.rent) || 0) * monthsInPeriod : 0
 
-    // Find tenant
-    const tenant = tenants.find(t => t.apartment_id === abrechnungApt)
-    const vorauszahlung = tenant ? Number(tenant.nebenkosten_vorauszahlung) || 0 : 0
+      return {
+        apt, tenant,
+        byCategory: Object.values(byCategory),
+        nonBillableByCategory: Object.values(nonBillableByCategory),
+        totalBillable, totalNonBillable, vorauszahlung,
+        monthsInPeriod, totalVorauszahlung, difference, annualRent,
+        effectiveStart, effectiveEnd
+      }
+    }
 
-    // Calculate months — clamp to tenant's actual lease period
-    const leaseStart = tenant?.lease_start ? new Date(tenant.lease_start) : null
-    const leaseEnd = tenant?.lease_end ? new Date(tenant.lease_end) : null
-    const effectiveStart = leaseStart && leaseStart > start ? leaseStart : start
-    const effectiveEnd = leaseEnd && leaseEnd < end ? leaseEnd : end
-    const monthsInPeriod = effectiveStart <= effectiveEnd
-      ? (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12 + (effectiveEnd.getMonth() - effectiveStart.getMonth()) + 1
-      : 0
-    const totalVorauszahlung = vorauszahlung * monthsInPeriod
+    if (abrechnungScope === 'apartment') {
+      return { mode: 'apartment', ...computeForApt(abrechnungApt) }
+    }
+
+    // Bina modu
+    const building = buildings.find(b => b.id === abrechnungBld)
+    const bldApts = apartments.filter(a => a.building_id === abrechnungBld)
+    const rows = bldApts.map(a => computeForApt(a.id))
+
+    // Kategorileri bina bazında topla
+    const aggBy = {}
+    rows.forEach(r => r.byCategory.forEach(c => {
+      if (!aggBy[c.name]) aggBy[c.name] = { name: c.name, icon: c.icon, color: c.color, total: 0 }
+      aggBy[c.name].total += c.total
+    }))
+    const aggNonBy = {}
+    rows.forEach(r => r.nonBillableByCategory.forEach(c => {
+      if (!aggNonBy[c.name]) aggNonBy[c.name] = { name: c.name, total: 0 }
+      aggNonBy[c.name].total += c.total
+    }))
+
+    const totalBillable = rows.reduce((s, r) => s + r.totalBillable, 0)
+    const totalNonBillable = rows.reduce((s, r) => s + r.totalNonBillable, 0)
+    const totalVorauszahlung = rows.reduce((s, r) => s + r.totalVorauszahlung, 0)
+    const totalRent = rows.reduce((s, r) => s + r.annualRent, 0)
     const difference = totalBillable - totalVorauszahlung
 
-    // Apartment info
-    const apt = apartments.find(a => a.id === abrechnungApt)
-
-    // Non-billable by category
-    const nonBillableByCategory = {}
-    nonBillable.forEach(e => {
-      const catName = e.expense_categories?.name || 'Diğer'
-      if (!nonBillableByCategory[catName]) nonBillableByCategory[catName] = { name: catName, total: 0 }
-      nonBillableByCategory[catName].total += Number(e.amount)
-    })
-
-    // Annual rent
-    const annualRent = tenant ? (Number(tenant.rent) || 0) * monthsInPeriod : 0
-
     return {
-      apt, tenant, byCategory: Object.values(byCategory),
-      nonBillableByCategory: Object.values(nonBillableByCategory),
-      totalBillable, totalNonBillable, vorauszahlung,
-      monthsInPeriod, totalVorauszahlung, difference, annualRent,
-      effectiveStart, effectiveEnd
+      mode: 'building',
+      building,
+      apartmentRows: rows,
+      byCategory: Object.values(aggBy),
+      nonBillableByCategory: Object.values(aggNonBy),
+      totalBillable, totalNonBillable, totalVorauszahlung,
+      annualRent: totalRent, difference,
+      monthsInPeriod: periodMonths
     }
-  }, [showAbrechnung, abrechnungApt, abrechnungStart, abrechnungEnd, expenses, tenants, apartments])
+  }, [showAbrechnung, abrechnungScope, abrechnungApt, abrechnungBld, abrechnungStart, abrechnungEnd, expenses, tenants, apartments, buildings])
 
   /* ── PDF Export ── */
   const formatDateTR = (ds) => new Date(ds).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -538,8 +579,9 @@ export default function Expenses() {
     `
     document.body.appendChild(wrapper)
 
-    const aptLabel = apartmentLabel(d.apt)
-    const tenantLabel = d.tenant?.full_name || 'Aktif kiracı yok'
+    const isBuilding = d.mode === 'building'
+    const aptLabel = isBuilding ? '—' : apartmentLabel(d.apt)
+    const tenantLabel = isBuilding ? '—' : (d.tenant?.full_name || 'Aktif kiracı yok')
     const periodLabel = `${formatDateTR(abrechnungStart)} — ${formatDateTR(abrechnungEnd)}`
 
     const diffSign = d.difference > 0 ? '+' : ''
@@ -606,21 +648,77 @@ export default function Expenses() {
 
       <!-- Body -->
       <div style="padding:32px 48px 40px">
-        <!-- Property & Tenant Cards -->
+        <!-- Property / Building Info Cards -->
         <div style="display:flex;gap:16px;margin-bottom:32px">
-          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Mülk</div>
-            <div style="font-size:16px;font-weight:800;color:#0F172A">${aptLabel}</div>
-          </div>
-          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı</div>
-            <div style="font-size:16px;font-weight:800;color:#0F172A">${tenantLabel}</div>
-          </div>
-          <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Aidat</div>
-            <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.vorauszahlung)}</div>
-          </div>
+          ${isBuilding ? `
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Bina</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">${d.building?.name || '—'}</div>
+            </div>
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Daire Sayısı</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">${d.apartmentRows.length}</div>
+            </div>
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Toplam Aidat</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.totalVorauszahlung)}</div>
+            </div>
+          ` : `
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Mülk</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">${aptLabel}</div>
+            </div>
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">${tenantLabel}</div>
+            </div>
+            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Aidat</div>
+              <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.vorauszahlung)}</div>
+            </div>
+          `}
         </div>
+
+        ${isBuilding ? `
+          <!-- Daire Bazlı Dağılım -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
+            <h3 style="margin:0;font-size:14px;font-weight:700;color:#0F172A">Daire Bazlı Dağılım</h3>
+          </div>
+          <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:24px">
+            <thead>
+              <tr style="background:#F8FAFC">
+                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Daire</th>
+                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Kiracı</th>
+                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Yansıtılabilir</th>
+                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Aidat</th>
+                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Fark</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${d.apartmentRows.map(r => {
+                const floor = r.apt?.floor_no ? `Kat ${r.apt.floor_no} ` : ''
+                const label = `${floor}Daire ${r.apt?.unit_no || '—'}`
+                const dColor = r.difference > 0 ? '#DC2626' : r.difference < 0 ? '#059669' : '#0F172A'
+                const dSign = r.difference > 0 ? '+' : ''
+                return `
+                  <tr>
+                    <td style="padding:10px 14px;font-size:12px;font-weight:700;border-bottom:1px solid #F1F5F9">${label}</td>
+                    <td style="padding:10px 14px;font-size:12px;border-bottom:1px solid #F1F5F9;color:${r.tenant ? '#0F172A' : '#94A3B8'}">${r.tenant?.full_name || '— boş —'}</td>
+                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(r.totalBillable)}</td>
+                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:600;color:#64748B;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(r.totalVorauszahlung)}</td>
+                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:800;color:${dColor};border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${dSign}₺${m(Math.abs(r.difference))}</td>
+                  </tr>`
+              }).join('')}
+              <tr style="background:#F0FDF4">
+                <td colspan="2" style="padding:12px 14px;font-size:13px;font-weight:800;color:#059669;border-top:2px solid #BBF7D0">Bina Toplamı</td>
+                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:#059669;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:#059669;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</td>
+                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:${d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'};border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${d.difference > 0 ? '+' : ''}₺${m(Math.abs(d.difference))}</td>
+              </tr>
+            </tbody>
+          </table>
+        ` : ''}
 
         <!-- Billable Expenses -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -646,8 +744,8 @@ export default function Expenses() {
         <!-- Aidat -->
         <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px 20px;margin:20px 0;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:14px;font-weight:600;color:#0F172A">Aylık Aidat Ödemeleri</div>
-            <div style="font-size:12px;color:#94A3B8;margin-top:2px">${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)} / ay</div>
+            <div style="font-size:14px;font-weight:600;color:#0F172A">${isBuilding ? 'Bina Toplam Aidat' : 'Aylık Aidat Ödemeleri'}</div>
+            <div style="font-size:12px;color:#94A3B8;margin-top:2px">${isBuilding ? `${d.apartmentRows.length} daireden ${d.monthsInPeriod} aylık dönem` : `${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)} / ay`}</div>
           </div>
           <div style="font-size:16px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</div>
         </div>
@@ -727,8 +825,10 @@ export default function Expenses() {
       }
     }
 
-    const aptName = d.apt ? `${d.apt.buildings?.name || ''}_${d.apt.unit_no || ''}`.replace(/^_|_$/g, '') || 'rapor' : 'rapor'
-    doc.save(`Hesap_Kesimi_${aptName}_${abrechnungStart}_${abrechnungEnd}.pdf`.replace(/\s+/g, '_'))
+    const reportName = isBuilding
+      ? `Bina_${d.building?.name || 'rapor'}`
+      : (d.apt ? `${d.apt.buildings?.name || ''}_${d.apt.unit_no || ''}`.replace(/^_|_$/g, '') || 'rapor' : 'rapor')
+    doc.save(`Hesap_Kesimi_${reportName}_${abrechnungStart}_${abrechnungEnd}.pdf`.replace(/\s+/g, '_'))
   }, [abrechnungData, abrechnungStart, abrechnungEnd])
 
   /* ── Available years for filter ── */
@@ -1612,21 +1712,83 @@ export default function Expenses() {
               </div>
 
               <div style={{ padding: '24px 32px 32px' }}>
+                {/* Scope toggle */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>Kapsam</label>
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
+                    background: '#FAFBFC', border: `1.5px solid ${C.border}`,
+                    borderRadius: 10, padding: 4
+                  }}>
+                    {[
+                      { key: 'apartment', label: 'Tek Daire', Icon: Home },
+                      { key: 'building', label: 'Tüm Bina', Icon: Building2 }
+                    ].map(opt => {
+                      const active = abrechnungScope === opt.key
+                      const Icon = opt.Icon
+                      return (
+                        <motion.button
+                          key={opt.key}
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => {
+                            setAbrechnungScope(opt.key)
+                            setAbrechnungApt('')
+                            setAbrechnungBld('')
+                          }}
+                          style={{
+                            fontFamily: font, fontSize: 12, fontWeight: 700,
+                            padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                            background: active ? C.teal : 'transparent',
+                            color: active ? '#fff' : C.textMuted,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            transition: 'background 0.15s, color 0.15s'
+                          }}
+                        >
+                          <Icon size={14} />
+                          {opt.label}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Selection */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
-                  <div>
-                    <label style={labelStyle}>Mülk</label>
-                    <select
-                      value={abrechnungApt}
-                      onChange={e => setAbrechnungApt(e.target.value)}
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                    >
-                      <option value="">Seçin...</option>
-                      {apartments.map(a => (
-                        <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {abrechnungScope === 'apartment' ? (
+                    <div>
+                      <label style={labelStyle}>Mülk</label>
+                      <select
+                        value={abrechnungApt}
+                        onChange={e => setAbrechnungApt(e.target.value)}
+                        style={{ ...inputStyle, cursor: 'pointer' }}
+                      >
+                        <option value="">Seçin...</option>
+                        {apartments.map(a => (
+                          <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={labelStyle}>Bina</label>
+                      <select
+                        value={abrechnungBld}
+                        onChange={e => setAbrechnungBld(e.target.value)}
+                        style={{ ...inputStyle, cursor: 'pointer' }}
+                      >
+                        <option value="">Seçin...</option>
+                        {buildings.map(b => {
+                          const count = apartments.filter(a => a.building_id === b.id).length
+                          return (
+                            <option key={b.id} value={b.id} disabled={count === 0}>
+                              {b.name} ({count} daire)
+                            </option>
+                          )
+                        })}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label style={labelStyle}>Başlangıç</label>
                     <input
@@ -1648,32 +1810,135 @@ export default function Expenses() {
                 {/* Report Content */}
                 {abrechnungData ? (
                   <div>
-                    {/* Tenant & Property Info */}
+                    {/* Info strip */}
                     <div style={{
                       background: '#F8FAFC', borderRadius: 12, padding: '14px 18px',
                       marginBottom: 20, border: `1px solid ${C.borderLight}`
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mülk</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {apartmentLabel(abrechnungData.apt)}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Kiracı</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {abrechnungData.tenant?.full_name || 'Aktif kiracı yok'}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                            {abrechnungData.monthsInPeriod} Ay
-                          </div>
-                        </div>
+                        {abrechnungData.mode === 'building' ? (
+                          <>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Bina</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {abrechnungData.building?.name || '—'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Daire Sayısı</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {abrechnungData.apartmentRows.length}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {abrechnungData.monthsInPeriod} Ay
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mülk</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {apartmentLabel(abrechnungData.apt)}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Kiracı</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {abrechnungData.tenant?.full_name || 'Aktif kiracı yok'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {abrechnungData.monthsInPeriod} Ay
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
+
+                    {/* Daire Bazlı Dağılım (building mode) */}
+                    {abrechnungData.mode === 'building' && (
+                      <>
+                        <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 4, height: 16, borderRadius: 2, background: C.teal }} />
+                          Daire Bazlı Dağılım
+                        </h4>
+                        <div style={{
+                          borderRadius: 12, border: `1px solid ${C.borderLight}`,
+                          overflow: 'hidden', marginBottom: 20
+                        }}>
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1.3fr 1.4fr 1fr 1fr 1fr',
+                            padding: '10px 16px', background: '#F8FAFC',
+                            fontSize: 10, fontWeight: 700, color: C.textFaint,
+                            textTransform: 'uppercase', letterSpacing: '0.5px',
+                            borderBottom: `1px solid ${C.borderLight}`
+                          }}>
+                            <div>Daire</div>
+                            <div>Kiracı</div>
+                            <div style={{ textAlign: 'right' }}>Yansıtılabilir</div>
+                            <div style={{ textAlign: 'right' }}>Aidat</div>
+                            <div style={{ textAlign: 'right' }}>Fark</div>
+                          </div>
+                          {abrechnungData.apartmentRows.map((r, i) => {
+                            const diffColor = r.difference > 0 ? '#DC2626' : r.difference < 0 ? '#059669' : C.text
+                            const floor = r.apt?.floor_no ? `Kat ${r.apt.floor_no} ` : ''
+                            const label = `${floor}Daire ${r.apt?.unit_no || '—'}`
+                            return (
+                              <div key={i} style={{
+                                display: 'grid', gridTemplateColumns: '1.3fr 1.4fr 1fr 1fr 1fr',
+                                padding: '10px 16px', alignItems: 'center',
+                                borderBottom: i < abrechnungData.apartmentRows.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+                                fontSize: 12
+                              }}>
+                                <div style={{ fontWeight: 700, color: C.text }}>{label}</div>
+                                <div style={{ color: r.tenant ? C.text : C.textFaint, fontWeight: 500 }}>
+                                  {r.tenant?.full_name || '— boş —'}
+                                </div>
+                                <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                                  ₺{money(r.totalBillable)}
+                                </div>
+                                <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: C.textMuted }}>
+                                  ₺{money(r.totalVorauszahlung)}
+                                </div>
+                                <div style={{
+                                  textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                                  fontWeight: 800, color: diffColor
+                                }}>
+                                  {r.difference > 0 ? '+' : ''}₺{money(Math.abs(r.difference))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1.3fr 1.4fr 1fr 1fr 1fr',
+                            padding: '12px 16px', background: '#F0FDF4',
+                            borderTop: `1px solid ${C.borderLight}`,
+                            fontSize: 12, fontWeight: 800
+                          }}>
+                            <div style={{ gridColumn: '1 / 3', color: '#059669' }}>Bina Toplamı</div>
+                            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#059669' }}>
+                              ₺{money(abrechnungData.totalBillable)}
+                            </div>
+                            <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#059669' }}>
+                              ₺{money(abrechnungData.totalVorauszahlung)}
+                            </div>
+                            <div style={{
+                              textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                              color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
+                            }}>
+                              {abrechnungData.difference > 0 ? '+' : ''}₺{money(Math.abs(abrechnungData.difference))}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {/* Umlagefähige Kosten */}
                     <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1732,9 +1997,13 @@ export default function Expenses() {
                         padding: '12px 16px', alignItems: 'center'
                       }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>Aylık Aidat</div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>
+                            {abrechnungData.mode === 'building' ? 'Bina Toplam Aidat' : 'Aylık Aidat'}
+                          </div>
                           <div style={{ fontSize: 11, color: C.textFaint }}>
-                            {abrechnungData.monthsInPeriod} ay × ₺{money(abrechnungData.vorauszahlung)}/ay
+                            {abrechnungData.mode === 'building'
+                              ? `${abrechnungData.apartmentRows.length} daireden ${abrechnungData.monthsInPeriod} aylık dönem`
+                              : `${abrechnungData.monthsInPeriod} ay × ₺${money(abrechnungData.vorauszahlung)}/ay`}
                           </div>
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
@@ -1839,7 +2108,11 @@ export default function Expenses() {
                 ) : (
                   <div style={{ padding: 32, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
                     <FileText size={32} color={C.textFaint} style={{ marginBottom: 12 }} />
-                    <div>Rapor oluşturmak için bir mülk seçin.</div>
+                    <div>
+                      {abrechnungScope === 'building'
+                        ? 'Rapor oluşturmak için bir bina seçin.'
+                        : 'Rapor oluşturmak için bir mülk seçin.'}
+                    </div>
                   </div>
                 )}
               </div>
