@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
-  DollarSign, BarChart3, FileText, Settings, HelpCircle,
+  DollarSign, BarChart3, FileText, HelpCircle,
   Home, PanelLeftClose, ChevronDown
 } from 'lucide-react'
 
@@ -17,7 +17,6 @@ const ICON_MAP = {
   dollar: DollarSign,
   chart: BarChart3,
   file: FileText,
-  settings: Settings,
   help: HelpCircle,
   home: Home,
   collapse: PanelLeftClose
@@ -136,18 +135,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
       {/* Bottom */}
       <div className="sb-bottom">
         <div className="nav-section" style={{ paddingBottom: 4 }}>
-          <motion.a
-            className="nav-item"
-            data-tooltip="Ayarlar"
-            onClick={() => goTo('/settings')}
-            whileHover={{ x: 2 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          >
-            <span className="nav-item-icon">
-              <Settings className="w-[18px] h-[18px]" />
-            </span>
-            <span className="nav-item-text">Ayarlar</span>
-          </motion.a>
           <motion.a
             className="nav-item"
             data-tooltip="Yardim"

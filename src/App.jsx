@@ -16,7 +16,6 @@ import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
 import Accounting from './pages/Accounting'
 import EmptyPage from './pages/EmptyPage'
-import Settings from './pages/Settings'
 
 /* ── Auth korumasi ── */
 function ProtectedApp() {
@@ -42,7 +41,6 @@ function ProtectedApp() {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/accounting" element={<Accounting />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />
-        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

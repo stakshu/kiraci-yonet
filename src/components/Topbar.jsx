@@ -13,8 +13,7 @@ const ROUTE_TITLES = {
   '/payments/history': 'Odeme Gecmisi',
   '/expenses': 'Giderler',
   '/accounting': 'Muhasebe',
-  '/documents': 'Belgeler',
-  '/settings': 'Ayarlar'
+  '/documents': 'Belgeler'
 }
 
 export default function Topbar({ pathname }) {

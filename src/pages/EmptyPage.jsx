@@ -3,8 +3,7 @@
 const PAGE_INFO = {
   '/expenses':             { title: 'Giderler', phase: 'Faz 8', icon: 'dollar', color: 'amber' },
   '/accounting':           { title: 'Muhasebe', phase: 'Faz 10', icon: 'chart', color: 'blue' },
-  '/documents':            { title: 'Belgeler', phase: 'Faz 12', icon: 'folder', color: 'amber' },
-  '/settings':             { title: 'Ayarlar', phase: 'Faz 14', icon: 'settings', color: 'blue' }
+  '/documents':            { title: 'Belgeler', phase: 'Faz 12', icon: 'folder', color: 'amber' }
 }
 
 const ICONS = {
