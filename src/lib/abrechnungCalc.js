@@ -66,7 +66,11 @@ export function computeApartmentRollup({
   const apt = apartments.find(a => a.id === aptId)
   if (!apt) return null
 
-  const buildingApts = apartments.filter(a => a.building_id === apt.building_id)
+  // Sadece kiracılı daireler denominator'a girer — boş daire payı aktif kiracılara
+  // eşit şekilde yayılsın (m²/kişi/daire oranları kiracılı daireler üzerinden).
+  const buildingApts = apartments.filter(
+    a => a.building_id === apt.building_id && tenantsByApt[a.id]
+  )
   const withinPeriod = (e) => {
     const d = new Date(e.expense_date)
     return d >= start && d <= end
@@ -188,8 +192,8 @@ export function computeBuildingRollup({
   end,
 }) {
   const building = buildings.find(b => b.id === buildingId)
-  // Bina içindeki tüm daireler — denominator (m²/kişi) hesabı için.
-  // Boş daire payı kimseye yansıtılmaz; ev sahibi üstlenir (Leerstand).
+  // Sadece kiracılı daireler — hem bill satırı hem de denominator bunlardan üretilir.
+  // Boş daire paydaya dahil değil, kalan kiracılar tüm maliyeti paylaşır.
   const occupiedApts = apartments.filter(
     a => a.building_id === buildingId && tenantsByApt[a.id]
   )
