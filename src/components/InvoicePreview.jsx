@@ -73,13 +73,29 @@ export default function InvoicePreview({
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Instrument+Sans:wght@400;500;600&display=swap');
 
         .invoice-backdrop {
-          position: fixed; inset: 0; z-index: 9999;
+          position: fixed;
+          top: 60px;
+          left: var(--sb-w);
+          right: 0;
+          bottom: 0;
+          z-index: 1200;
           background: #1c1a17;
           background-image:
             radial-gradient(circle at 22% 12%, rgba(200,90,60,.06), transparent 45%),
             radial-gradient(circle at 78% 88%, rgba(45,90,63,.06), transparent 45%);
           overflow-y: auto;
           padding: 28px 24px 80px;
+        }
+        body.collapsed .invoice-backdrop { left: var(--sb-w-col); }
+        @media (max-width: 768px) {
+          .invoice-backdrop { left: 0; }
+        }
+        @media print {
+          .invoice-backdrop {
+            position: static !important;
+            top: auto !important; left: auto !important;
+            right: auto !important; bottom: auto !important;
+          }
         }
         .invoice-toolbar {
           position: sticky; top: 0; z-index: 5;
