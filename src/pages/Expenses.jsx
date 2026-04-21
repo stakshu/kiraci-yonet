@@ -103,7 +103,7 @@ const DEFAULT_CATEGORIES = [
 
 /* ── Empty Form ── */
 const EMPTY_EXPENSE = {
-  scope: 'apartment', // 'apartment' | 'building'
+  scope: 'building', // 'apartment' | 'building'
   apartment_id: '', building_id: '', category_id: '', amount: '',
   distribution_key: 'equal',
   expense_date: new Date().toISOString().split('T')[0],
@@ -144,7 +144,7 @@ export default function Expenses() {
 
   // Abrechnung
   const [showAbrechnung, setShowAbrechnung] = useState(false)
-  const [abrechnungScope, setAbrechnungScope] = useState('apartment') // 'apartment' | 'building'
+  const [abrechnungScope, setAbrechnungScope] = useState('building') // 'apartment' | 'building'
   const [abrechnungApt, setAbrechnungApt] = useState('')
   const [abrechnungBld, setAbrechnungBld] = useState('')
   const [abrechnungStart, setAbrechnungStart] = useState(`${new Date().getFullYear()}-01-01`)
@@ -1513,8 +1513,8 @@ export default function Expenses() {
                       borderRadius: 10, padding: 4
                     }}>
                       {[
-                        { key: 'apartment', label: 'Tek Daire', Icon: Home },
-                        { key: 'building', label: 'Tüm Bina', Icon: Building2 }
+                        { key: 'building', label: 'Tüm Bina', Icon: Building2 },
+                        { key: 'apartment', label: 'Tek Daire', Icon: Home }
                       ].map(opt => {
                         const active = expenseForm.scope === opt.key
                         const Icon = opt.Icon
@@ -2079,8 +2079,8 @@ export default function Expenses() {
                     borderRadius: 10, padding: 4
                   }}>
                     {[
-                      { key: 'apartment', label: 'Tek Daire', Icon: Home },
-                      { key: 'building', label: 'Tüm Bina', Icon: Building2 }
+                      { key: 'building', label: 'Tüm Bina', Icon: Building2 },
+                      { key: 'apartment', label: 'Tek Daire', Icon: Home }
                     ].map(opt => {
                       const active = abrechnungScope === opt.key
                       const Icon = opt.Icon
