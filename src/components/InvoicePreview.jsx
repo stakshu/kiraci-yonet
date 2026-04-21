@@ -73,7 +73,7 @@ export default function InvoicePreview({
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Instrument+Sans:wght@400;500;600&display=swap');
 
         .invoice-backdrop {
-          position: fixed; inset: 0; z-index: 1200;
+          position: fixed; inset: 0; z-index: 9999;
           background: #1c1a17;
           background-image:
             radial-gradient(circle at 22% 12%, rgba(200,90,60,.06), transparent 45%),
