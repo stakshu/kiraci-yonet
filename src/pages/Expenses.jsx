@@ -848,23 +848,6 @@ export default function Expenses() {
         </div>
 
         ${nonBillableSection}
-
-        <!-- Summary -->
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:18px 24px;margin-top:28px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:13px;color:#64748B">Net Kira (Dönem)</span>
-            <span style="font-size:13px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.annualRent)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <span style="font-size:13px;color:#64748B">+ Yan Giderler (yansıtılabilir)</span>
-            <span style="font-size:13px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</span>
-          </div>
-          <div style="height:1px;background:#CBD5E1;margin:4px 0 12px"></div>
-          <div style="display:flex;justify-content:space-between">
-            <span style="font-size:15px;font-weight:800;color:#025864">Brüt Kira (Dönem)</span>
-            <span style="font-size:15px;font-weight:800;color:#025864;font-variant-numeric:tabular-nums">₺${m(d.annualRent + d.totalBillable)}</span>
-          </div>
-        </div>
       </div>
 
       <!-- Footer -->
@@ -2590,27 +2573,6 @@ export default function Expenses() {
                       </>
                     )}
 
-                    {/* Summary: Kaltmiete + Nebenkosten = Warmmiete */}
-                    <div style={{
-                      borderRadius: 12, background: '#F8FAFC', padding: '14px 18px',
-                      border: `1px solid ${C.borderLight}`, fontSize: 13
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: C.textMuted }}>Net Kira (Dönem)</span>
-                        <span style={{ fontWeight: 700 }}>₺{money(abrechnungData.annualRent)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ color: C.textMuted }}>+ Yan Giderler (yansıtılabilir)</span>
-                        <span style={{ fontWeight: 700 }}>₺{money(abrechnungData.totalBillable)}</span>
-                      </div>
-                      <div style={{ height: 1, background: C.border, margin: '8px 0' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 800, color: C.text }}>Brüt Kira (Dönem)</span>
-                        <span style={{ fontWeight: 800, color: C.teal, fontSize: 15 }}>
-                          ₺{money(abrechnungData.annualRent + abrechnungData.totalBillable)}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   <div style={{ padding: 32, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
