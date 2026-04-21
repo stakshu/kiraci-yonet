@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
 import BuildingExpenseSheet from '../components/BuildingExpenseSheet'
@@ -54,18 +55,18 @@ const fadeItem = {
 }
 
 const cardBox = {
-  background: C.card, borderRadius: 16,
-  boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06)',
+  background: 'var(--card)', borderRadius: 16,
+  boxShadow: 'var(--card-shadow)',
   overflow: 'hidden'
 }
 
 const inputStyle = {
   fontFamily: font, fontSize: 13, padding: '10px 14px',
-  borderRadius: 10, border: `1.5px solid ${C.border}`,
-  background: '#FAFBFC', color: C.text, outline: 'none',
+  borderRadius: 10, border: '1.5px solid var(--input-border)',
+  background: 'var(--input-bg)', color: 'var(--text)', outline: 'none',
   width: '100%', boxSizing: 'border-box'
 }
-const labelStyle = { fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }
+const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, display: 'block' }
 
 /* ── Icon Map ── */
 const ICON_MAP = {
@@ -124,6 +125,30 @@ const EMPTY_CATEGORY = {
 export default function Expenses() {
   const { user } = useAuth()
   const { showToast } = useToast()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  /* ── Theme-aware palette (shadows module-level C inside this component) ── */
+  const C = useMemo(() => ({
+    teal:      isDark ? '#00B4C7' : '#025864',
+    green:     '#00D47E',
+    darkTeal:  '#03363D',
+    red:       isDark ? '#F87171' : '#DC2626',
+    amber:     isDark ? '#FBBF24' : '#D97706',
+    blue:      isDark ? '#60A5FA' : '#2563EB',
+    text:      isDark ? '#E8EEF5' : '#0F172A',
+    textMuted: isDark ? '#98A4B5' : '#64748B',
+    textFaint: isDark ? '#64748B' : '#94A3B8',
+    border:    isDark ? '#283544' : '#E5E7EB',
+    borderLight: isDark ? '#1F2A36' : '#F1F5F9',
+    card:      isDark ? '#161E27' : '#FFFFFF',
+    pageBg:    isDark ? '#0B1117' : '#F0F2F5',
+    // Status pill backgrounds (auto-translucent in dark)
+    greenBg:   isDark ? 'rgba(52,211,153,0.14)' : '#ECFDF5',
+    greenFg:   isDark ? '#6EE7B7' : '#059669',
+    redBg:     isDark ? 'rgba(248,113,113,0.14)' : '#FEF2F2',
+    redFg:     isDark ? '#FCA5A5' : '#DC2626',
+  }), [isDark])
 
   /* ── State ── */
   const [expenses, setExpenses] = useState([])
@@ -1107,9 +1132,7 @@ export default function Expenses() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '14px 20px',
-                        background: isOpen
-                          ? 'linear-gradient(90deg, rgba(2,88,100,0.08), rgba(2,88,100,0.02))'
-                          : '#FAFBFC',
+                        background: isOpen ? 'var(--row-bg-open)' : 'var(--row-bg-closed)',
                         cursor: 'pointer',
                         transition: 'background 0.15s',
                       }}
@@ -1175,7 +1198,7 @@ export default function Expenses() {
                           {/* Building-scope block */}
                           {group.buildingScope.length > 0 && (
                             <div style={{
-                              background: 'rgba(2,88,100,0.02)',
+                              background: 'var(--accent-tint-bg)',
                               borderTop: `1px solid ${C.borderLight}`,
                               padding: '12px 20px 14px 50px',
                             }}>
@@ -1201,7 +1224,7 @@ export default function Expenses() {
                                     key={exp.id}
                                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2, delay: idx * 0.02 }}
-                                    whileHover={{ backgroundColor: 'rgba(2,88,100,0.05)' }}
+                                    whileHover={{ backgroundColor: isDark ? 'rgba(0,180,199,0.12)' : 'rgba(2,88,100,0.05)' }}
                                     onClick={() => openEditExpense(exp)}
                                     style={{
                                       display: 'grid',
@@ -1237,8 +1260,8 @@ export default function Expenses() {
                                     </span>
                                     <span style={{
                                       fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
-                                      background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
-                                      color: exp.is_tenant_billed ? '#059669' : '#DC2626',
+                                      background: exp.is_tenant_billed ? C.greenBg : C.redBg,
+                                      color: exp.is_tenant_billed ? C.greenFg : C.redFg,
                                     }}>
                                       {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
                                     </span>
@@ -1281,7 +1304,7 @@ export default function Expenses() {
                                     display: 'flex', alignItems: 'center', gap: 12,
                                     padding: '12px 20px 12px 50px',
                                     cursor: 'pointer',
-                                    background: aptOpen ? '#F8FAFC' : '#fff',
+                                    background: aptOpen ? 'var(--row-bg-soft)' : 'var(--card)',
                                     transition: 'background 0.15s',
                                   }}
                                 >
@@ -1319,14 +1342,14 @@ export default function Expenses() {
                                       animate={{ height: 'auto', opacity: 1 }}
                                       exit={{ height: 0, opacity: 0 }}
                                       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                                      style={{ overflow: 'hidden', background: '#FDFDFE' }}
+                                      style={{ overflow: 'hidden', background: 'var(--row-bg-soft-2)' }}
                                     >
                                       {aptGroup.rows.map((exp, idx) => (
                                         <motion.div
                                           key={exp.id}
                                           initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                                           transition={{ duration: 0.18, delay: idx * 0.02 }}
-                                          whileHover={{ backgroundColor: '#F1F5F9' }}
+                                          whileHover={{ backgroundColor: isDark ? '#1B242F' : '#F1F5F9' }}
                                           onClick={() => openEditExpense(exp)}
                                           style={{
                                             display: 'grid',
@@ -1355,8 +1378,8 @@ export default function Expenses() {
                                           </div>
                                           <span style={{
                                             fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
-                                            background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
-                                            color: exp.is_tenant_billed ? '#059669' : '#DC2626',
+                                            background: exp.is_tenant_billed ? C.greenBg : C.redBg,
+                                            color: exp.is_tenant_billed ? C.greenFg : C.redFg,
                                           }}>
                                             {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
                                           </span>
@@ -1459,7 +1482,7 @@ export default function Expenses() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+              position: 'fixed', inset: 0, background: 'var(--modal-overlay)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
@@ -1474,7 +1497,7 @@ export default function Expenses() {
               style={{
                 background: C.card, borderRadius: 20, padding: 32, width: 520,
                 maxHeight: '85vh', overflow: 'auto',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.15)'
+                boxShadow: 'var(--modal-shadow)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -1765,7 +1788,7 @@ export default function Expenses() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+              position: 'fixed', inset: 0, background: 'var(--modal-overlay)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
@@ -1780,7 +1803,7 @@ export default function Expenses() {
               style={{
                 background: C.card, borderRadius: 20, padding: 32, width: 600,
                 maxHeight: '85vh', overflow: 'auto',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.15)'
+                boxShadow: 'var(--modal-shadow)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -2000,7 +2023,7 @@ export default function Expenses() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+              position: 'fixed', inset: 0, background: 'var(--modal-overlay)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
@@ -2015,7 +2038,7 @@ export default function Expenses() {
               style={{
                 background: C.card, borderRadius: 20, padding: 0, width: 680,
                 maxHeight: '90vh', overflow: 'auto',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.2)'
+                boxShadow: 'var(--modal-shadow)'
               }}
             >
               {/* Header */}
@@ -2593,7 +2616,7 @@ export default function Expenses() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+              position: 'fixed', inset: 0, background: 'var(--modal-overlay)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               zIndex: 1100, backdropFilter: 'blur(4px)'
             }}
@@ -2607,7 +2630,7 @@ export default function Expenses() {
               onClick={e => e.stopPropagation()}
               style={{
                 background: C.card, borderRadius: 16, padding: 0, width: 400,
-                boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden'
+                boxShadow: 'var(--modal-shadow)', overflow: 'hidden'
               }}
             >
               <div style={{

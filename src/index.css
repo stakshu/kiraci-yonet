@@ -39,6 +39,22 @@
   --blue: #025864;
   --blue-bg: #E6F3F5;
   --blue-text: #025864;
+
+  /* Surface tokens (Expenses + future page migrations) */
+  --border-soft: #F1F5F9;
+  --input-bg: #FAFBFC;
+  --input-border: #E5E7EB;
+  --card-shadow: 0 0 0 1px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.06);
+  --card-shadow-hover: 0 8px 30px rgba(15,23,42,0.10);
+  --row-bg-closed: #FAFBFC;
+  --row-bg-open: linear-gradient(90deg, rgba(2,88,100,0.08), rgba(2,88,100,0.02));
+  --row-bg-soft: #F8FAFC;
+  --row-bg-soft-2: #FDFDFE;
+  --row-bg-hover: #F1F5F9;
+  --accent-tint-bg: rgba(2,88,100,0.02);
+  --accent-tint-hover: rgba(2,88,100,0.05);
+  --modal-overlay: rgba(0,0,0,0.4);
+  --modal-shadow: 0 25px 60px rgba(15,23,42,0.15);
 }
 
 /* ── Dark Mode — Sequence Theme ── */
@@ -71,17 +87,33 @@
 
   /* Status — translucent so they sit naturally on dark cards */
   --green: #34D399;
-  --green-bg: rgba(52,211,153,0.12);
+  --green-bg: rgba(52,211,153,0.14);
   --green-text: #6EE7B7;
   --red: #F87171;
-  --red-bg: rgba(248,113,113,0.12);
+  --red-bg: rgba(248,113,113,0.14);
   --red-text: #FCA5A5;
   --amber: #FBBF24;
-  --amber-bg: rgba(251,191,36,0.10);
+  --amber-bg: rgba(251,191,36,0.12);
   --amber-text: #FCD34D;
   --blue: #60A5FA;
-  --blue-bg: rgba(96,165,250,0.12);
+  --blue-bg: rgba(96,165,250,0.14);
   --blue-text: #93C5FD;
+
+  /* Surface tokens — dark equivalents */
+  --border-soft: #1F2A36;
+  --input-bg: #131A22;
+  --input-border: #283544;
+  --card-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 6px 18px rgba(0,0,0,0.45);
+  --card-shadow-hover: 0 10px 32px rgba(0,0,0,0.6);
+  --row-bg-closed: #131A22;
+  --row-bg-open: linear-gradient(90deg, rgba(0,180,199,0.18), rgba(0,180,199,0.04));
+  --row-bg-soft: #131A22;
+  --row-bg-soft-2: #131A22;
+  --row-bg-hover: #1B242F;
+  --accent-tint-bg: rgba(0,180,199,0.06);
+  --accent-tint-hover: rgba(0,180,199,0.12);
+  --modal-overlay: rgba(0,0,0,0.7);
+  --modal-shadow: 0 25px 60px rgba(0,0,0,0.6);
 }
 
 /* ── Dark Mode — Inline-Style Bridge ─────────────────────────────────────
