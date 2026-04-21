@@ -166,6 +166,7 @@ export default function Expenses() {
   // Accordion state
   const [expandedBuildings, setExpandedBuildings] = useState(() => new Set())
   const [expandedApartments, setExpandedApartments] = useState(() => new Set())
+  const [expandedAbrechnungCats, setExpandedAbrechnungCats] = useState(() => new Set())
 
   // Building monthly expense sheet
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -2379,42 +2380,113 @@ export default function Expenses() {
                       ) : (
                         <>
                           <div style={{
-                            display: 'grid', gridTemplateColumns: '1fr auto',
-                            padding: '10px 16px', background: '#F8FAFC',
-                            fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
-                            borderBottom: `1px solid ${C.borderLight}`
+                            display: 'grid', gridTemplateColumns: '32px 1.2fr 1.7fr 150px',
+                            gap: 14, padding: '14px 22px', background: '#FFFBF5',
+                            fontSize: 10, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '1px',
+                            borderBottom: `1px solid #FCD9A8`
                           }}>
-                            <div>Gider Kalemi</div>
-                            <div>Tutar</div>
+                            <div />
+                            <div>Kalem</div>
+                            <div>Anahtar · Dağıtım</div>
+                            <div style={{ textAlign: 'right' }}>Toplam (₺)</div>
                           </div>
                           {abrechnungData.byCategory.length === 0 ? (
                             <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
                               Bu dönemde yansıtılabilir gider bulunamadı
                             </div>
                           ) : (
-                            abrechnungData.byCategory.map((cat, i) => (
-                              <div key={i} style={{
-                                display: 'grid', gridTemplateColumns: '1fr auto',
-                                padding: '10px 16px', alignItems: 'center',
-                                borderBottom: i < abrechnungData.byCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500 }}>
-                                  <CategoryIcon name={cat.icon} size={14} color={cat.color} />
-                                  {cat.name}
+                            abrechnungData.byCategory.map((cat, i) => {
+                              const dk = getDistributionKey(cat.distKey)
+                              const catKey = `${cat.name}__${i}`
+                              const open = expandedAbrechnungCats.has(catKey)
+                              const isAptScope = !cat.isBuildingScope
+                              const scopeLabel = isAptScope ? 'Daire Özel' : 'Bina Geneli'
+                              const perApts = (cat.perApartment || []).filter(p => p.share > 0)
+                              const expandable = perApts.length > 0
+                              const isLast = i === abrechnungData.byCategory.length - 1
+                              return (
+                                <div key={i} style={{
+                                  borderBottom: !isLast ? `1px solid ${C.borderLight}` : 'none',
+                                  background: open ? '#FFFDF8' : 'transparent', transition: 'background 0.15s'
+                                }}>
+                                  <div
+                                    onClick={() => expandable && setExpandedAbrechnungCats(prev => {
+                                      const next = new Set(prev)
+                                      next.has(catKey) ? next.delete(catKey) : next.add(catKey)
+                                      return next
+                                    })}
+                                    style={{
+                                      display: 'grid', gridTemplateColumns: '32px 1.2fr 1.7fr 150px',
+                                      gap: 14, padding: '14px 22px', alignItems: 'center',
+                                      cursor: expandable ? 'pointer' : 'default',
+                                    }}
+                                  >
+                                    <div style={{ color: C.textFaint, display: 'flex', alignItems: 'center' }}>
+                                      {expandable && (
+                                        <ChevronRight
+                                          size={14}
+                                          style={{
+                                            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
+                                            transition: 'transform 0.2s',
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: C.text, minWidth: 0 }}>
+                                      <CategoryIcon name={cat.icon} size={14} color={cat.color} />
+                                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
+                                    </div>
+                                    <div style={{
+                                      fontSize: 13, fontStyle: 'italic', color: '#8A7A5E',
+                                      fontWeight: 400, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                    }}>
+                                      {dk.label} · {scopeLabel}
+                                    </div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                      {money2(cat.total)} ₺
+                                    </div>
+                                  </div>
+                                  {open && expandable && (
+                                    <div style={{
+                                      background: '#FFFBF0', borderTop: '1px solid #FDEEC6',
+                                      padding: '8px 22px 14px 68px',
+                                    }}>
+                                      {perApts.map((p, pi) => (
+                                        <div key={pi} style={{
+                                          display: 'grid', gridTemplateColumns: '1.4fr 1.6fr 150px',
+                                          gap: 12, padding: '8px 0', alignItems: 'center',
+                                          borderBottom: pi < perApts.length - 1 ? '1px dashed #F3E4C3' : 'none',
+                                          fontSize: 12,
+                                        }}>
+                                          <div style={{ color: C.textMuted, fontWeight: 500, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {apartmentLabel(p.aptLabel)}
+                                            {p.tenantName && (
+                                              <span style={{ color: C.textFaint, marginLeft: 6, fontWeight: 400 }}>· {p.tenantName}</span>
+                                            )}
+                                          </div>
+                                          <div style={{ color: '#8A7A5E', fontStyle: 'italic', fontSize: 11 }}>
+                                            {p.keyLabel}
+                                          </div>
+                                          <div style={{ textAlign: 'right', fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                                            {money2(p.share)} ₺
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                                  ₺{money(cat.total)}
-                                </div>
-                              </div>
-                            ))
+                              )
+                            })
                           )}
                           <div style={{
-                            display: 'grid', gridTemplateColumns: '1fr auto',
-                            padding: '12px 16px', background: '#F0FDF4',
-                            borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
+                            display: 'grid', gridTemplateColumns: '32px 1.2fr 1.7fr 150px',
+                            gap: 14, padding: '16px 22px', background: '#F0FDF4',
+                            borderTop: `2px solid #BBF7D0`, fontWeight: 800, fontSize: 14
                           }}>
-                            <div style={{ color: '#059669' }}>Toplam yansıtılabilir</div>
-                            <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
+                            <div />
+                            <div style={{ color: '#059669' }}>Toplam Yansıtılabilir</div>
+                            <div />
+                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money2(abrechnungData.totalBillable)} ₺</div>
                           </div>
                         </>
                       )}

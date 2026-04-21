@@ -211,9 +211,17 @@ export function computeBuildingRollup({
   apartmentRows.forEach(r => {
     r.byCategory.forEach(c => {
       if (!aggBy[c.name]) {
-        aggBy[c.name] = { name: c.name, icon: c.icon, color: c.color, total: 0 }
+        aggBy[c.name] = {
+          name: c.name, icon: c.icon, color: c.color,
+          distKey: c.distKey, isBuildingScope: c.isBuildingScope,
+          total: 0, perApartment: [],
+        }
       }
       aggBy[c.name].total += c.share
+      aggBy[c.name].perApartment.push({
+        aptId: r.apt.id, aptLabel: r.apt, tenantName: r.tenant?.full_name || null,
+        share: c.share, keyLabel: c.keyLabel,
+      })
     })
     r.nonBillableByCategory.forEach(c => {
       if (!aggNonBy[c.name]) {
