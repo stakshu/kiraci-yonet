@@ -36,7 +36,6 @@ export default function InvoicePreview({
   end,
   apartments = [],
   tenantsByApt = {},
-  landlordEmail = '',
   onClose,
   onBackToEdit,
 }) {
@@ -225,9 +224,6 @@ export default function InvoicePreview({
 
         /* Parties */
         .inv-parties {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 36px;
           margin-bottom: 28px;
         }
         .inv-parties h3 {
@@ -418,10 +414,6 @@ export default function InvoicePreview({
 
           {/* PARTIES */}
           <div className="inv-parties">
-            <div>
-              <h3>Ev Sahibi</h3>
-              <div className="party-body">{landlordEmail || 'Mülk Sahibi'}</div>
-            </div>
             <div>
               <h3>Kiracı</h3>
               <div className="party-body">

@@ -2400,7 +2400,6 @@ export default function Expenses() {
             end={abrechnungEnd}
             apartments={apartments}
             tenantsByApt={tenantsByApt}
-            landlordEmail={user?.email || ''}
             onClose={() => setShowInvoice(false)}
             onBackToEdit={() => setShowInvoice(false)}
           />
