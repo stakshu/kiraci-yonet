@@ -188,9 +188,13 @@ export function computeBuildingRollup({
   end,
 }) {
   const building = buildings.find(b => b.id === buildingId)
-  const bldApts = apartments.filter(a => a.building_id === buildingId)
+  // Bina içindeki tüm daireler — denominator (m²/kişi) hesabı için.
+  // Boş daire payı kimseye yansıtılmaz; ev sahibi üstlenir (Leerstand).
+  const occupiedApts = apartments.filter(
+    a => a.building_id === buildingId && tenantsByApt[a.id]
+  )
 
-  const apartmentRows = bldApts
+  const apartmentRows = occupiedApts
     .map(a => computeApartmentRollup({
       aptId: a.id, apartments, expenses, tenantsByApt, start, end,
     }))

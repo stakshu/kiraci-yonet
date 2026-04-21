@@ -2122,9 +2122,14 @@ export default function Expenses() {
                         style={{ ...inputStyle, cursor: 'pointer' }}
                       >
                         <option value="">Seçin...</option>
-                        {apartments.map(a => (
-                          <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
-                        ))}
+                        {apartments.map(a => {
+                          const occupied = !!tenantsByApt[a.id]
+                          return (
+                            <option key={a.id} value={a.id} disabled={!occupied}>
+                              {apartmentLabel(a)}{occupied ? '' : ' — Boş'}
+                            </option>
+                          )
+                        })}
                       </select>
                     </div>
                   ) : (
