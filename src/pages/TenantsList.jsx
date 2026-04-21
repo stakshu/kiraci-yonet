@@ -7,8 +7,8 @@ import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
-  UserCheck, UserX, AlertTriangle, Search,
-  Shield, CreditCard, Home as HomeIcon, ArrowRightLeft
+  UserCheck, UserX, UserMinus, AlertTriangle, Search,
+  Shield, CreditCard, Home as HomeIcon, ArrowRightLeft, Mail
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -106,9 +106,10 @@ export default function TenantsList() {
 
   const vacantApartments = apartments.filter(a => !a.tenants?.[0])
 
-  /* Split into active/former */
-  const activeTenants = tenants.filter(t => t.apartment_id)
-  const formerTenants = tenants.filter(t => !t.apartment_id)
+  /* Split into active/inactive/former (status kolonu ile) */
+  const activeTenants   = tenants.filter(t => t.status === 'active')
+  const inactiveTenants = tenants.filter(t => t.status === 'inactive')
+  const formerTenants   = tenants.filter(t => t.status === 'former')
 
   const expiringCount = activeTenants.filter(t => {
     if (!t.lease_end) return false
@@ -117,7 +118,7 @@ export default function TenantsList() {
   }).length
 
   /* Filter by search */
-  const currentList = tab === 'active' ? activeTenants : formerTenants
+  const currentList = tab === 'active' ? activeTenants : tab === 'inactive' ? inactiveTenants : formerTenants
   const filtered = currentList.filter(t => {
     if (!search) return true
     const q = search.toLowerCase()
@@ -152,10 +153,12 @@ export default function TenantsList() {
     e.preventDefault(); setSaving(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSaving(false); return }
+    const hasApt = !!form.apartment_id
     const record = {
       user_id: session.user.id, full_name: form.full_name.trim(),
       email: form.email.trim(), phone: form.phone.trim(), tc_no: form.tc_no.trim(),
       apartment_id: form.apartment_id || null,
+      status: hasApt ? 'active' : (editId ? 'former' : 'inactive'),
       lease_start: form.lease_start || null, lease_end: form.lease_end || null,
       rent: parseFloat(form.rent) || 0, deposit: parseFloat(form.deposit) || 0,
       notes: form.notes.trim(),
@@ -208,7 +211,7 @@ export default function TenantsList() {
 
   const moveToPast = async (id, name) => {
     if (!confirm(`${name} eski kiracilara tasinsin mi?`)) return
-    const { error } = await supabase.from('tenants').update({ apartment_id: null }).eq('id', id)
+    const { error } = await supabase.from('tenants').update({ apartment_id: null, status: 'former' }).eq('id', id)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }
     showToast('Kiraci eski kiracilara tasindi.', 'success'); loadTenants(); loadApartments()
   }
@@ -259,7 +262,8 @@ export default function TenantsList() {
         apartment_id: newApartmentId,
         lease_start: assignForm.lease_start || null,
         lease_end: assignForm.lease_end || null,
-        rent: rentAmount
+        rent: rentAmount,
+        status: 'active'
       })
       .eq('id', assignTenant.id)
     if (updErr) { showToast('Guncelleme hatasi: ' + updErr.message, 'error'); setAssignSaving(false); return }
@@ -326,10 +330,11 @@ export default function TenantsList() {
       </motion.div>
 
       {/* ═══ STAT CARDS ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         {[
           { label: 'Toplam Kiraci', value: tenants.length, color: C.teal, borderColor: '#CCE4E8' },
           { label: 'Aktif Kiraci', value: activeTenants.length, color: '#059669', borderColor: '#D1FAE5' },
+          { label: 'Inaktif Kiraci', value: inactiveTenants.length, color: '#7C3AED', borderColor: '#E9D5FF' },
           { label: 'Eski Kiraci', value: formerTenants.length, color: C.textMuted, borderColor: '#E2E8F0' },
           { label: 'Suresi Dolan (30 gun)', value: expiringCount, color: expiringCount > 0 ? '#D97706' : C.text, borderColor: expiringCount > 0 ? '#FDE68A' : '#E2E8F0' }
         ].map((s, i) => (
@@ -354,8 +359,9 @@ export default function TenantsList() {
       <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${C.borderLight}` }}>
           {[
-            { key: 'active', label: 'Aktif Kiracilar', icon: UserCheck, count: activeTenants.length },
-            { key: 'former', label: 'Eski Kiracilar', icon: UserX, count: formerTenants.length }
+            { key: 'active',   label: 'Aktif Kiracilar',   icon: UserCheck,  count: activeTenants.length },
+            { key: 'inactive', label: 'Inaktif Kiracilar', icon: UserMinus,  count: inactiveTenants.length },
+            { key: 'former',   label: 'Eski Kiracilar',    icon: UserX,      count: formerTenants.length }
           ].map(t => {
             const Icon = t.icon
             const isActive = tab === t.key
@@ -412,7 +418,9 @@ export default function TenantsList() {
         }}>
           {(tab === 'active'
             ? ['Kiraci', 'Telefon', 'Daire', 'Sozlesme Bitis', 'Kira', '']
-            : ['Kiraci', 'Telefon', 'Son Daire', 'Son Kira', '']
+            : tab === 'inactive'
+              ? ['Kiraci', 'Telefon', 'E-posta', 'Referans Kira', '']
+              : ['Kiraci', 'Telefon', 'Son Daire', 'Son Kira', '']
           ).map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
@@ -431,7 +439,11 @@ export default function TenantsList() {
           <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>Hata: {error}</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-            {search ? 'Arama sonucu bulunamadi.' : tab === 'active' ? 'Aktif kiraci bulunmuyor.' : 'Eski kiraci bulunmuyor.'}
+            {search
+              ? 'Arama sonucu bulunamadi.'
+              : tab === 'active' ? 'Aktif kiraci bulunmuyor.'
+              : tab === 'inactive' ? 'Inaktif kiraci bulunmuyor.'
+              : 'Eski kiraci bulunmuyor.'}
           </div>
         ) : filtered.map((t, i) => {
           const apt = apartmentLabel(t.apartments)
@@ -472,8 +484,14 @@ export default function TenantsList() {
               {/* Telefon */}
               <div style={{ fontSize: 13, color: C.textMuted }}>{t.phone || '—'}</div>
 
-              {/* Daire */}
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{apt}</div>
+              {/* 3. sutun: Daire (active/former) veya E-posta (inactive) */}
+              {tab === 'inactive' ? (
+                <div style={{ fontSize: 13, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.email || '—'}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{apt}</div>
+              )}
 
               {tab === 'active' ? (
                 <>
@@ -497,7 +515,7 @@ export default function TenantsList() {
                   </div>
                 </>
               ) : (
-                /* Son Kira (former tab) */
+                /* Referans Kira (inactive) veya Son Kira (former) */
                 <div style={{ fontSize: 13, color: C.textMuted }}>{rentVal}</div>
               )}
 
@@ -513,7 +531,7 @@ export default function TenantsList() {
                   }}>
                   <Pencil style={{ width: 13, height: 13 }} />
                 </motion.button>
-                {tab === 'active' ? (
+                {tab === 'active' && (
                   <>
                     <motion.button whileHover={{ scale: 1.1, color: C.teal }} whileTap={{ scale: 0.9 }}
                       onClick={(e) => { e.stopPropagation(); openAssign(t, 'move') }}
@@ -536,7 +554,8 @@ export default function TenantsList() {
                       <UserX style={{ width: 13, height: 13 }} />
                     </motion.button>
                   </>
-                ) : (
+                )}
+                {(tab === 'inactive' || tab === 'former') && (
                   <motion.button whileHover={{ scale: 1.1, color: C.green }} whileTap={{ scale: 0.9 }}
                     onClick={(e) => { e.stopPropagation(); openAssign(t, 'assign') }}
                     title="Daire ata"

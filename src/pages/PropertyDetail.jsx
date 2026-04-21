@@ -190,7 +190,7 @@ export default function PropertyDetail() {
     setEndingLease(true)
     const { error } = await supabase
       .from('tenants')
-      .update({ apartment_id: null })
+      .update({ apartment_id: null, status: 'former' })
       .eq('id', t.id)
     setEndingLease(false)
     if (error) { showToast('Hata: ' + error.message, 'error'); return }

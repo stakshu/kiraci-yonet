@@ -7,7 +7,7 @@ import { useToast } from '../components/Toast'
 import { unitLabel } from '../lib/apartmentLabel'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
-  ArrowLeft, AlertCircle, UserPlus, Home
+  ArrowLeft, AlertCircle, UserPlus, Home, UserCheck
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -74,6 +74,9 @@ export default function BuildingDetail() {
     lease_start: '', lease_end: '', rent: '', deposit: ''
   })
   const [savingTenant, setSavingTenant] = useState(false)
+  const [tenantMode, setTenantMode] = useState('new') // 'new' | 'existing'
+  const [inactiveTenants, setInactiveTenants] = useState([])
+  const [existingTenantId, setExistingTenantId] = useState('')
 
   useEffect(() => { loadData() }, [id])
 
@@ -200,33 +203,87 @@ export default function BuildingDetail() {
     showToast('Daire silindi.', 'success'); loadData()
   }
 
+  const loadInactiveTenants = async () => {
+    const { data } = await supabase
+      .from('tenants')
+      .select('id, full_name, phone, email, tc_no, rent, deposit, lease_start, lease_end')
+      .eq('status', 'inactive')
+      .order('full_name', { ascending: true })
+    setInactiveTenants(data || [])
+  }
+
   const openTenantAdd = (e, aptId, aptName) => {
     e.stopPropagation()
     setTenantAptId(aptId)
     setTenantAptName(aptName)
     setTenantForm({ full_name: '', email: '', phone: '', tc_no: '', lease_start: '', lease_end: '', rent: '', deposit: '' })
+    setTenantMode('new')
+    setExistingTenantId('')
+    loadInactiveTenants()
     setShowTenantPopup(true)
+  }
+
+  const selectExistingTenant = (id) => {
+    setExistingTenantId(id)
+    const t = inactiveTenants.find(x => x.id === id)
+    if (t) {
+      setTenantForm({
+        full_name: t.full_name || '', email: t.email || '',
+        phone: t.phone || '', tc_no: t.tc_no || '',
+        lease_start: t.lease_start || '', lease_end: t.lease_end || '',
+        rent: t.rent ?? '', deposit: t.deposit ?? ''
+      })
+    }
   }
 
   const handleTenantSave = async (e) => {
     e.preventDefault(); setSavingTenant(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingTenant(false); return }
-    const record = {
-      user_id: session.user.id, full_name: tenantForm.full_name.trim(),
-      email: tenantForm.email.trim(), phone: tenantForm.phone.trim(),
-      tc_no: tenantForm.tc_no.trim(), apartment_id: tenantAptId,
-      lease_start: tenantForm.lease_start || null,
-      lease_end: tenantForm.lease_end || null,
-      rent: parseFloat(tenantForm.rent) || 0,
-      deposit: parseFloat(tenantForm.deposit) || 0
+
+    const rentAmount = parseFloat(tenantForm.rent) || 0
+    const leaseStart = tenantForm.lease_start || null
+    const leaseEnd = tenantForm.lease_end || null
+
+    let tenantId = null
+
+    if (tenantMode === 'existing') {
+      if (!existingTenantId) { showToast('Inaktif kiraci secin.', 'error'); setSavingTenant(false); return }
+      const { error: updErr } = await supabase
+        .from('tenants')
+        .update({
+          apartment_id: tenantAptId,
+          lease_start: leaseStart,
+          lease_end: leaseEnd,
+          rent: rentAmount,
+          deposit: parseFloat(tenantForm.deposit) || 0,
+          status: 'active'
+        })
+        .eq('id', existingTenantId)
+      if (updErr) { showToast('Hata: ' + updErr.message, 'error'); setSavingTenant(false); return }
+      tenantId = existingTenantId
+    } else {
+      const record = {
+        user_id: session.user.id, full_name: tenantForm.full_name.trim(),
+        email: tenantForm.email.trim(), phone: tenantForm.phone.trim(),
+        tc_no: tenantForm.tc_no.trim(), apartment_id: tenantAptId,
+        lease_start: leaseStart, lease_end: leaseEnd,
+        rent: rentAmount,
+        deposit: parseFloat(tenantForm.deposit) || 0,
+        status: 'active'
+      }
+      const result = await supabase.from('tenants').insert(record).select()
+      if (result.error) { showToast('Hata: ' + result.error.message, 'error'); setSavingTenant(false); return }
+      tenantId = result.data?.[0]?.id
     }
-    const result = await supabase.from('tenants').insert(record).select()
-    if (result.error) { showToast('Hata: ' + result.error.message, 'error'); setSavingTenant(false); return }
-    if (result.data?.[0] && record.rent > 0) {
-      const tenantId = result.data[0].id
+
+    // Daireyi dolu isaretle
+    await supabase.from('apartments').update({ status: 'occupied' }).eq('id', tenantAptId)
+
+    // 120 aylik bekleyen kira kayitlarini seed et
+    if (tenantId && rentAmount > 0) {
       const paymentRecords = []
-      const startDate = record.lease_start ? new Date(record.lease_start) : new Date()
+      const startDate = leaseStart ? new Date(leaseStart) : new Date()
       const now = new Date()
       const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
       for (let i = 0; i < 120; i++) {
@@ -234,13 +291,14 @@ export default function BuildingDetail() {
         if (dueDate > endOfNextMonth) break
         paymentRecords.push({
           user_id: session.user.id, tenant_id: tenantId, apartment_id: tenantAptId,
-          due_date: dueDate.toISOString().split('T')[0], amount: record.rent, status: 'pending'
+          due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
         })
       }
       if (paymentRecords.length > 0) await supabase.from('rent_payments').insert(paymentRecords)
     }
+
     setSavingTenant(false)
-    showToast('Kiraci eklendi.', 'success')
+    showToast(tenantMode === 'existing' ? 'Kiraci atandi.' : 'Kiraci eklendi.', 'success')
     setShowTenantPopup(false)
     loadData()
   }
@@ -881,71 +939,179 @@ export default function BuildingDetail() {
               </div>
 
               <form onSubmit={handleTenantSave}>
-                <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={labelStyle}>Ad Soyad *</label>
-                      <input style={inputStyle} required placeholder="Ahmet Yilmaz"
-                        value={tenantForm.full_name} onChange={e => updateTenantForm('full_name', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>TC No</label>
-                      <input style={inputStyle} placeholder="12345678901"
-                        value={tenantForm.tc_no} onChange={e => updateTenantForm('tc_no', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={labelStyle}>Telefon</label>
-                      <input style={inputStyle} placeholder="0532 xxx xx xx"
-                        value={tenantForm.phone} onChange={e => updateTenantForm('phone', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>E-posta</label>
-                      <input style={inputStyle} type="email" placeholder="ornek@mail.com"
-                        value={tenantForm.email} onChange={e => updateTenantForm('email', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={labelStyle}>Sozlesme Baslangic</label>
-                      <input style={inputStyle} type="date"
-                        value={tenantForm.lease_start} onChange={e => updateTenantForm('lease_start', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Sozlesme Bitis</label>
-                      <input style={inputStyle} type="date"
-                        value={tenantForm.lease_end} onChange={e => updateTenantForm('lease_end', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div>
-                      <label style={labelStyle}>Aylik Kira (₺)</label>
-                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
-                        value={tenantForm.rent} onChange={e => updateTenantForm('rent', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Depozito (₺)</label>
-                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
-                        value={tenantForm.deposit} onChange={e => updateTenantForm('deposit', e.target.value)}
-                        onFocus={e => e.target.style.borderColor = C.teal}
-                        onBlur={e => e.target.style.borderColor = C.border} />
-                    </div>
-                  </div>
+                {/* Mode toggle */}
+                <div style={{
+                  padding: '14px 28px 0 28px',
+                  display: 'flex', gap: 6
+                }}>
+                  {[
+                    { key: 'new', label: 'Yeni Kiraci', icon: UserPlus, count: null },
+                    { key: 'existing', label: 'Inaktif Kiracidan Ata', icon: UserCheck, count: inactiveTenants.length }
+                  ].map(m => {
+                    const MIcon = m.icon
+                    const active = tenantMode === m.key
+                    return (
+                      <button key={m.key} type="button" onClick={() => setTenantMode(m.key)}
+                        style={{
+                          flex: 1,
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                          padding: '10px 14px', borderRadius: 10,
+                          fontSize: 13, fontWeight: active ? 700 : 500,
+                          color: active ? C.teal : C.textMuted,
+                          background: active ? '#F0FDFA' : '#FAFBFC',
+                          border: `1.5px solid ${active ? '#99D8DF' : C.border}`,
+                          cursor: 'pointer', fontFamily: font,
+                          transition: 'all 0.15s'
+                        }}>
+                        <MIcon style={{ width: 14, height: 14 }} />
+                        {m.label}
+                        {m.count !== null && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 700,
+                            background: active ? '#CCE4E8' : '#E2E8F0',
+                            color: active ? C.teal : C.textFaint,
+                            padding: '1px 7px', borderRadius: 6
+                          }}>{m.count}</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div style={{ padding: '20px 28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {tenantMode === 'existing' ? (
+                    inactiveTenants.length === 0 ? (
+                      <div style={{
+                        padding: '32px 16px', textAlign: 'center',
+                        background: '#FEF3C7', borderRadius: 12, border: '1px solid #FDE68A'
+                      }}>
+                        <div style={{
+                          width: 48, height: 48, borderRadius: 14, background: '#FDE68A',
+                          color: '#D97706', display: 'inline-flex', alignItems: 'center',
+                          justifyContent: 'center', marginBottom: 10
+                        }}>
+                          <AlertCircle style={{ width: 22, height: 22 }} />
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
+                          Inaktif kiraci yok
+                        </div>
+                        <div style={{ fontSize: 12, color: '#92400E', marginBottom: 12 }}>
+                          "Yeni Kiraci" sekmesinden ekleyebilirsiniz.
+                        </div>
+                        <button type="button" onClick={() => setTenantMode('new')}
+                          style={{
+                            padding: '8px 16px', borderRadius: 8,
+                            background: C.teal, color: 'white', border: 'none',
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                          }}>
+                          Yeni Kiraci Olustur
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label style={labelStyle}>Inaktif Kiraci Sec *</label>
+                          <select style={{ ...selectStyle }} required
+                            value={existingTenantId}
+                            onChange={e => selectExistingTenant(e.target.value)}>
+                            <option value="">Inaktif kiraci secin...</option>
+                            {inactiveTenants.map(t => (
+                              <option key={t.id} value={t.id}>
+                                {t.full_name}{t.phone ? ` · ${t.phone}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {existingTenantId && (
+                          <div style={{
+                            padding: '12px 14px', borderRadius: 10,
+                            background: '#F0FDFA', border: '1px solid #CCE4E8',
+                            display: 'flex', flexDirection: 'column', gap: 4
+                          }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>
+                              {tenantForm.full_name}
+                            </div>
+                            <div style={{ fontSize: 12, color: C.textMuted }}>
+                              {tenantForm.phone || '—'} · {tenantForm.email || '—'}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Ad Soyad *</label>
+                          <input style={inputStyle} required placeholder="Ahmet Yilmaz"
+                            value={tenantForm.full_name} onChange={e => updateTenantForm('full_name', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>TC No</label>
+                          <input style={inputStyle} placeholder="12345678901"
+                            value={tenantForm.tc_no} onChange={e => updateTenantForm('tc_no', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Telefon</label>
+                          <input style={inputStyle} placeholder="0532 xxx xx xx"
+                            value={tenantForm.phone} onChange={e => updateTenantForm('phone', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>E-posta</label>
+                          <input style={inputStyle} type="email" placeholder="ornek@mail.com"
+                            value={tenantForm.email} onChange={e => updateTenantForm('email', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Ortak alanlar — hem yeni hem mevcut kiraci icin (inactive liste boş degilse) */}
+                  {!(tenantMode === 'existing' && inactiveTenants.length === 0) && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Sozlesme Baslangic</label>
+                          <input style={inputStyle} type="date"
+                            value={tenantForm.lease_start} onChange={e => updateTenantForm('lease_start', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Sozlesme Bitis</label>
+                          <input style={inputStyle} type="date"
+                            value={tenantForm.lease_end} onChange={e => updateTenantForm('lease_end', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Aylik Kira (₺)</label>
+                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                            value={tenantForm.rent} onChange={e => updateTenantForm('rent', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Depozito (₺)</label>
+                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                            value={tenantForm.deposit} onChange={e => updateTenantForm('deposit', e.target.value)}
+                            onFocus={e => e.target.style.borderColor = C.teal}
+                            onBlur={e => e.target.style.borderColor = C.border} />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{
@@ -972,7 +1138,9 @@ export default function BuildingDetail() {
                       boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {savingTenant ? 'Kaydediliyor...' : 'Kiraci Ekle'}
+                    {savingTenant
+                      ? 'Kaydediliyor...'
+                      : (tenantMode === 'existing' ? 'Ata' : 'Kiraci Ekle')}
                   </motion.button>
                 </div>
               </form>
