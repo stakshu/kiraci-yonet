@@ -24,6 +24,7 @@ import {
 /* ── Design Tokens ── */
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 const money = n => Number(n).toLocaleString('tr-TR')
+const money2 = n => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -643,44 +644,47 @@ export default function Expenses() {
     const isApartmentMode = d.mode === 'apartment'
 
     const billableHeaderCells = isApartmentMode ? `
-      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Kategori</th>
-      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Anahtar</th>
-      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Toplam</th>
-      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Pay</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Kalem</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Anahtar</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Toplam (₺)</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Sizin Payınız (₺)</th>
     ` : `
-      <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Gider Kalemi</th>
-      <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Tutar</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Gider Kalemi</th>
+      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Tutar (₺)</th>
     `
 
-    const dkLabel = (k) => ({ equal: 'Eşit', area: 'm²', persons: 'Kişi', units: 'Daire' })[k] || 'Eşit'
+    const dkFullLabel = (k) => ({ equal: 'Eşit Pay', area: 'Konut Alanı (m²)', persons: 'Kişi Sayısı', units: 'Daire Sayısı' })[k] || 'Eşit Pay'
+    const anahtarText = (cat) => cat.keyLabel === 'Daire özel'
+      ? 'Daire Özel'
+      : `${dkFullLabel(cat.distKey)} · ${cat.keyLabel || ''}`
 
     const billableRows = d.byCategory.length > 0
       ? (isApartmentMode
           ? d.byCategory.map(cat => `
               <tr>
-                <td style="padding:10px 14px;font-size:12px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-                <td style="padding:10px 14px;font-size:11px;color:#64748B;border-bottom:1px solid #F1F5F9">${dkLabel(cat.distKey)} · ${cat.keyLabel || ''}</td>
-                <td style="padding:10px 14px;font-size:12px;text-align:right;color:#64748B;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.totalCost)}</td>
-                <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:700;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.share)}</td>
+                <td style="padding:14px 18px;font-size:13px;font-weight:500;color:#0F172A;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+                <td style="padding:14px 18px;font-size:12px;font-style:italic;color:#8A7A5E;border-bottom:1px solid #F1F5F9">${anahtarText(cat)}</td>
+                <td style="padding:14px 18px;font-size:13px;text-align:right;color:#475569;font-weight:500;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.totalCost)} ₺</td>
+                <td style="padding:14px 18px;font-size:13px;text-align:right;font-weight:700;color:#0F172A;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.share)} ₺</td>
               </tr>`).join('')
           : d.byCategory.map(cat => `
               <tr>
-                <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-                <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
+                <td style="padding:14px 18px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+                <td style="padding:14px 18px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.total)} ₺</td>
               </tr>`).join(''))
       : `<tr><td colspan="${isApartmentMode ? 4 : 2}" style="padding:20px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic">Bu dönemde yansıtılabilir gider bulunamadı</td></tr>`
 
     const billableTotalRow = isApartmentMode ? `
       <tr style="background:#F0FDF4">
-        <td style="padding:12px 14px;font-size:13px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam pay</td>
-        <td style="padding:12px 14px;border-top:2px solid #BBF7D0"></td>
-        <td style="padding:12px 14px;border-top:2px solid #BBF7D0"></td>
-        <td style="padding:12px 14px;font-size:13px;font-weight:800;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+        <td style="padding:14px 18px;font-size:13px;font-weight:800;color:#059669;border-top:2px solid #BBF7D0">Toplam Pay</td>
+        <td style="padding:14px 18px;border-top:2px solid #BBF7D0"></td>
+        <td style="padding:14px 18px;border-top:2px solid #BBF7D0"></td>
+        <td style="padding:14px 18px;font-size:14px;font-weight:800;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${m(d.totalBillable)} ₺</td>
       </tr>
     ` : `
       <tr style="background:#F0FDF4">
-        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
-        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+        <td style="padding:14px 18px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
+        <td style="padding:14px 18px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${m(d.totalBillable)} ₺</td>
       </tr>
     `
 
@@ -2314,15 +2318,15 @@ export default function Expenses() {
                       {abrechnungData.mode === 'apartment' ? (
                         <>
                           <div style={{
-                            display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
-                            gap: 10, padding: '10px 16px', background: '#F8FAFC',
-                            fontSize: 10, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
-                            borderBottom: `1px solid ${C.borderLight}`
+                            display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 130px 150px',
+                            gap: 14, padding: '14px 22px', background: '#FFFBF5',
+                            fontSize: 10, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '1px',
+                            borderBottom: `1px solid #FCD9A8`
                           }}>
-                            <div>Kategori</div>
+                            <div>Kalem</div>
                             <div>Anahtar</div>
-                            <div style={{ textAlign: 'right' }}>Toplam Gider</div>
-                            <div style={{ textAlign: 'right' }}>Pay</div>
+                            <div style={{ textAlign: 'right' }}>Toplam (₺)</div>
+                            <div style={{ textAlign: 'right' }}>Sizin Payınız (₺)</div>
                           </div>
                           {abrechnungData.byCategory.length === 0 ? (
                             <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
@@ -2331,49 +2335,45 @@ export default function Expenses() {
                           ) : (
                             abrechnungData.byCategory.map((cat, i) => {
                               const dk = getDistributionKey(cat.distKey)
-                              const DKIcon = dk.Icon
+                              const isAptScope = cat.keyLabel === 'Daire özel'
+                              const anahtarText = isAptScope
+                                ? 'Daire Özel'
+                                : `${dk.label} · ${cat.keyLabel}`
                               return (
                                 <div key={i} style={{
-                                  display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
-                                  gap: 10, padding: '10px 16px', alignItems: 'center',
+                                  display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 130px 150px',
+                                  gap: 14, padding: '14px 22px', alignItems: 'center',
                                   borderBottom: i < abrechnungData.byCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
                                 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: C.text, minWidth: 0 }}>
                                     <CategoryIcon name={cat.icon} size={14} color={cat.color} />
                                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                                    <span style={{
-                                      fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 10,
-                                      background: dk.chipBg, color: dk.chipFg,
-                                      display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap'
-                                    }}>
-                                      <DKIcon size={10} />
-                                      {dk.short}
-                                    </span>
-                                    <span style={{ fontSize: 10, color: C.textFaint, fontWeight: 600 }}>
-                                      {cat.keyLabel}
-                                    </span>
+                                  <div style={{
+                                    fontSize: 13, fontStyle: 'italic', color: '#8A7A5E',
+                                    fontWeight: 400, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                  }}>
+                                    {anahtarText}
                                   </div>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                    ₺{money(cat.totalCost)}
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                    {money2(cat.totalCost)} ₺
                                   </div>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                    ₺{money(cat.share)}
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                    {money2(cat.share)} ₺
                                   </div>
                                 </div>
                               )
                             })
                           )}
                           <div style={{
-                            display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
-                            gap: 10, padding: '12px 16px', background: '#F0FDF4',
-                            borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
+                            display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 130px 150px',
+                            gap: 14, padding: '16px 22px', background: '#F0FDF4',
+                            borderTop: `2px solid #BBF7D0`, fontWeight: 800, fontSize: 14
                           }}>
-                            <div style={{ color: '#059669' }}>Toplam pay</div>
+                            <div style={{ color: '#059669' }}>Toplam Pay</div>
                             <div />
                             <div />
-                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
+                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money2(abrechnungData.totalBillable)} ₺</div>
                           </div>
                         </>
                       ) : (

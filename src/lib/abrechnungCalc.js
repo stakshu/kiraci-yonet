@@ -14,6 +14,7 @@ import { getDistributionKey } from './distributionKeys'
 const round2 = (n) => Math.round(Number(n) * 100) / 100
 const nz = (n) => Number(n) || 0
 const aptArea = (a) => nz(a?.m2_net) || nz(a?.m2_gross) || 0
+const fmt2 = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Bina içindeki bir daireye, bir bina-kapsamlı gider kaleminden düşen pay.
 // Anahtar m²/kişi verisi yoksa eşit bölmeye (fallback) düşer.
@@ -28,7 +29,7 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
     if (totalA > 0 && a > 0) {
       return {
         share: round2(total * (a / totalA)),
-        keyLabel: `${Math.round(a)} / ${Math.round(totalA)} m²`,
+        keyLabel: `${fmt2(a)} / ${fmt2(totalA)} m²`,
       }
     }
     return { share: round2(total / n), keyLabel: `m² yok · eşit` }
@@ -40,7 +41,7 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
     if (totalP > 0 && p > 0) {
       return {
         share: round2(total * (p / totalP)),
-        keyLabel: `${p} / ${totalP} kişi`,
+        keyLabel: `${p} / ${totalP}`,
       }
     }
     return { share: round2(total / n), keyLabel: `kişi yok · eşit` }
@@ -49,7 +50,7 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
   // 'equal' ve 'units' aynı sonucu verir (tek birim = bir daire)
   return {
     share: round2(total / n),
-    keyLabel: `1 / ${n} daire`,
+    keyLabel: `1 / ${n}`,
   }
 }
 
