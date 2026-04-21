@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
+import BuildingExpenseSheet from '../components/BuildingExpenseSheet'
+import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
+import { computeApartmentRollup, computeBuildingRollup } from '../lib/abrechnungCalc'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
@@ -15,7 +18,7 @@ import {
   ArrowUpDown, Trash, TreePine, Lightbulb, Wind,
   ShieldCheck, UserCheck, Tv, MoreHorizontal, Wrench,
   Briefcase, FileText, SprayCan, AlertTriangle, Euro,
-  Download, Home
+  Download, Home, Layers, Ruler, Users, Divide
 } from 'lucide-react'
 
 /* ── Design Tokens ── */
@@ -78,30 +81,31 @@ function CategoryIcon({ name, size = 16, color = C.textMuted }) {
 
 /* ── Default BetrKV Categories ── */
 const DEFAULT_CATEGORIES = [
-  { name: 'Emlak Vergisi', icon: 'Landmark', color: '#14B8A6', is_tenant_billable: true, is_recurring: false, sort_order: 1 },
-  { name: 'Su', icon: 'Droplets', color: '#0EA5E9', is_tenant_billable: true, is_recurring: true, sort_order: 2 },
-  { name: 'Kanalizasyon', icon: 'Waves', color: '#06B6D4', is_tenant_billable: true, is_recurring: true, sort_order: 3 },
-  { name: 'Isıtma', icon: 'Flame', color: '#F97316', is_tenant_billable: true, is_recurring: true, sort_order: 4 },
-  { name: 'Sıcak Su', icon: 'Thermometer', color: '#EF4444', is_tenant_billable: true, is_recurring: true, sort_order: 5 },
-  { name: 'Asansör', icon: 'ArrowUpDown', color: '#8B5CF6', is_tenant_billable: true, is_recurring: true, sort_order: 6 },
-  { name: 'Sokak Temizliği', icon: 'Trash2', color: '#A855F7', is_tenant_billable: true, is_recurring: false, sort_order: 7 },
-  { name: 'Çöp Toplama', icon: 'Trash', color: '#78716C', is_tenant_billable: true, is_recurring: true, sort_order: 8 },
-  { name: 'Bina Temizliği', icon: 'SprayCan', color: '#EC4899', is_tenant_billable: true, is_recurring: true, sort_order: 9 },
-  { name: 'Bahçe Bakımı', icon: 'TreePine', color: '#22C55E', is_tenant_billable: true, is_recurring: false, sort_order: 10 },
-  { name: 'Ortak Alan Aydınlatma', icon: 'Lightbulb', color: '#EAB308', is_tenant_billable: true, is_recurring: true, sort_order: 11 },
-  { name: 'Baca Temizliği', icon: 'Wind', color: '#64748B', is_tenant_billable: true, is_recurring: false, sort_order: 12 },
-  { name: 'Bina Sigortası', icon: 'ShieldCheck', color: '#6366F1', is_tenant_billable: true, is_recurring: false, sort_order: 13 },
-  { name: 'Kapıcı / Görevli', icon: 'UserCheck', color: '#0D9488', is_tenant_billable: true, is_recurring: true, sort_order: 14 },
-  { name: 'Kablo TV / Anten', icon: 'Tv', color: '#7C3AED', is_tenant_billable: true, is_recurring: true, sort_order: 15 },
-  { name: 'Diğer Giderler', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16 },
-  { name: 'Tamirat / Onarım', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Kiracıya yansıtılamaz' },
-  { name: 'Yönetim Giderleri', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Kiracıya yansıtılamaz' },
+  { name: 'Emlak Vergisi', icon: 'Landmark', color: '#14B8A6', is_tenant_billable: true, is_recurring: false, sort_order: 1, default_distribution_key: 'area' },
+  { name: 'Su', icon: 'Droplets', color: '#0EA5E9', is_tenant_billable: true, is_recurring: true, sort_order: 2, default_distribution_key: 'persons' },
+  { name: 'Kanalizasyon', icon: 'Waves', color: '#06B6D4', is_tenant_billable: true, is_recurring: true, sort_order: 3, default_distribution_key: 'persons' },
+  { name: 'Isıtma', icon: 'Flame', color: '#F97316', is_tenant_billable: true, is_recurring: true, sort_order: 4, default_distribution_key: 'area' },
+  { name: 'Sıcak Su', icon: 'Thermometer', color: '#EF4444', is_tenant_billable: true, is_recurring: true, sort_order: 5, default_distribution_key: 'persons' },
+  { name: 'Asansör', icon: 'ArrowUpDown', color: '#8B5CF6', is_tenant_billable: true, is_recurring: true, sort_order: 6, default_distribution_key: 'units' },
+  { name: 'Sokak Temizliği', icon: 'Trash2', color: '#A855F7', is_tenant_billable: true, is_recurring: false, sort_order: 7, default_distribution_key: 'persons' },
+  { name: 'Çöp Toplama', icon: 'Trash', color: '#78716C', is_tenant_billable: true, is_recurring: true, sort_order: 8, default_distribution_key: 'persons' },
+  { name: 'Bina Temizliği', icon: 'SprayCan', color: '#EC4899', is_tenant_billable: true, is_recurring: true, sort_order: 9, default_distribution_key: 'area' },
+  { name: 'Bahçe Bakımı', icon: 'TreePine', color: '#22C55E', is_tenant_billable: true, is_recurring: false, sort_order: 10, default_distribution_key: 'area' },
+  { name: 'Ortak Alan Aydınlatma', icon: 'Lightbulb', color: '#EAB308', is_tenant_billable: true, is_recurring: true, sort_order: 11, default_distribution_key: 'area' },
+  { name: 'Baca Temizliği', icon: 'Wind', color: '#64748B', is_tenant_billable: true, is_recurring: false, sort_order: 12, default_distribution_key: 'units' },
+  { name: 'Bina Sigortası', icon: 'ShieldCheck', color: '#6366F1', is_tenant_billable: true, is_recurring: false, sort_order: 13, default_distribution_key: 'area' },
+  { name: 'Kapıcı / Görevli', icon: 'UserCheck', color: '#0D9488', is_tenant_billable: true, is_recurring: true, sort_order: 14, default_distribution_key: 'area' },
+  { name: 'Kablo TV / Anten', icon: 'Tv', color: '#7C3AED', is_tenant_billable: true, is_recurring: true, sort_order: 15, default_distribution_key: 'units' },
+  { name: 'Diğer Giderler', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16, default_distribution_key: 'equal' },
+  { name: 'Tamirat / Onarım', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'equal' },
+  { name: 'Yönetim Giderleri', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'equal' },
 ]
 
 /* ── Empty Form ── */
 const EMPTY_EXPENSE = {
   scope: 'apartment', // 'apartment' | 'building'
   apartment_id: '', building_id: '', category_id: '', amount: '',
+  distribution_key: 'equal',
   expense_date: new Date().toISOString().split('T')[0],
   period_month: new Date().getMonth() + 1,
   period_year: new Date().getFullYear(),
@@ -158,6 +162,14 @@ export default function Expenses() {
   const [filterMonth, setFilterMonth] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Accordion state
+  const [expandedBuildings, setExpandedBuildings] = useState(() => new Set())
+  const [expandedApartments, setExpandedApartments] = useState(() => new Set())
+
+  // Building monthly expense sheet
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetCtx, setSheetCtx] = useState({ building: null, apartmentCount: 0, month: null, year: null })
+
   /* ── Data Loading ── */
   useEffect(() => { loadAll() }, [])
 
@@ -168,9 +180,17 @@ export default function Expenses() {
   }
 
   const loadExpenses = async () => {
+    // apartments!property_expenses_apartment_id_fkey join still works for NULL apartment_id
+    // (returns null), and we additionally join buildings!property_expenses_building_id_fkey
+    // so building-scope rows carry their building reference explicitly.
     const { data } = await supabase
       .from('property_expenses')
-      .select('*, expense_categories(id, name, icon, color, is_tenant_billable), apartments(unit_no, floor_no, building_id, buildings(id, name))')
+      .select(`
+        *,
+        expense_categories(id, name, icon, color, is_tenant_billable),
+        apartments(unit_no, floor_no, building_id, buildings(id, name)),
+        buildings!property_expenses_building_id_fkey(id, name)
+      `)
       .order('expense_date', { ascending: false })
     setExpenses(data || [])
   }
@@ -207,7 +227,10 @@ export default function Expenses() {
   }
 
   const loadApartments = async () => {
-    const { data } = await supabase.from('apartments').select('id, unit_no, floor_no, building_id, buildings(name)').order('unit_no')
+    const { data } = await supabase
+      .from('apartments')
+      .select('id, unit_no, floor_no, m2_net, m2_gross, building_id, buildings(name)')
+      .order('unit_no')
     setApartments(data || [])
   }
 
@@ -219,7 +242,7 @@ export default function Expenses() {
   const loadTenants = async () => {
     const { data } = await supabase
       .from('tenants')
-      .select('id, full_name, apartment_id, rent, nebenkosten_vorauszahlung, lease_start, lease_end')
+      .select('id, full_name, apartment_id, rent, nebenkosten_vorauszahlung, lease_start, lease_end, household_info')
       .not('apartment_id', 'is', null)
     setTenants(data || [])
   }
@@ -239,13 +262,15 @@ export default function Expenses() {
   }
 
   const openEditExpense = (expense) => {
+    const isBuildingScope = expense.apartment_id == null
     setEditingExpense(expense)
     setExpenseForm({
-      scope: 'apartment',
+      scope: isBuildingScope ? 'building' : 'apartment',
       apartment_id: expense.apartment_id || '',
-      building_id: '',
+      building_id: expense.building_id || expense.apartments?.buildings?.id || '',
       category_id: expense.category_id || '',
       amount: expense.amount || '',
+      distribution_key: expense.distribution_key || 'equal',
       expense_date: expense.expense_date || '',
       period_month: expense.period_month || '',
       period_year: expense.period_year || '',
@@ -265,6 +290,8 @@ export default function Expenses() {
     const base = {
       user_id: session.user.id,
       category_id: expenseForm.category_id,
+      amount: Number(expenseForm.amount),
+      distribution_key: expenseForm.distribution_key || 'equal',
       expense_date: expenseForm.expense_date,
       period_month: Number(expenseForm.period_month) || null,
       period_year: Number(expenseForm.period_year) || null,
@@ -272,10 +299,20 @@ export default function Expenses() {
       notes: expenseForm.notes
     }
 
-    // Düzenleme: her zaman tek daire
+    const isBuilding = expenseForm.scope === 'building'
+
+    if (isBuilding && !expenseForm.building_id) {
+      showToast('Bina seçin.', 'error'); return
+    }
+    if (!isBuilding && !expenseForm.apartment_id) {
+      showToast('Mülk seçin.', 'error'); return
+    }
+
+    const record = isBuilding
+      ? { ...base, apartment_id: null, building_id: expenseForm.building_id }
+      : { ...base, apartment_id: expenseForm.apartment_id, building_id: null }
+
     if (editingExpense) {
-      if (!expenseForm.apartment_id) { showToast('Mülk seçin.', 'error'); return }
-      const record = { ...base, apartment_id: expenseForm.apartment_id, amount: Number(expenseForm.amount) }
       const { error } = await supabase.from('property_expenses').update(record).eq('id', editingExpense.id)
       if (error) { showToast(error.message, 'error'); return }
       showToast('Gider güncellendi.', 'success')
@@ -284,40 +321,6 @@ export default function Expenses() {
       return
     }
 
-    // Ekleme: bina kapsamı → her daireye eşit dağıt
-    if (expenseForm.scope === 'building') {
-      if (!expenseForm.building_id) { showToast('Bina seçin.', 'error'); return }
-      const bldApts = apartments.filter(a => a.building_id === expenseForm.building_id)
-      if (bldApts.length === 0) { showToast('Bu binada daire bulunmuyor.', 'error'); return }
-
-      const total = Number(expenseForm.amount)
-      const n = bldApts.length
-      const perApt = Math.round((total / n) * 100) / 100
-      // Yuvarlama farkını ilk satıra ekle ki toplam birebir tutsun
-      const firstAmount = Math.round((total - perApt * (n - 1)) * 100) / 100
-      const bldName = buildings.find(b => b.id === expenseForm.building_id)?.name || ''
-      const bldNote = expenseForm.notes
-        ? `${expenseForm.notes} · Bina geneli: ${bldName}`
-        : `Bina geneli: ${bldName}`
-
-      const records = bldApts.map((apt, idx) => ({
-        ...base,
-        apartment_id: apt.id,
-        amount: idx === 0 ? firstAmount : perApt,
-        notes: bldNote
-      }))
-
-      const { error } = await supabase.from('property_expenses').insert(records)
-      if (error) { showToast(error.message, 'error'); return }
-      showToast(`${n} daireye toplam ${money(total)} ₺ dağıtıldı (${money(perApt)} ₺ / daire).`, 'success')
-      setShowExpenseModal(false)
-      loadExpenses()
-      return
-    }
-
-    // Ekleme: tek daire
-    if (!expenseForm.apartment_id) { showToast('Mülk seçin.', 'error'); return }
-    const record = { ...base, apartment_id: expenseForm.apartment_id, amount: Number(expenseForm.amount) }
     const { error } = await supabase.from('property_expenses').insert(record)
     if (error) { showToast(error.message, 'error'); return }
     showToast('Gider eklendi.', 'success')
@@ -397,49 +400,154 @@ export default function Expenses() {
     })
   }
 
-  /* ── When category is selected in expense form, auto-fill is_tenant_billed ── */
+  /* ── When category is selected in expense form, auto-fill is_tenant_billed + distribution key ── */
   const onCategorySelect = (catId) => {
     const cat = categories.find(c => c.id === catId)
     setExpenseForm(prev => ({
       ...prev,
       category_id: catId,
-      is_tenant_billed: cat ? cat.is_tenant_billable : false
+      is_tenant_billed: cat ? cat.is_tenant_billable : false,
+      distribution_key: cat?.default_distribution_key || prev.distribution_key || 'equal'
     }))
   }
+
+  /* Derive the expense's home building id — apartment-scope uses the apt's building,
+   * building-scope uses the direct building_id. */
+  const expenseBuildingId = (e) =>
+    e.apartment_id == null
+      ? (e.building_id || e.buildings?.id || null)
+      : (e.apartments?.building_id || e.apartments?.buildings?.id || null)
+
+  const expenseBuildingName = (e) =>
+    e.apartment_id == null
+      ? (e.buildings?.name || 'Bilinmeyen Bina')
+      : (e.apartments?.buildings?.name || 'Bilinmeyen Bina')
+
+  /* ── Tenant lookup ── */
+  const tenantsByApt = useMemo(() => {
+    const map = {}
+    tenants.forEach(t => { if (t.apartment_id) map[t.apartment_id] = t })
+    return map
+  }, [tenants])
 
   /* ── Computed: Filtered & KPI ── */
   const filteredExpenses = useMemo(() => {
     return expenses.filter(e => {
-      if (filterBuilding && e.apartments?.building_id !== filterBuilding) return false
-      if (filterApartment && e.apartment_id !== filterApartment) return false
+      const eBid = expenseBuildingId(e)
+      if (filterBuilding && eBid !== filterBuilding) return false
+      // Apartment filter: only apply to apartment-scope rows (building-scope shown when building matches)
+      if (filterApartment) {
+        if (e.apartment_id == null) {
+          // building-scope row — show only if its building matches the filtered apt's building
+          const apt = apartments.find(a => a.id === filterApartment)
+          if (!apt || eBid !== apt.building_id) return false
+        } else if (e.apartment_id !== filterApartment) {
+          return false
+        }
+      }
       if (filterCategory && e.category_id !== filterCategory) return false
       if (filterYear && e.period_year && e.period_year !== filterYear) return false
       if (filterMonth && e.period_month && e.period_month !== Number(filterMonth)) return false
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         const catName = e.expense_categories?.name?.toLowerCase() || ''
-        const aptName = apartmentLabel(e.apartments).toLowerCase()
+        const aptName = e.apartment_id == null
+          ? (expenseBuildingName(e) + ' bina geneli').toLowerCase()
+          : apartmentLabel(e.apartments).toLowerCase()
         const notes = (e.notes || '').toLowerCase()
         if (!catName.includes(q) && !aptName.includes(q) && !notes.includes(q)) return false
       }
       return true
     })
-  }, [expenses, filterBuilding, filterApartment, filterCategory, filterYear, filterMonth, searchQuery])
+  }, [expenses, filterBuilding, filterApartment, filterCategory, filterYear, filterMonth, searchQuery, apartments])
 
-  /* Group filtered expenses by building for the list view */
+  /* Two-level grouping for the accordion: building → (buildingScope rows + apartment groups) */
   const groupedByBuilding = useMemo(() => {
     const groups = {}
     filteredExpenses.forEach(e => {
-      const bid = e.apartments?.buildings?.id || e.apartments?.building_id || 'unknown'
-      const bname = e.apartments?.buildings?.name || 'Bilinmeyen Bina'
-      if (!groups[bid]) groups[bid] = { key: bid, building: { id: bid, name: bname }, rows: [], total: 0 }
-      groups[bid].rows.push(e)
+      const bid = expenseBuildingId(e) || 'unknown'
+      const bname = expenseBuildingName(e)
+      if (!groups[bid]) {
+        groups[bid] = {
+          key: bid,
+          building: { id: bid, name: bname },
+          buildingScope: [],
+          aptMap: {},
+          total: 0,
+          count: 0,
+        }
+      }
       groups[bid].total += Number(e.amount)
+      groups[bid].count += 1
+      if (e.apartment_id == null) {
+        groups[bid].buildingScope.push(e)
+      } else {
+        const aid = e.apartment_id
+        if (!groups[bid].aptMap[aid]) {
+          groups[bid].aptMap[aid] = {
+            apt: apartments.find(a => a.id === aid) || {
+              id: aid,
+              unit_no: e.apartments?.unit_no,
+              floor_no: e.apartments?.floor_no,
+              building_id: bid,
+            },
+            tenant: tenantsByApt[aid] || null,
+            rows: [],
+            total: 0,
+          }
+        }
+        groups[bid].aptMap[aid].rows.push(e)
+        groups[bid].aptMap[aid].total += Number(e.amount)
+      }
     })
-    return Object.values(groups).sort((a, b) =>
-      a.building.name.localeCompare(b.building.name, 'tr')
-    )
-  }, [filteredExpenses])
+    return Object.values(groups)
+      .map(g => ({
+        ...g,
+        apartmentGroups: Object.values(g.aptMap).sort((a, b) =>
+          (a.apt?.unit_no || '').localeCompare(b.apt?.unit_no || '', 'tr', { numeric: true })
+        ),
+      }))
+      .sort((a, b) => a.building.name.localeCompare(b.building.name, 'tr'))
+  }, [filteredExpenses, apartments, tenantsByApt])
+
+  /* Auto-expand buildings when <=3, collapse when more. Also auto-expand filtered building. */
+  useEffect(() => {
+    if (groupedByBuilding.length === 0) return
+    setExpandedBuildings(prev => {
+      const next = new Set(prev)
+      // If nothing explicitly expanded yet and the list is small, open all
+      if (prev.size === 0 && groupedByBuilding.length <= 3) {
+        groupedByBuilding.forEach(g => next.add(g.key))
+      }
+      if (filterBuilding) next.add(filterBuilding)
+      return next
+    })
+  }, [groupedByBuilding.length, filterBuilding])
+
+  const toggleBuilding = (bid) => {
+    setExpandedBuildings(prev => {
+      const next = new Set(prev)
+      if (next.has(bid)) next.delete(bid); else next.add(bid)
+      return next
+    })
+  }
+  const toggleApartment = (aid) => {
+    setExpandedApartments(prev => {
+      const next = new Set(prev)
+      if (next.has(aid)) next.delete(aid); else next.add(aid)
+      return next
+    })
+  }
+
+  const openBuildingSheet = (building, apartmentCount) => {
+    setSheetCtx({
+      building,
+      apartmentCount,
+      month: filterMonth ? Number(filterMonth) : (new Date().getMonth() + 1),
+      year: filterYear || new Date().getFullYear(),
+    })
+    setSheetOpen(true)
+  }
 
   const now = new Date()
   const currentMonth = now.getMonth() + 1
@@ -475,7 +583,11 @@ export default function Expenses() {
 
   const maxCategoryTotal = categoryDistribution.length > 0 ? categoryDistribution[0].total : 1
 
-  /* ── Abrechnung Calculation ── */
+  /* ── Abrechnung Calculation ──
+   * Hesap artık src/lib/abrechnungCalc.js içinde. Apartment-scope satırlar tam tutarla,
+   * building-scope satırlar runtime'da o anki m²/kişi'ye göre apartmentShare ile bölünür.
+   * Her kategori satırı: { name, icon, color, distKey, keyLabel, totalCost, share, isBuildingScope }.
+   */
   const abrechnungData = useMemo(() => {
     if (!showAbrechnung) return null
     if (abrechnungScope === 'apartment' && !abrechnungApt) return null
@@ -483,100 +595,19 @@ export default function Expenses() {
 
     const start = new Date(abrechnungStart)
     const end = new Date(abrechnungEnd)
-    const periodMonths = (end.getFullYear() - start.getFullYear()) * 12
-      + (end.getMonth() - start.getMonth()) + 1
-
-    // Tek daire rollup'unu hesapla
-    const computeForApt = (aptId) => {
-      const apt = apartments.find(a => a.id === aptId)
-      const periodExpenses = expenses.filter(e => {
-        if (e.apartment_id !== aptId) return false
-        const d = new Date(e.expense_date)
-        return d >= start && d <= end
-      })
-      const billable = periodExpenses.filter(e => e.is_tenant_billed)
-      const nonBillable = periodExpenses.filter(e => !e.is_tenant_billed)
-
-      const byCategory = {}
-      billable.forEach(e => {
-        const name = e.expense_categories?.name || 'Diğer'
-        if (!byCategory[name]) byCategory[name] = {
-          name, icon: e.expense_categories?.icon, color: e.expense_categories?.color, total: 0
-        }
-        byCategory[name].total += Number(e.amount)
-      })
-      const nonBillableByCategory = {}
-      nonBillable.forEach(e => {
-        const name = e.expense_categories?.name || 'Diğer'
-        if (!nonBillableByCategory[name]) nonBillableByCategory[name] = { name, total: 0 }
-        nonBillableByCategory[name].total += Number(e.amount)
-      })
-
-      const totalBillable = billable.reduce((s, e) => s + Number(e.amount), 0)
-      const totalNonBillable = nonBillable.reduce((s, e) => s + Number(e.amount), 0)
-
-      const tenant = tenants.find(t => t.apartment_id === aptId)
-      const vorauszahlung = tenant ? Number(tenant.nebenkosten_vorauszahlung) || 0 : 0
-      const leaseStart = tenant?.lease_start ? new Date(tenant.lease_start) : null
-      const leaseEnd = tenant?.lease_end ? new Date(tenant.lease_end) : null
-      const effectiveStart = leaseStart && leaseStart > start ? leaseStart : start
-      const effectiveEnd = leaseEnd && leaseEnd < end ? leaseEnd : end
-      const monthsInPeriod = effectiveStart <= effectiveEnd
-        ? (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12
-          + (effectiveEnd.getMonth() - effectiveStart.getMonth()) + 1
-        : 0
-      const totalVorauszahlung = vorauszahlung * monthsInPeriod
-      const difference = totalBillable - totalVorauszahlung
-      const annualRent = tenant ? (Number(tenant.rent) || 0) * monthsInPeriod : 0
-
-      return {
-        apt, tenant,
-        byCategory: Object.values(byCategory),
-        nonBillableByCategory: Object.values(nonBillableByCategory),
-        totalBillable, totalNonBillable, vorauszahlung,
-        monthsInPeriod, totalVorauszahlung, difference, annualRent,
-        effectiveStart, effectiveEnd
-      }
-    }
 
     if (abrechnungScope === 'apartment') {
-      return { mode: 'apartment', ...computeForApt(abrechnungApt) }
+      const roll = computeApartmentRollup({
+        aptId: abrechnungApt, apartments, expenses, tenantsByApt, start, end,
+      })
+      if (!roll) return null
+      return { mode: 'apartment', ...roll }
     }
 
-    // Bina modu
-    const building = buildings.find(b => b.id === abrechnungBld)
-    const bldApts = apartments.filter(a => a.building_id === abrechnungBld)
-    const rows = bldApts.map(a => computeForApt(a.id))
-
-    // Kategorileri bina bazında topla
-    const aggBy = {}
-    rows.forEach(r => r.byCategory.forEach(c => {
-      if (!aggBy[c.name]) aggBy[c.name] = { name: c.name, icon: c.icon, color: c.color, total: 0 }
-      aggBy[c.name].total += c.total
-    }))
-    const aggNonBy = {}
-    rows.forEach(r => r.nonBillableByCategory.forEach(c => {
-      if (!aggNonBy[c.name]) aggNonBy[c.name] = { name: c.name, total: 0 }
-      aggNonBy[c.name].total += c.total
-    }))
-
-    const totalBillable = rows.reduce((s, r) => s + r.totalBillable, 0)
-    const totalNonBillable = rows.reduce((s, r) => s + r.totalNonBillable, 0)
-    const totalVorauszahlung = rows.reduce((s, r) => s + r.totalVorauszahlung, 0)
-    const totalRent = rows.reduce((s, r) => s + r.annualRent, 0)
-    const difference = totalBillable - totalVorauszahlung
-
-    return {
-      mode: 'building',
-      building,
-      apartmentRows: rows,
-      byCategory: Object.values(aggBy),
-      nonBillableByCategory: Object.values(aggNonBy),
-      totalBillable, totalNonBillable, totalVorauszahlung,
-      annualRent: totalRent, difference,
-      monthsInPeriod: periodMonths
-    }
-  }, [showAbrechnung, abrechnungScope, abrechnungApt, abrechnungBld, abrechnungStart, abrechnungEnd, expenses, tenants, apartments, buildings])
+    return computeBuildingRollup({
+      buildingId: abrechnungBld, buildings, apartments, expenses, tenantsByApt, start, end,
+    })
+  }, [showAbrechnung, abrechnungScope, abrechnungApt, abrechnungBld, abrechnungStart, abrechnungEnd, expenses, apartments, buildings, tenantsByApt])
 
   /* ── PDF Export ── */
   const formatDateTR = (ds) => new Date(ds).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -608,16 +639,54 @@ export default function Expenses() {
     const diffBorder = d.difference > 0 ? '#FECACA' : d.difference < 0 ? '#BBF7D0' : '#E2E8F0'
     const diffColor = d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'
 
-    // Billable rows
+    // Apartment mode uses 4 columns (Kategori / Anahtar / Toplam / Pay), building mode 2 columns
+    const isApartmentMode = d.mode === 'apartment'
+
+    const billableHeaderCells = isApartmentMode ? `
+      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Kategori</th>
+      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Anahtar</th>
+      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Toplam</th>
+      <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Pay</th>
+    ` : `
+      <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Gider Kalemi</th>
+      <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Tutar</th>
+    `
+
+    const dkLabel = (k) => ({ equal: 'Eşit', area: 'm²', persons: 'Kişi', units: 'Daire' })[k] || 'Eşit'
+
     const billableRows = d.byCategory.length > 0
-      ? d.byCategory.map(cat => `
-          <tr>
-            <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-            <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
-          </tr>`).join('')
-      : `<tr><td colspan="2" style="padding:20px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic">Bu dönemde yansıtılabilir gider bulunamadı</td></tr>`
+      ? (isApartmentMode
+          ? d.byCategory.map(cat => `
+              <tr>
+                <td style="padding:10px 14px;font-size:12px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+                <td style="padding:10px 14px;font-size:11px;color:#64748B;border-bottom:1px solid #F1F5F9">${dkLabel(cat.distKey)} · ${cat.keyLabel || ''}</td>
+                <td style="padding:10px 14px;font-size:12px;text-align:right;color:#64748B;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.totalCost)}</td>
+                <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:700;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.share)}</td>
+              </tr>`).join('')
+          : d.byCategory.map(cat => `
+              <tr>
+                <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
+                <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
+              </tr>`).join(''))
+      : `<tr><td colspan="${isApartmentMode ? 4 : 2}" style="padding:20px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic">Bu dönemde yansıtılabilir gider bulunamadı</td></tr>`
+
+    const billableTotalRow = isApartmentMode ? `
+      <tr style="background:#F0FDF4">
+        <td style="padding:12px 14px;font-size:13px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam pay</td>
+        <td style="padding:12px 14px;border-top:2px solid #BBF7D0"></td>
+        <td style="padding:12px 14px;border-top:2px solid #BBF7D0"></td>
+        <td style="padding:12px 14px;font-size:13px;font-weight:800;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+      </tr>
+    ` : `
+      <tr style="background:#F0FDF4">
+        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
+        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
+      </tr>
+    `
 
     // Non-billable rows
+    const nbColSpan = isApartmentMode ? 2 : 2
+    const nbAmount = (cat) => isApartmentMode ? cat.share : cat.total
     const nonBillableSection = d.nonBillableByCategory.length > 0 ? `
       <div style="margin-top:28px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -628,7 +697,7 @@ export default function Expenses() {
           ${d.nonBillableByCategory.map(cat => `
             <tr>
               <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-              <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(cat.total)}</td>
+              <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(nbAmount(cat))}</td>
             </tr>`).join('')}
           <tr style="background:#FEF2F2">
             <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#DC2626;border-top:1px solid #E5E7EB">Toplam yansıtılamaz</td>
@@ -742,19 +811,16 @@ export default function Expenses() {
           <div style="width:4px;height:18px;border-radius:2px;background:#00D47E"></div>
           <h3 style="margin:0;font-size:14px;font-weight:700;color:#0F172A">Kiracıya Yansıtılabilir Giderler</h3>
         </div>
+        ${isApartmentMode ? '<p style="margin:0 0 10px;font-size:11px;color:#64748B">Kiracı ile mutabık kalınan dağıtım anahtarlarına göre hesaplanmıştır.</p>' : ''}
         <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:8px">
           <thead>
             <tr style="background:#F8FAFC">
-              <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Gider Kalemi</th>
-              <th style="padding:10px 16px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Tutar</th>
+              ${billableHeaderCells}
             </tr>
           </thead>
           <tbody>
             ${billableRows}
-            <tr style="background:#F0FDF4">
-              <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
-              <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
-            </tr>
+            ${billableTotalRow}
           </tbody>
         </table>
 
@@ -1033,143 +1099,313 @@ export default function Expenses() {
       {/* ── Main Content: Table + Sidebar ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, alignItems: 'start' }}>
 
-        {/* ── Expense Table ── */}
+        {/* ── Expense Accordion ── */}
         <motion.div variants={fadeItem} style={cardBox}>
-          {/* Header */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '100px 1.2fr 1.2fr 100px 110px 70px',
-            padding: '14px 24px', borderBottom: `1px solid ${C.border}`,
-            fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px'
-          }}>
-            <div>Tarih</div>
-            <div>Mülk</div>
-            <div>Kategori</div>
-            <div style={{ textAlign: 'right' }}>Tutar</div>
-            <div style={{ textAlign: 'center' }}>Durum</div>
-            <div />
-          </div>
-
-          {/* Rows — grouped by building */}
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
               {expenses.length === 0 ? 'Henüz gider kaydı yok.' : 'Seçili filtrelere uygun sonuç bulunamadı.'}
             </div>
           ) : (
-            <AnimatePresence>
-              {groupedByBuilding.map((group, gIdx) => (
-                <div key={group.key}>
-                  {/* Building header */}
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: '100px 1.2fr 1.2fr 100px 110px 70px',
-                    alignItems: 'center',
-                    padding: '10px 24px',
-                    background: 'linear-gradient(90deg, rgba(2,88,100,0.07), rgba(2,88,100,0.02))',
-                    borderTop: gIdx > 0 ? `1px solid ${C.border}` : 'none',
-                    borderBottom: `1px solid ${C.borderLight}`
-                  }}>
-                    <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div>
+              {groupedByBuilding.map((group, gIdx) => {
+                const isOpen = expandedBuildings.has(group.key)
+                const aptCount = group.apartmentGroups.length
+                const buildingScopeTotal = group.buildingScope.reduce((s, e) => s + Number(e.amount), 0)
+                return (
+                  <div key={group.key} style={{ borderTop: gIdx > 0 ? `1px solid ${C.borderLight}` : 'none' }}>
+                    {/* ── Building header row ── */}
+                    <div
+                      onClick={() => toggleBuilding(group.key)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px 20px',
+                        background: isOpen
+                          ? 'linear-gradient(90deg, rgba(2,88,100,0.08), rgba(2,88,100,0.02))'
+                          : '#FAFBFC',
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <motion.div
+                        animate={{ rotate: isOpen ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: 'flex', alignItems: 'center' }}
+                      >
+                        <ChevronRight size={16} color={C.textMuted} />
+                      </motion.div>
                       <div style={{
-                        width: 26, height: 26, borderRadius: 8,
+                        width: 32, height: 32, borderRadius: 10,
                         background: C.teal, color: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 6px rgba(2,88,100,0.25)'
+                        boxShadow: '0 2px 8px rgba(2,88,100,0.25)', flexShrink: 0
                       }}>
-                        <Building2 size={13} />
+                        <Building2 size={16} />
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: '-0.1px' }}>
-                        {group.building.name}
-                      </span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: C.teal,
-                        background: 'rgba(2,88,100,0.10)', padding: '2px 8px', borderRadius: 12
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, letterSpacing: '-0.1px' }}>
+                          {group.building.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600, marginTop: 2 }}>
+                          {group.count} kayıt · {aptCount} daire
+                          {group.buildingScope.length > 0 && ` · ${group.buildingScope.length} bina geneli`}
+                        </div>
+                      </div>
+                      <div style={{
+                        fontSize: 14, fontWeight: 800, color: C.teal,
+                        fontVariantNumeric: 'tabular-nums'
                       }}>
-                        {group.rows.length} kayıt
-                      </span>
-                    </div>
-                    <div style={{
-                      gridColumn: '4 / 6', textAlign: 'right',
-                      fontSize: 13, fontWeight: 800, color: C.teal,
-                      fontVariantNumeric: 'tabular-nums'
-                    }}>
-                      ₺{money(group.total)}
-                    </div>
-                    <div />
-                  </div>
-
-                  {/* Apartment rows */}
-                  {group.rows.map((exp, idx) => {
-                    const floor = exp.apartments?.floor_no ? `Kat ${exp.apartments.floor_no} ` : ''
-                    const unitLabel = exp.apartments
-                      ? `${floor}Daire ${exp.apartments.unit_no || '—'}`
-                      : '—'
-                    return (
-                      <motion.div
-                        key={exp.id}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        whileHover={{ backgroundColor: '#F8FAFC' }}
+                        ₺{money(group.total)}
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                        onClick={(e) => { e.stopPropagation(); openBuildingSheet(group.building, aptCount) }}
                         style={{
-                          display: 'grid', gridTemplateColumns: '100px 1.2fr 1.2fr 100px 110px 70px',
-                          padding: '14px 24px', alignItems: 'center',
-                          borderBottom: idx < group.rows.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-                          fontSize: 13, color: C.text, cursor: 'pointer',
-                          transition: 'background 0.15s'
+                          fontFamily: font, fontSize: 12, fontWeight: 700,
+                          padding: '8px 14px', borderRadius: 10,
+                          border: 'none', cursor: 'pointer',
+                          background: C.green, color: '#fff',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          boxShadow: '0 2px 8px rgba(0,212,126,0.25)'
                         }}
-                        onClick={() => openEditExpense(exp)}
                       >
-                        <div style={{ fontWeight: 500, color: C.textMuted, fontSize: 12 }}>
-                          {formatDate(exp.expense_date)}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 36 }}>
-                          <span style={{
-                            width: 4, height: 4, borderRadius: '50%', background: C.textFaint, flexShrink: 0
-                          }} />
-                          <span style={{ fontWeight: 600 }}>{unitLabel}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{
-                            width: 26, height: 26, borderRadius: 8,
-                            background: `${exp.expense_categories?.color || '#94A3B8'}15`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            <CategoryIcon name={exp.expense_categories?.icon} size={14} color={exp.expense_categories?.color || '#94A3B8'} />
-                          </div>
-                          <span style={{ fontWeight: 500, fontSize: 12 }}>{exp.expense_categories?.name || '—'}</span>
-                        </div>
-                        <div style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          ₺{money(exp.amount)}
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
-                            background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
-                            color: exp.is_tenant_billed ? '#059669' : '#DC2626',
-                            letterSpacing: '0.3px'
-                          }}>
-                            {exp.is_tenant_billed ? 'Yansıtılır' : 'Yansıtılmaz'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                          <motion.button
-                            whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                            onClick={(e) => { e.stopPropagation(); openEditExpense(exp) }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
-                          >
-                            <Pencil size={14} color={C.textFaint} />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                            onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id) }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
-                          >
-                            <Trash2 size={14} color={C.red} />
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              ))}
-            </AnimatePresence>
+                        <Plus size={13} />
+                        Ay Gideri
+                      </motion.button>
+                    </div>
+
+                    {/* ── Collapsible content ── */}
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          key="content"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          {/* Building-scope block */}
+                          {group.buildingScope.length > 0 && (
+                            <div style={{
+                              background: 'rgba(2,88,100,0.02)',
+                              borderTop: `1px solid ${C.borderLight}`,
+                              padding: '12px 20px 14px 50px',
+                            }}>
+                              <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                marginBottom: 10
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <Layers size={13} color={C.teal} />
+                                  <span style={{ fontSize: 11, fontWeight: 800, color: C.teal, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Bina Geneli Giderler
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>
+                                  ₺{money(buildingScopeTotal)}
+                                </span>
+                              </div>
+                              {group.buildingScope.map((exp, idx) => {
+                                const dk = getDistributionKey(exp.distribution_key || 'equal')
+                                const DKIcon = dk.Icon
+                                return (
+                                  <motion.div
+                                    key={exp.id}
+                                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2, delay: idx * 0.02 }}
+                                    whileHover={{ backgroundColor: 'rgba(2,88,100,0.05)' }}
+                                    onClick={() => openEditExpense(exp)}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: '80px 1.4fr auto auto 90px 60px',
+                                      gap: 10, alignItems: 'center',
+                                      padding: '10px 12px', borderRadius: 8,
+                                      cursor: 'pointer', fontSize: 13,
+                                      transition: 'background 0.15s'
+                                    }}
+                                  >
+                                    <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
+                                      {formatDate(exp.expense_date)}
+                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                      <div style={{
+                                        width: 24, height: 24, borderRadius: 7,
+                                        background: `${exp.expense_categories?.color || '#94A3B8'}15`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                      }}>
+                                        <CategoryIcon name={exp.expense_categories?.icon} size={13} color={exp.expense_categories?.color || '#94A3B8'} />
+                                      </div>
+                                      <span style={{ fontWeight: 600, fontSize: 12, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {exp.expense_categories?.name || '—'}
+                                      </span>
+                                    </div>
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
+                                      background: dk.chipBg, color: dk.chipFg,
+                                      display: 'flex', alignItems: 'center', gap: 4,
+                                    }}>
+                                      <DKIcon size={10} />
+                                      {dk.short}
+                                    </span>
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
+                                      background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
+                                      color: exp.is_tenant_billed ? '#059669' : '#DC2626',
+                                    }}>
+                                      {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
+                                    </span>
+                                    <span style={{ textAlign: 'right', fontWeight: 800, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                                      ₺{money(exp.amount)}
+                                    </span>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                      <motion.button
+                                        whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                                        onClick={(e) => { e.stopPropagation(); openEditExpense(exp) }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                                      >
+                                        <Pencil size={13} color={C.textFaint} />
+                                      </motion.button>
+                                      <motion.button
+                                        whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id) }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                                      >
+                                        <Trash2 size={13} color={C.red} />
+                                      </motion.button>
+                                    </div>
+                                  </motion.div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {/* Apartment groups */}
+                          {group.apartmentGroups.map((aptGroup) => {
+                            const aptId = aptGroup.apt.id
+                            const aptOpen = expandedApartments.has(aptId)
+                            const floor = aptGroup.apt?.floor_no ? `Kat ${aptGroup.apt.floor_no} · ` : ''
+                            const unitLabel = `${floor}Daire ${aptGroup.apt?.unit_no || '—'}`
+                            return (
+                              <div key={aptId} style={{ borderTop: `1px solid ${C.borderLight}` }}>
+                                <div
+                                  onClick={() => toggleApartment(aptId)}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '12px 20px 12px 50px',
+                                    cursor: 'pointer',
+                                    background: aptOpen ? '#F8FAFC' : '#fff',
+                                    transition: 'background 0.15s',
+                                  }}
+                                >
+                                  <motion.div
+                                    animate={{ rotate: aptOpen ? 90 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    style={{ display: 'flex', alignItems: 'center' }}
+                                  >
+                                    <ChevronRight size={14} color={C.textFaint} />
+                                  </motion.div>
+                                  <Home size={13} color={C.textMuted} />
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                                    {unitLabel}
+                                  </span>
+                                  <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 500, flex: 1 }}>
+                                    {aptGroup.tenant?.full_name || <span style={{ color: C.textFaint, fontStyle: 'italic' }}>— boş —</span>}
+                                  </span>
+                                  <span style={{
+                                    fontSize: 11, fontWeight: 700, color: C.textMuted,
+                                    background: C.borderLight, padding: '2px 8px', borderRadius: 10
+                                  }}>
+                                    {aptGroup.rows.length}
+                                  </span>
+                                  <span style={{
+                                    fontSize: 13, fontWeight: 800, color: C.text,
+                                    fontVariantNumeric: 'tabular-nums', minWidth: 84, textAlign: 'right'
+                                  }}>
+                                    ₺{money(aptGroup.total)}
+                                  </span>
+                                </div>
+                                <AnimatePresence initial={false}>
+                                  {aptOpen && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                      style={{ overflow: 'hidden', background: '#FDFDFE' }}
+                                    >
+                                      {aptGroup.rows.map((exp, idx) => (
+                                        <motion.div
+                                          key={exp.id}
+                                          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                                          transition={{ duration: 0.18, delay: idx * 0.02 }}
+                                          whileHover={{ backgroundColor: '#F1F5F9' }}
+                                          onClick={() => openEditExpense(exp)}
+                                          style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '80px 1.4fr auto 90px 60px',
+                                            gap: 10, alignItems: 'center',
+                                            padding: '10px 20px 10px 82px',
+                                            borderTop: idx > 0 ? `1px solid ${C.borderLight}` : 'none',
+                                            cursor: 'pointer', fontSize: 13,
+                                            transition: 'background 0.15s',
+                                          }}
+                                        >
+                                          <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
+                                            {formatDate(exp.expense_date)}
+                                          </span>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                            <div style={{
+                                              width: 24, height: 24, borderRadius: 7,
+                                              background: `${exp.expense_categories?.color || '#94A3B8'}15`,
+                                              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                            }}>
+                                              <CategoryIcon name={exp.expense_categories?.icon} size={13} color={exp.expense_categories?.color || '#94A3B8'} />
+                                            </div>
+                                            <span style={{ fontWeight: 600, fontSize: 12, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                              {exp.expense_categories?.name || '—'}
+                                            </span>
+                                          </div>
+                                          <span style={{
+                                            fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
+                                            background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
+                                            color: exp.is_tenant_billed ? '#059669' : '#DC2626',
+                                          }}>
+                                            {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
+                                          </span>
+                                          <span style={{ textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
+                                            ₺{money(exp.amount)}
+                                          </span>
+                                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                            <motion.button
+                                              whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                                              onClick={(e) => { e.stopPropagation(); openEditExpense(exp) }}
+                                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                                            >
+                                              <Pencil size={13} color={C.textFaint} />
+                                            </motion.button>
+                                            <motion.button
+                                              whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteExpense(exp.id) }}
+                                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6 }}
+                                            >
+                                              <Trash2 size={13} color={C.red} />
+                                            </motion.button>
+                                          </div>
+                                        </motion.div>
+                                      ))}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
+              })}
+            </div>
           )}
 
           {/* Footer summary */}
@@ -1179,7 +1415,7 @@ export default function Expenses() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               fontSize: 13, color: C.textMuted, fontWeight: 600
             }}>
-              <span>{filteredExpenses.length} kayıt</span>
+              <span>{filteredExpenses.length} kayıt · {groupedByBuilding.length} bina</span>
               <span style={{ fontWeight: 800, color: C.text }}>Toplam: ₺{money(totalAll)}</span>
             </div>
           )}
@@ -1359,6 +1595,48 @@ export default function Expenses() {
                   </select>
                 </div>
 
+                {/* Distribution Key */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>
+                    Dağıtım Anahtarı
+                    {expenseForm.scope === 'apartment' && (
+                      <span style={{ fontSize: 10, fontWeight: 500, color: C.textFaint, marginLeft: 6 }}>
+                        (daire kapsamı · bilgilendirici)
+                      </span>
+                    )}
+                  </label>
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+                    background: '#FAFBFC', border: `1.5px solid ${C.border}`,
+                    borderRadius: 10, padding: 4
+                  }}>
+                    {DISTRIBUTION_KEY_ORDER.map(k => {
+                      const dk = DISTRIBUTION_KEYS[k]
+                      const DKIcon = dk.Icon
+                      const active = expenseForm.distribution_key === k
+                      return (
+                        <motion.button
+                          key={k}
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setExpenseForm(prev => ({ ...prev, distribution_key: k }))}
+                          style={{
+                            fontFamily: font, fontSize: 11, fontWeight: 700,
+                            padding: '8px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                            background: active ? C.teal : 'transparent',
+                            color: active ? '#fff' : C.textMuted,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                            transition: 'background 0.15s, color 0.15s'
+                          }}
+                        >
+                          <DKIcon size={12} />
+                          {dk.short}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Amount */}
                 <div>
                   <label style={labelStyle}>Tutar (₺) *</label>
@@ -1370,16 +1648,17 @@ export default function Expenses() {
                     style={inputStyle}
                   />
                   {!editingExpense && expenseForm.scope === 'building' && expenseForm.building_id && Number(expenseForm.amount) > 0 && (() => {
-                    const count = apartments.filter(a => a.building_id === expenseForm.building_id).length
+                    const bldApts = apartments.filter(a => a.building_id === expenseForm.building_id)
+                    const count = bldApts.length
                     if (count === 0) return null
-                    const perApt = Number(expenseForm.amount) / count
+                    const dk = getDistributionKey(expenseForm.distribution_key)
                     return (
                       <div style={{
                         fontSize: 11, fontWeight: 700, color: C.teal,
                         marginTop: 8, display: 'flex', alignItems: 'center', gap: 6
                       }}>
                         <ChevronRight size={12} />
-                        {count} daireye {money(perApt.toFixed(2))} ₺ / daire
+                        {count} daireye {dk.label.toLowerCase()} üzerinden paylaştırılacak
                       </div>
                     )
                   })()}
@@ -2027,44 +2306,113 @@ export default function Expenses() {
                     <div style={{
                       borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
                     }}>
-                      <div style={{
-                        display: 'grid', gridTemplateColumns: '1fr auto',
-                        padding: '10px 16px', background: '#F8FAFC',
-                        fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
-                        borderBottom: `1px solid ${C.borderLight}`
-                      }}>
-                        <div>Gider Kalemi</div>
-                        <div>Tutar</div>
-                      </div>
-                      {abrechnungData.byCategory.length === 0 ? (
-                        <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
-                          Bu dönemde yansıtılabilir gider bulunamadı
-                        </div>
-                      ) : (
-                        abrechnungData.byCategory.map((cat, i) => (
-                          <div key={i} style={{
-                            display: 'grid', gridTemplateColumns: '1fr auto',
-                            padding: '10px 16px', alignItems: 'center',
-                            borderBottom: i < abrechnungData.byCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
+                      {abrechnungData.mode === 'apartment' ? (
+                        <>
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
+                            gap: 10, padding: '10px 16px', background: '#F8FAFC',
+                            fontSize: 10, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
+                            borderBottom: `1px solid ${C.borderLight}`
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500 }}>
-                              <CategoryIcon name={cat.icon} size={14} color={cat.color} />
-                              {cat.name}
-                            </div>
-                            <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                              ₺{money(cat.total)}
-                            </div>
+                            <div>Kategori</div>
+                            <div>Anahtar</div>
+                            <div style={{ textAlign: 'right' }}>Toplam Gider</div>
+                            <div style={{ textAlign: 'right' }}>Pay</div>
                           </div>
-                        ))
+                          {abrechnungData.byCategory.length === 0 ? (
+                            <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
+                              Bu dönemde yansıtılabilir gider bulunamadı
+                            </div>
+                          ) : (
+                            abrechnungData.byCategory.map((cat, i) => {
+                              const dk = getDistributionKey(cat.distKey)
+                              const DKIcon = dk.Icon
+                              return (
+                                <div key={i} style={{
+                                  display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
+                                  gap: 10, padding: '10px 16px', alignItems: 'center',
+                                  borderBottom: i < abrechnungData.byCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500, minWidth: 0 }}>
+                                    <CategoryIcon name={cat.icon} size={14} color={cat.color} />
+                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 10,
+                                      background: dk.chipBg, color: dk.chipFg,
+                                      display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap'
+                                    }}>
+                                      <DKIcon size={10} />
+                                      {dk.short}
+                                    </span>
+                                    <span style={{ fontSize: 10, color: C.textFaint, fontWeight: 600 }}>
+                                      {cat.keyLabel}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                    ₺{money(cat.totalCost)}
+                                  </div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                                    ₺{money(cat.share)}
+                                  </div>
+                                </div>
+                              )
+                            })
+                          )}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1.4fr auto 96px 96px',
+                            gap: 10, padding: '12px 16px', background: '#F0FDF4',
+                            borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
+                          }}>
+                            <div style={{ color: '#059669' }}>Toplam pay</div>
+                            <div />
+                            <div />
+                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr auto',
+                            padding: '10px 16px', background: '#F8FAFC',
+                            fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px',
+                            borderBottom: `1px solid ${C.borderLight}`
+                          }}>
+                            <div>Gider Kalemi</div>
+                            <div>Tutar</div>
+                          </div>
+                          {abrechnungData.byCategory.length === 0 ? (
+                            <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
+                              Bu dönemde yansıtılabilir gider bulunamadı
+                            </div>
+                          ) : (
+                            abrechnungData.byCategory.map((cat, i) => (
+                              <div key={i} style={{
+                                display: 'grid', gridTemplateColumns: '1fr auto',
+                                padding: '10px 16px', alignItems: 'center',
+                                borderBottom: i < abrechnungData.byCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 500 }}>
+                                  <CategoryIcon name={cat.icon} size={14} color={cat.color} />
+                                  {cat.name}
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                  ₺{money(cat.total)}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                          <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr auto',
+                            padding: '12px 16px', background: '#F0FDF4',
+                            borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
+                          }}>
+                            <div style={{ color: '#059669' }}>Toplam yansıtılabilir</div>
+                            <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
+                          </div>
+                        </>
                       )}
-                      <div style={{
-                        display: 'grid', gridTemplateColumns: '1fr auto',
-                        padding: '12px 16px', background: '#F0FDF4',
-                        borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 14
-                      }}>
-                        <div style={{ color: '#059669' }}>Toplam yansıtılabilir</div>
-                        <div style={{ color: '#059669', fontVariantNumeric: 'tabular-nums' }}>₺{money(abrechnungData.totalBillable)}</div>
-                      </div>
                     </div>
 
                     {/* Aidat */}
@@ -2140,16 +2488,19 @@ export default function Expenses() {
                         <div style={{
                           borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
                         }}>
-                          {abrechnungData.nonBillableByCategory.map((cat, i) => (
-                            <div key={i} style={{
-                              display: 'grid', gridTemplateColumns: '1fr auto',
-                              padding: '10px 16px', alignItems: 'center',
-                              borderBottom: i < abrechnungData.nonBillableByCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
-                            }}>
-                              <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₺{money(cat.total)}</div>
-                            </div>
-                          ))}
+                          {abrechnungData.nonBillableByCategory.map((cat, i) => {
+                            const amount = abrechnungData.mode === 'apartment' ? cat.share : cat.total
+                            return (
+                              <div key={i} style={{
+                                display: 'grid', gridTemplateColumns: '1fr auto',
+                                padding: '10px 16px', alignItems: 'center',
+                                borderBottom: i < abrechnungData.nonBillableByCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
+                              }}>
+                                <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₺{money(amount)}</div>
+                              </div>
+                            )
+                          })}
                           <div style={{
                             display: 'grid', gridTemplateColumns: '1fr auto',
                             padding: '10px 16px', background: '#FEF2F2',
@@ -2273,6 +2624,20 @@ export default function Expenses() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ══════════════════════════════════ */}
+      {/*   BUILDING MONTHLY EXPENSE SHEET  */}
+      {/* ══════════════════════════════════ */}
+      <BuildingExpenseSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onSaved={() => { setSheetOpen(false); loadExpenses() }}
+        building={sheetCtx.building}
+        apartmentCount={sheetCtx.apartmentCount}
+        categories={categories}
+        initialMonth={sheetCtx.month}
+        initialYear={sheetCtx.year}
+      />
     </motion.div>
   )
 }
