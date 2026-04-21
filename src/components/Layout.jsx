@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
-import Topbar from './Topbar'
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -21,7 +20,6 @@ export default function Layout() {
     <>
       <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
       <div className="main">
-        <Topbar pathname={location.pathname} />
         <div className="content">
           <div className="page-content" key={location.pathname}>
             <Outlet />

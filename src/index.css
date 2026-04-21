@@ -366,6 +366,28 @@ body.collapsed .sb-user { padding: 16px 14px; justify-content: center; }
   gap: 4px;
 }
 
+.sb-user-logout {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.sb-user-logout:hover {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #fff;
+}
+body.collapsed .sb-user-logout { display: none; }
+
 /* ═══════════════════════════ MAIN CONTENT ═══════════════════════════ */
 .main {
   margin-left: var(--sb-w);
@@ -378,51 +400,6 @@ body.collapsed .sb-user { padding: 16px 14px; justify-content: center; }
 body.collapsed .main { margin-left: var(--sb-w-col); }
 
 /* Topbar */
-.topbar {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 28px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 30;
-}
-
-.topbar-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topbar-icon-btn {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.topbar-icon-btn:hover { background: var(--bg); border-color: var(--primary); }
-
-.topbar-icon-btn svg {
-  width: 17px; height: 17px;
-  stroke: var(--text-secondary);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 
 .btn {
   display: inline-flex;
@@ -869,7 +846,6 @@ body.collapsed .main { margin-left: var(--sb-w-col); }
   .main { margin-left: 0 !important; }
   .stat-grid { grid-template-columns: 1fr; }
   .content { padding: 16px; }
-  .topbar { padding: 0 16px; }
 }
 
 /* Tooltip for collapsed sidebar */

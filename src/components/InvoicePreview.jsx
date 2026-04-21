@@ -73,7 +73,7 @@ export default function InvoicePreview({
 
         .invoice-backdrop {
           position: fixed;
-          top: 60px;
+          top: 0;
           left: var(--sb-w);
           right: 0;
           bottom: 0;

@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from './Toast'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, HelpCircle,
-  Home, PanelLeftClose, ChevronDown
+  Home, PanelLeftClose, ChevronDown, LogOut
 } from 'lucide-react'
 
 const ICON_MAP = {
@@ -51,8 +52,18 @@ function Icon({ name, className }) {
 export default function Sidebar({ collapsed, onToggleCollapse }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const { showToast } = useToast()
   const [openGroups, setOpenGroups] = useState({})
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      showToast('Basariyla cikis yapildi.')
+    } catch (err) {
+      showToast('Cikis hatasi: ' + err.message, 'error')
+    }
+  }
 
   const currentPath = location.pathname
   const toggleGroup = (text) => setOpenGroups(prev => ({ ...prev, [text]: !prev[text] }))
@@ -166,6 +177,19 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
               )}
             </div>
           </div>
+          {user && (
+            <motion.button
+              type="button"
+              className="sb-user-logout"
+              onClick={handleLogout}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              title="Cikis yap"
+              aria-label="Cikis yap"
+            >
+              <LogOut className="w-[16px] h-[16px]" />
+            </motion.button>
+          )}
         </div>
       </div>
     </aside>
