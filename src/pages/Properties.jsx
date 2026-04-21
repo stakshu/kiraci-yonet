@@ -518,7 +518,7 @@ export default function Properties() {
                   <div>
                     <label style={labelStyle}>Mulk Tipi *</label>
                     <div style={{
-                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8
+                      display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10
                     }}>
                       {BUILDING_TYPE_ORDER.map(k => {
                         const t = BUILDING_TYPES[k]
@@ -530,16 +530,16 @@ export default function Properties() {
                             whileHover={{ scale: active ? 1 : 1.02 }} whileTap={{ scale: 0.98 }}
                             onClick={() => updateBldForm('building_type', k)}
                             style={{
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                              padding: '12px 8px', borderRadius: 12,
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              padding: '14px 16px', borderRadius: 12,
                               border: `1.5px solid ${active ? C.teal : C.border}`,
                               background: active ? 'rgba(2,88,100,0.06)' : 'white',
                               color: active ? C.teal : C.textMuted,
                               cursor: 'pointer', fontFamily: font,
                               transition: 'all 0.15s'
                             }}>
-                            <TIcon style={{ width: 18, height: 18 }} />
-                            <span style={{ fontSize: 11, fontWeight: 700 }}>{t.label}</span>
+                            <TIcon style={{ width: 20, height: 20 }} />
+                            <span style={{ fontSize: 13, fontWeight: 700 }}>{t.label}</span>
                           </motion.button>
                         )
                       })}

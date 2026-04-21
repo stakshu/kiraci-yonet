@@ -17,10 +17,10 @@ alter table public.buildings
   drop constraint if exists buildings_type_check;
 alter table public.buildings
   add constraint buildings_type_check
-  check (building_type in ('apartman','mustakil','villa','dukkan','ofis','diger'));
+  check (building_type in ('apartman','mustakil'));
 
 -- 4) Index (liste filtrelemesi icin)
 create index if not exists idx_buildings_type on public.buildings(building_type);
 
 comment on column public.buildings.building_type is
-  'Bina tipi: apartman (cok daireli) | mustakil | villa | dukkan | ofis | diger (tek birim)';
+  'Bina tipi: apartman (cok daireli) | mustakil (tek birim: ev/villa/dukkan/ofis vb.)';
