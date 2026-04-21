@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
   UserCheck, UserX, AlertTriangle, Search,
-  Shield, CreditCard, Home as HomeIcon
+  Shield, CreditCard, Home as HomeIcon, ArrowRightLeft
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -78,6 +78,13 @@ export default function TenantsList() {
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState('active')
   const [search, setSearch] = useState('')
+
+  /* ── Daire Ata / Değiştir modal state ── */
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignMode, setAssignMode] = useState('assign') // 'assign' | 'move'
+  const [assignTenant, setAssignTenant] = useState(null)
+  const [assignForm, setAssignForm] = useState({ apartment_id: '', lease_start: '', lease_end: '', rent: '' })
+  const [assignSaving, setAssignSaving] = useState(false)
 
   useEffect(() => { loadTenants(); loadApartments() }, [])
 
@@ -206,7 +213,92 @@ export default function TenantsList() {
     showToast('Kiraci eski kiracilara tasindi.', 'success'); loadTenants(); loadApartments()
   }
 
+  const openAssign = (tenant, mode) => {
+    setAssignMode(mode)
+    setAssignTenant(tenant)
+    setAssignForm({
+      apartment_id: mode === 'move' ? (tenant.apartment_id || '') : '',
+      lease_start: tenant.lease_start || '',
+      lease_end: tenant.lease_end || '',
+      rent: tenant.rent || ''
+    })
+    setAssignOpen(true)
+  }
+
+  const handleAssignSave = async (e) => {
+    e.preventDefault()
+    if (!assignTenant) return
+    if (!assignForm.apartment_id) { showToast('Daire secin.', 'error'); return }
+    if (assignMode === 'move' && assignForm.apartment_id === assignTenant.apartment_id) {
+      showToast('Yeni daire mevcut daireyle ayni.', 'error'); return
+    }
+    setAssignSaving(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setAssignSaving(false); return }
+
+    const oldApartmentId = assignTenant.apartment_id
+    const newApartmentId = assignForm.apartment_id
+    const rentAmount = parseFloat(assignForm.rent) || 0
+
+    // 1) Tasima modunda: eski daireye ait bekleyen kira kayitlari silinir
+    if (assignMode === 'move' && oldApartmentId) {
+      const { error: delErr } = await supabase
+        .from('rent_payments')
+        .delete()
+        .eq('tenant_id', assignTenant.id)
+        .eq('apartment_id', oldApartmentId)
+        .eq('status', 'pending')
+      if (delErr) { showToast('Eski odemeler silinemedi: ' + delErr.message, 'error'); setAssignSaving(false); return }
+      await supabase.from('apartments').update({ status: 'empty' }).eq('id', oldApartmentId)
+    }
+
+    // 2) Kiraci guncelle
+    const { error: updErr } = await supabase
+      .from('tenants')
+      .update({
+        apartment_id: newApartmentId,
+        lease_start: assignForm.lease_start || null,
+        lease_end: assignForm.lease_end || null,
+        rent: rentAmount
+      })
+      .eq('id', assignTenant.id)
+    if (updErr) { showToast('Guncelleme hatasi: ' + updErr.message, 'error'); setAssignSaving(false); return }
+
+    // 3) Yeni daireyi dolu isaretle
+    await supabase.from('apartments').update({ status: 'occupied' }).eq('id', newApartmentId)
+
+    // 4) 120 aylik bekleyen kira kayitlarini seed et
+    if (rentAmount > 0) {
+      const startDate = assignForm.lease_start ? new Date(assignForm.lease_start) : new Date()
+      const now = new Date()
+      const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+      const paymentRecords = []
+      for (let i = 0; i < 120; i++) {
+        const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
+        if (dueDate > endOfNextMonth) break
+        paymentRecords.push({
+          user_id: session.user.id,
+          tenant_id: assignTenant.id,
+          apartment_id: newApartmentId,
+          due_date: dueDate.toISOString().split('T')[0],
+          amount: rentAmount,
+          status: 'pending'
+        })
+      }
+      if (paymentRecords.length > 0) {
+        await supabase.from('rent_payments').insert(paymentRecords)
+      }
+    }
+
+    setAssignSaving(false)
+    showToast(assignMode === 'move' ? 'Kiraci yeni daireye tasindi.' : 'Daire kiraciya atandi.', 'success')
+    setAssignOpen(false)
+    loadTenants()
+    loadApartments()
+  }
+
   const UF = (field, val) => setForm(p => ({ ...p, [field]: val }))
+  const UA = (field, val) => setAssignForm(p => ({ ...p, [field]: val }))
 
   return (
     <motion.div variants={container} initial="hidden" animate="show"
@@ -313,8 +405,8 @@ export default function TenantsList() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: tab === 'active'
-            ? '1.5fr 1fr 1fr 1fr 1fr 80px'
-            : '1.5fr 1fr 1fr 1fr 80px',
+            ? '1.5fr 1fr 1fr 1fr 1fr 140px'
+            : '1.5fr 1fr 1fr 1fr 110px',
           padding: '14px 24px', background: '#FAFBFC',
           borderBottom: `1px solid ${C.borderLight}`
         }}>
@@ -356,8 +448,8 @@ export default function TenantsList() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: tab === 'active'
-                  ? '1.5fr 1fr 1fr 1fr 1fr 80px'
-                  : '1.5fr 1fr 1fr 1fr 80px',
+                  ? '1.5fr 1fr 1fr 1fr 1fr 140px'
+                  : '1.5fr 1fr 1fr 1fr 110px',
                 padding: '14px 24px', alignItems: 'center',
                 borderBottom: `1px solid ${C.borderLight}`,
                 transition: 'background 0.15s',
@@ -421,16 +513,39 @@ export default function TenantsList() {
                   }}>
                   <Pencil style={{ width: 13, height: 13 }} />
                 </motion.button>
-                {tab === 'active' && (
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); moveToPast(t.id, t.full_name) }}
-                    title="Eski kiracilara tasi"
+                {tab === 'active' ? (
+                  <>
+                    <motion.button whileHover={{ scale: 1.1, color: C.teal }} whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); openAssign(t, 'move') }}
+                      title="Daire degistir"
+                      style={{
+                        width: 30, height: 30, borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                      }}>
+                      <ArrowRightLeft style={{ width: 13, height: 13 }} />
+                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); moveToPast(t.id, t.full_name) }}
+                      title="Eski kiracilara tasi"
+                      style={{
+                        width: 30, height: 30, borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                      }}>
+                      <UserX style={{ width: 13, height: 13 }} />
+                    </motion.button>
+                  </>
+                ) : (
+                  <motion.button whileHover={{ scale: 1.1, color: C.green }} whileTap={{ scale: 0.9 }}
+                    onClick={(e) => { e.stopPropagation(); openAssign(t, 'assign') }}
+                    title="Daire ata"
                     style={{
                       width: 30, height: 30, borderRadius: 8,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
                     }}>
-                    <UserX style={{ width: 13, height: 13 }} />
+                    <HomeIcon style={{ width: 13, height: 13 }} />
                   </motion.button>
                 )}
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -645,6 +760,190 @@ export default function TenantsList() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* ═══ DAIRE ATA / DEGISTIR MODAL ═══ */}
+      <AnimatePresence>
+        {assignOpen && assignTenant && (() => {
+          const pool = assignMode === 'move'
+            ? apartments.filter(a => !a.tenants?.[0] || a.id === assignTenant.apartment_id)
+            : vacantApartments
+          const vacantOnly = assignMode === 'move'
+            ? apartments.filter(a => !a.tenants?.[0])
+            : vacantApartments
+          const noVacant = vacantOnly.length === 0
+          const currentApt = assignMode === 'move'
+            ? apartments.find(a => a.id === assignTenant.apartment_id)
+            : null
+          const Icon = assignMode === 'move' ? ArrowRightLeft : HomeIcon
+          const title = assignMode === 'move' ? 'Daire Degistir' : 'Daire Ata'
+          const subtitle = assignMode === 'move'
+            ? `${assignTenant.full_name} · Mevcut: ${apartmentLabel(currentApt)}`
+            : `${assignTenant.full_name} icin bos bir daire secin`
+          const accent = assignMode === 'move' ? C.teal : C.green
+          return (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={(e) => { if (e.target === e.currentTarget) setAssignOpen(false) }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 1000,
+                background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 20
+              }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                style={{
+                  background: 'white', borderRadius: 20,
+                  boxShadow: '0 25px 60px rgba(15,23,42,0.2)',
+                  width: '100%', maxWidth: 520,
+                  maxHeight: '85vh', overflowY: 'auto'
+                }}>
+                {/* Header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '20px 28px', borderBottom: `1px solid ${C.borderLight}`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      background: accent === C.green ? '#ECFDF5' : '#F0FDFA',
+                      color: accent,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Icon style={{ width: 18, height: 18 }} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 17, fontWeight: 800, color: C.text, margin: 0, fontFamily: font, letterSpacing: '-0.01em' }}>
+                        {title}
+                      </h3>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{subtitle}</div>
+                    </div>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={() => setAssignOpen(false)}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#F1F5F9', border: 'none', cursor: 'pointer', color: C.textMuted
+                    }}>
+                    <X style={{ width: 18, height: 18 }} />
+                  </motion.button>
+                </div>
+
+                {noVacant ? (
+                  <div style={{ padding: '40px 28px', textAlign: 'center' }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 16, background: '#FEF3C7',
+                      color: '#D97706', display: 'inline-flex', alignItems: 'center',
+                      justifyContent: 'center', marginBottom: 14
+                    }}>
+                      <AlertTriangle style={{ width: 24, height: 24 }} />
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                      Uygun bos daire yok
+                    </div>
+                    <div style={{ fontSize: 13, color: C.textMuted, maxWidth: 340, margin: '0 auto' }}>
+                      Once bir daire ekleyin veya mevcut bir kiraciyi eski kiracilara tasiyin.
+                    </div>
+                    <button type="button" onClick={() => setAssignOpen(false)}
+                      style={{
+                        marginTop: 20, padding: '10px 24px', borderRadius: 10,
+                        background: '#F1F5F9', color: C.textMuted, border: 'none',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
+                      }}>
+                      Kapat
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleAssignSave}>
+                    <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {assignMode === 'move' && (
+                        <div style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                          padding: '12px 14px', borderRadius: 10,
+                          background: '#FEF3C7', border: '1px solid #FDE68A'
+                        }}>
+                          <AlertTriangle style={{ width: 14, height: 14, color: '#D97706', flexShrink: 0, marginTop: 2 }} />
+                          <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+                            Eski daireye ait <strong>bekleyen</strong> kira kayitlari silinir. Odenmis kayitlar tarihcede kalir.
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <label style={labelStyle}>
+                          {assignMode === 'move' ? 'Yeni Daire *' : 'Daire *'}
+                        </label>
+                        <select style={{ ...inputStyle, cursor: 'pointer' }}
+                          value={assignForm.apartment_id} onChange={e => UA('apartment_id', e.target.value)}
+                          required>
+                          <option value="">Daire secin...</option>
+                          {pool.map(a => (
+                            <option key={a.id} value={a.id}>
+                              {apartmentLabel(a)}
+                              {assignMode === 'move' && a.id === assignTenant.apartment_id ? ' (mevcut)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Sozlesme Baslangic</label>
+                          <input style={inputStyle} type="date"
+                            value={assignForm.lease_start} onChange={e => UA('lease_start', e.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Sozlesme Bitis</label>
+                          <input style={inputStyle} type="date"
+                            value={assignForm.lease_end} onChange={e => UA('lease_end', e.target.value)} />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Aylik Kira (₺)</label>
+                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                          value={assignForm.rent} onChange={e => UA('rent', e.target.value)} />
+                        <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>
+                          Sozlesme baslangicindan itibaren 120 aya kadar bekleyen kira kayitlari otomatik olusturulur.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10,
+                      padding: '16px 28px', borderTop: `1px solid ${C.borderLight}`
+                    }}>
+                      <button type="button" onClick={() => setAssignOpen(false)}
+                        style={{
+                          padding: '10px 20px', borderRadius: 10, background: '#F1F5F9',
+                          color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600,
+                          cursor: 'pointer', fontFamily: font
+                        }}>
+                        Iptal
+                      </button>
+                      <button type="submit" disabled={assignSaving}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '10px 22px', borderRadius: 10,
+                          background: accent, color: 'white', border: 'none',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                          opacity: assignSaving ? 0.7 : 1,
+                          boxShadow: accent === C.green
+                            ? '0 4px 14px rgba(0,212,126,0.3)'
+                            : '0 4px 14px rgba(2,88,100,0.25)'
+                        }}>
+                        <Check style={{ width: 15, height: 15 }} />
+                        {assignSaving ? 'Kaydediliyor...' : (assignMode === 'move' ? 'Tasi' : 'Ata')}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </motion.div>
+            </motion.div>
+          )
+        })()}
       </AnimatePresence>
     </motion.div>
   )
