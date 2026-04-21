@@ -1,15 +1,14 @@
 /* ── KiraciYonet — Gider Yönetimi (Betriebskosten / Nebenkostenabrechnung) ── */
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
 import BuildingExpenseSheet from '../components/BuildingExpenseSheet'
+import InvoicePreview from '../components/InvoicePreview'
 import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
 import { computeApartmentRollup, computeBuildingRollup } from '../lib/abrechnungCalc'
-import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
 import {
   Receipt, Plus, Pencil, Trash2, X, Check, Search,
   Settings2, ChevronDown, ChevronRight, Building2,
@@ -18,7 +17,7 @@ import {
   ArrowUpDown, Trash, TreePine, Lightbulb, Wind,
   ShieldCheck, UserCheck, Tv, MoreHorizontal, Wrench,
   Briefcase, FileText, SprayCan, AlertTriangle, Euro,
-  Download, Home, Layers, Ruler, Users, Divide
+  Printer, Home, Layers, Ruler, Users, Divide
 } from 'lucide-react'
 
 /* ── Design Tokens ── */
@@ -150,6 +149,7 @@ export default function Expenses() {
   const [abrechnungBld, setAbrechnungBld] = useState('')
   const [abrechnungStart, setAbrechnungStart] = useState(`${new Date().getFullYear()}-01-01`)
   const [abrechnungEnd, setAbrechnungEnd] = useState(`${new Date().getFullYear()}-12-31`)
+  const [showInvoice, setShowInvoice] = useState(false)
   const reportRef = useRef(null)
 
   // Delete confirmation
@@ -611,296 +611,6 @@ export default function Expenses() {
     })
   }, [showAbrechnung, abrechnungScope, abrechnungApt, abrechnungBld, abrechnungStart, abrechnungEnd, expenses, apartments, buildings, tenantsByApt])
 
-  /* ── PDF Export ── */
-  const formatDateTR = (ds) => new Date(ds).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-
-  const generatePDF = useCallback(async () => {
-    if (!abrechnungData) return
-    const d = abrechnungData
-    const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-    // Build off-screen document
-    const wrapper = document.createElement('div')
-    wrapper.style.cssText = `
-      position: fixed; left: -9999px; top: 0;
-      width: 794px; background: #fff;
-      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
-      color: #0F172A; line-height: 1.5;
-    `
-    document.body.appendChild(wrapper)
-
-    const isBuilding = d.mode === 'building'
-    const aptLabel = isBuilding ? '—' : apartmentLabel(d.apt)
-    const tenantLabel = isBuilding ? '—' : (d.tenant?.full_name || 'Aktif kiracı yok')
-    const periodLabel = `${formatDateTR(abrechnungStart)} — ${formatDateTR(abrechnungEnd)}`
-
-    const diffSign = d.difference > 0 ? '+' : ''
-    const diffLabel = d.difference > 0 ? 'Ek Ödeme Gerekli' : d.difference < 0 ? 'Kiracıya İade' : 'Dengede'
-    const diffSub = d.difference > 0 ? 'Kiracı fark tutarını ek olarak ödemelidir.' : d.difference < 0 ? 'Fazla ödenen tutar kiracıya iade edilmelidir.' : 'Aidat ödemeleri ile giderler dengelenmiştir.'
-    const diffBg = d.difference > 0 ? '#FEF2F2' : d.difference < 0 ? '#F0FDF4' : '#F8FAFC'
-    const diffBorder = d.difference > 0 ? '#FECACA' : d.difference < 0 ? '#BBF7D0' : '#E2E8F0'
-    const diffColor = d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'
-
-    // Apartment mode uses 4 columns (Kategori / Anahtar / Toplam / Pay), building mode 2 columns
-    const isApartmentMode = d.mode === 'apartment'
-
-    const billableHeaderCells = isApartmentMode ? `
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Kalem</th>
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Anahtar</th>
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Toplam (₺)</th>
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Sizin Payınız (₺)</th>
-    ` : `
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:left;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Gider Kalemi</th>
-      <th style="padding:14px 18px;font-size:10px;font-weight:800;color:#B45309;text-align:right;text-transform:uppercase;letter-spacing:1px;background:#FFFBF5;border-bottom:1px solid #FCD9A8">Tutar (₺)</th>
-    `
-
-    const dkFullLabel = (k) => ({ equal: 'Eşit Pay', area: 'Konut Alanı (m²)', persons: 'Kişi Sayısı', units: 'Daire Sayısı' })[k] || 'Eşit Pay'
-    const anahtarText = (cat) => cat.keyLabel === 'Daire özel'
-      ? 'Daire Özel'
-      : `${dkFullLabel(cat.distKey)} · ${cat.keyLabel || ''}`
-
-    const billableRows = d.byCategory.length > 0
-      ? (isApartmentMode
-          ? d.byCategory.map(cat => `
-              <tr>
-                <td style="padding:14px 18px;font-size:13px;font-weight:500;color:#0F172A;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-                <td style="padding:14px 18px;font-size:12px;font-style:italic;color:#8A7A5E;border-bottom:1px solid #F1F5F9">${anahtarText(cat)}</td>
-                <td style="padding:14px 18px;font-size:13px;text-align:right;color:#475569;font-weight:500;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.totalCost)} ₺</td>
-                <td style="padding:14px 18px;font-size:13px;text-align:right;font-weight:700;color:#0F172A;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.share)} ₺</td>
-              </tr>`).join('')
-          : d.byCategory.map(cat => `
-              <tr>
-                <td style="padding:14px 18px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-                <td style="padding:14px 18px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${m(cat.total)} ₺</td>
-              </tr>`).join(''))
-      : `<tr><td colspan="${isApartmentMode ? 4 : 2}" style="padding:20px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic">Bu dönemde yansıtılabilir gider bulunamadı</td></tr>`
-
-    const billableTotalRow = isApartmentMode ? `
-      <tr style="background:#F0FDF4">
-        <td style="padding:14px 18px;font-size:13px;font-weight:800;color:#059669;border-top:2px solid #BBF7D0">Toplam Pay</td>
-        <td style="padding:14px 18px;border-top:2px solid #BBF7D0"></td>
-        <td style="padding:14px 18px;border-top:2px solid #BBF7D0"></td>
-        <td style="padding:14px 18px;font-size:14px;font-weight:800;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${m(d.totalBillable)} ₺</td>
-      </tr>
-    ` : `
-      <tr style="background:#F0FDF4">
-        <td style="padding:14px 18px;font-size:14px;font-weight:700;color:#059669;border-top:2px solid #BBF7D0">Toplam Yansıtılabilir</td>
-        <td style="padding:14px 18px;font-size:14px;font-weight:700;color:#059669;text-align:right;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${m(d.totalBillable)} ₺</td>
-      </tr>
-    `
-
-    // Non-billable rows
-    const nbColSpan = isApartmentMode ? 2 : 2
-    const nbAmount = (cat) => isApartmentMode ? cat.share : cat.total
-    const nonBillableSection = d.nonBillableByCategory.length > 0 ? `
-      <div style="margin-top:28px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:4px;height:18px;border-radius:2px;background:#DC2626"></div>
-          <h3 style="margin:0;font-size:14px;font-weight:700;color:#64748B">Yansıtılamaz Giderler (Referans)</h3>
-        </div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">
-          ${d.nonBillableByCategory.map(cat => `
-            <tr>
-              <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #F1F5F9">${cat.name}</td>
-              <td style="padding:10px 16px;font-size:13px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(nbAmount(cat))}</td>
-            </tr>`).join('')}
-          <tr style="background:#FEF2F2">
-            <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#DC2626;border-top:1px solid #E5E7EB">Toplam yansıtılamaz</td>
-            <td style="padding:10px 16px;font-size:13px;font-weight:700;color:#DC2626;text-align:right;border-top:1px solid #E5E7EB;font-variant-numeric:tabular-nums">₺${m(d.totalNonBillable)}</td>
-          </tr>
-        </table>
-      </div>` : ''
-
-    wrapper.innerHTML = `
-      <!-- Header -->
-      <div style="background:linear-gradient(135deg,#025864,#03363D);padding:36px 48px 28px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,212,126,0.08)"></div>
-        <div style="position:absolute;bottom:-20px;right:60px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">KiraciYonet</div>
-            <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">Yan Gider Hesap Kesimi</h1>
-            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.6)">Dönemsel Gider Raporu</p>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Belge No</div>
-            <div style="font-size:13px;font-weight:700;color:#fff">${Date.now().toString(36).toUpperCase()}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">Oluşturma: ${formatDateTR(new Date().toISOString())}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Date Range Bar -->
-      <div style="background:#F0FDF4;border-bottom:2px solid #BBF7D0;padding:14px 48px;display:flex;justify-content:center;align-items:center;gap:12px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span style="font-size:15px;font-weight:700;color:#059669;letter-spacing:0.3px">${periodLabel}</span>
-        <span style="font-size:12px;color:#059669;opacity:0.7">(${d.monthsInPeriod} Ay)</span>
-      </div>
-
-      <!-- Body -->
-      <div style="padding:32px 48px 40px">
-        <!-- Property / Building Info Cards -->
-        <div style="display:flex;gap:16px;margin-bottom:32px">
-          ${isBuilding ? `
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Bina</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">${d.building?.name || '—'}</div>
-            </div>
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Daire Sayısı</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">${d.apartmentRows.length}</div>
-            </div>
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Toplam Aidat</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.totalVorauszahlung)}</div>
-            </div>
-          ` : `
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Mülk</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">${aptLabel}</div>
-            </div>
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">${tenantLabel}</div>
-            </div>
-            <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Aylık Aidat</div>
-              <div style="font-size:16px;font-weight:800;color:#0F172A">₺${m(d.vorauszahlung)}</div>
-            </div>
-          `}
-        </div>
-
-        ${isBuilding ? `
-          <!-- Daire Bazlı Dağılım -->
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-            <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
-            <h3 style="margin:0;font-size:14px;font-weight:700;color:#0F172A">Daire Bazlı Dağılım</h3>
-          </div>
-          <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:24px">
-            <thead>
-              <tr style="background:#F8FAFC">
-                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Daire</th>
-                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Kiracı</th>
-                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Yansıtılabilir</th>
-                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Aidat</th>
-                <th style="padding:10px 14px;font-size:10px;font-weight:700;color:#94A3B8;text-align:right;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #E5E7EB">Fark</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${d.apartmentRows.map(r => {
-                const floor = r.apt?.floor_no ? `Kat ${r.apt.floor_no} ` : ''
-                const label = `${floor}Daire ${r.apt?.unit_no || '—'}`
-                const dColor = r.difference > 0 ? '#DC2626' : r.difference < 0 ? '#059669' : '#0F172A'
-                const dSign = r.difference > 0 ? '+' : ''
-                return `
-                  <tr>
-                    <td style="padding:10px 14px;font-size:12px;font-weight:700;border-bottom:1px solid #F1F5F9">${label}</td>
-                    <td style="padding:10px 14px;font-size:12px;border-bottom:1px solid #F1F5F9;color:${r.tenant ? '#0F172A' : '#94A3B8'}">${r.tenant?.full_name || '— boş —'}</td>
-                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:600;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(r.totalBillable)}</td>
-                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:600;color:#64748B;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">₺${m(r.totalVorauszahlung)}</td>
-                    <td style="padding:10px 14px;font-size:12px;text-align:right;font-weight:800;color:${dColor};border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums">${dSign}₺${m(Math.abs(r.difference))}</td>
-                  </tr>`
-              }).join('')}
-              <tr style="background:#F0FDF4">
-                <td colspan="2" style="padding:12px 14px;font-size:13px;font-weight:800;color:#059669;border-top:2px solid #BBF7D0">Bina Toplamı</td>
-                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:#059669;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalBillable)}</td>
-                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:#059669;border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</td>
-                <td style="padding:12px 14px;font-size:13px;text-align:right;font-weight:800;color:${d.difference > 0 ? '#DC2626' : d.difference < 0 ? '#059669' : '#0F172A'};border-top:2px solid #BBF7D0;font-variant-numeric:tabular-nums">${d.difference > 0 ? '+' : ''}₺${m(Math.abs(d.difference))}</td>
-              </tr>
-            </tbody>
-          </table>
-        ` : ''}
-
-        <!-- Billable Expenses -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:4px;height:18px;border-radius:2px;background:#00D47E"></div>
-          <h3 style="margin:0;font-size:14px;font-weight:700;color:#0F172A">Kiracıya Yansıtılabilir Giderler</h3>
-        </div>
-        ${isApartmentMode ? '<p style="margin:0 0 10px;font-size:11px;color:#64748B">Kiracı ile mutabık kalınan dağıtım anahtarlarına göre hesaplanmıştır.</p>' : ''}
-        <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:8px">
-          <thead>
-            <tr style="background:#F8FAFC">
-              ${billableHeaderCells}
-            </tr>
-          </thead>
-          <tbody>
-            ${billableRows}
-            ${billableTotalRow}
-          </tbody>
-        </table>
-
-        <!-- Aidat -->
-        <div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px 20px;margin:20px 0;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#0F172A">${isBuilding ? 'Bina Toplam Aidat' : 'Aylık Aidat Ödemeleri'}</div>
-            <div style="font-size:12px;color:#94A3B8;margin-top:2px">${isBuilding ? `${d.apartmentRows.length} daireden ${d.monthsInPeriod} aylık dönem` : `${d.monthsInPeriod} ay × ₺${m(d.vorauszahlung)} / ay`}</div>
-          </div>
-          <div style="font-size:16px;font-weight:800;color:#0F172A;font-variant-numeric:tabular-nums">₺${m(d.totalVorauszahlung)}</div>
-        </div>
-
-        <!-- Difference Box -->
-        <div style="background:${diffBg};border:2px solid ${diffBorder};border-radius:12px;padding:20px 24px;margin:24px 0;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:18px;font-weight:800;color:${diffColor}">${diffLabel}</div>
-            <div style="font-size:12px;color:#64748B;margin-top:4px">${diffSub}</div>
-          </div>
-          <div style="font-size:32px;font-weight:800;color:${diffColor};font-variant-numeric:tabular-nums;letter-spacing:-1px">${diffSign}₺${m(Math.abs(d.difference))}</div>
-        </div>
-
-        ${nonBillableSection}
-      </div>
-
-      <!-- Footer -->
-      <div style="border-top:1px solid #E5E7EB;padding:16px 48px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;color:#94A3B8">Bu belge KiraciYonet sistemi tarafından otomatik oluşturulmuştur.</span>
-        <span style="font-size:10px;color:#94A3B8">${formatDateTR(new Date().toISOString())} • Sayfa 1/1</span>
-      </div>
-    `
-
-    const canvas = await html2canvas(wrapper, {
-      scale: 1.5,
-      useCORS: true,
-      backgroundColor: '#FFFFFF',
-      logging: false
-    })
-    document.body.removeChild(wrapper)
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.82)
-    const imgW = canvas.width
-    const imgH = canvas.height
-    const pdfW = 210
-    const pdfMargin = 0
-    const contentW = pdfW
-    const contentH = (imgH * contentW) / imgW
-    const pageH = 297
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
-
-    if (contentH <= pageH) {
-      doc.addImage(imgData, 'JPEG', pdfMargin, 0, contentW, contentH)
-    } else {
-      const pageContentPx = (pageH / contentH) * imgH
-      let srcY = 0
-      let page = 0
-      while (srcY < imgH) {
-        if (page > 0) doc.addPage()
-        const sliceH = Math.min(pageContentPx, imgH - srcY)
-        const sliceCanvas = document.createElement('canvas')
-        sliceCanvas.width = imgW
-        sliceCanvas.height = sliceH
-        const ctx = sliceCanvas.getContext('2d')
-        ctx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH)
-        const sliceMMH = (sliceH * contentW) / imgW
-        doc.addImage(sliceCanvas.toDataURL('image/jpeg', 0.82), 'JPEG', pdfMargin, 0, contentW, sliceMMH)
-        srcY += sliceH
-        page++
-      }
-    }
-
-    const reportName = isBuilding
-      ? `Bina_${d.building?.name || 'rapor'}`
-      : (d.apt ? `${d.apt.buildings?.name || ''}_${d.apt.unit_no || ''}`.replace(/^_|_$/g, '') || 'rapor' : 'rapor')
-    doc.save(`Hesap_Kesimi_${reportName}_${abrechnungStart}_${abrechnungEnd}.pdf`.replace(/\s+/g, '_'))
-  }, [abrechnungData, abrechnungStart, abrechnungEnd])
 
   /* ── Available years for filter ── */
   const availableYears = useMemo(() => {
@@ -2036,15 +1746,16 @@ export default function Expenses() {
                   {abrechnungData && (
                     <motion.button
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      onClick={generatePDF}
+                      onClick={() => setShowInvoice(true)}
                       style={{
-                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                        background: '#fff', border: '1px solid #fff',
                         cursor: 'pointer', padding: '8px 14px', borderRadius: 8,
                         display: 'flex', alignItems: 'center', gap: 6,
-                        color: '#fff', fontSize: 12, fontWeight: 600, fontFamily: font
+                        color: C.darkTeal, fontSize: 12, fontWeight: 700, fontFamily: font,
+                        letterSpacing: '0.01em'
                       }}
                     >
-                      <Download size={14} /> PDF İndir
+                      <FileText size={14} /> Fatura Çıkar
                     </motion.button>
                   )}
                   <motion.button
@@ -2677,6 +2388,24 @@ export default function Expenses() {
         initialMonth={sheetCtx.month}
         initialYear={sheetCtx.year}
       />
+
+      {/* ══════════════════════════════════ */}
+      {/*   FATURA ÖNİZLEME (PRINT-READY)   */}
+      {/* ══════════════════════════════════ */}
+      <AnimatePresence>
+        {showInvoice && abrechnungData && (
+          <InvoicePreview
+            data={abrechnungData}
+            start={abrechnungStart}
+            end={abrechnungEnd}
+            apartments={apartments}
+            tenantsByApt={tenantsByApt}
+            landlordEmail={user?.email || ''}
+            onClose={() => setShowInvoice(false)}
+            onBackToEdit={() => setShowInvoice(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
