@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { unitLabel } from '../lib/apartmentLabel'
+import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
   ArrowLeft, AlertCircle, UserPlus, Home, UserCheck
@@ -355,6 +356,9 @@ export default function BuildingDetail() {
   const occupied = apartments.filter(a => a.tenants?.[0]).length
   const vacant = apartments.length - occupied
   const monthlyIncome = apartments.reduce((s, a) => s + Number(a.tenants?.[0]?.rent || 0), 0)
+  const bt = getBuildingType(building.building_type)
+  const HeaderIcon = bt.Icon
+  const singleUnit = !isMultiUnit(building.building_type)
 
   return (
     <div style={{ fontFamily: font, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -385,11 +389,19 @@ export default function BuildingDetail() {
           background: C.teal, color: 'white', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          <Building2 style={{ width: 24, height: 24 }} />
+          <HeaderIcon style={{ width: 24, height: 24 }} />
         </div>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.02em' }}>
-            {building.name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.02em' }}>
+              {building.name}
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: '4px 10px', borderRadius: 999,
+              background: bt.chipBg, color: bt.chipFg,
+              letterSpacing: '0.02em'
+            }}>{bt.label}</span>
           </div>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>
             {[
@@ -434,7 +446,7 @@ export default function BuildingDetail() {
         flexWrap: 'wrap'
       }}>
         {[
-          { label: 'Daire', value: apartments.length, color: C.teal },
+          { label: singleUnit ? 'Birim' : 'Daire', value: apartments.length, color: C.teal },
           { label: 'Kirada', value: occupied, color: '#059669' },
           { label: 'Bosta', value: vacant, color: '#DC2626' },
           { label: 'Aylik', value: `${money(monthlyIncome)} ₺`, color: C.teal }
@@ -450,19 +462,21 @@ export default function BuildingDetail() {
         ))}
       </div>
 
-      {/* + Daire Ekle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={openAptAdd}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            padding: '10px 20px', borderRadius: 12,
-            background: C.teal, color: 'white', border: 'none',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
-            boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
-          }}>
-          <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
-        </motion.button>
-      </div>
+      {/* + Daire Ekle — sadece apartman tipinde gosterilir */}
+      {!singleUnit && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={openAptAdd}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '10px 20px', borderRadius: 12,
+              background: C.teal, color: 'white', border: 'none',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+              boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+            }}>
+            <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
+          </motion.button>
+        </div>
+      )}
 
       {/* Daire tablosu */}
       <div style={{
@@ -475,7 +489,7 @@ export default function BuildingDetail() {
           padding: '14px 24px', borderBottom: `1px solid ${C.borderLight}`,
           background: '#FAFBFC'
         }}>
-          {['Daire', 'Kiraci', 'Siradaki Odeme', 'Sozlesme Bitis', ''].map((h, i) => (
+          {[singleUnit ? 'Birim' : 'Daire', 'Kiraci', 'Siradaki Odeme', 'Sozlesme Bitis', ''].map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
               textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -485,14 +499,16 @@ export default function BuildingDetail() {
 
         {apartments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
-            Bu binada henuz daire yok. "+ Daire Ekle" ile ekleyebilirsiniz.
+            {singleUnit
+              ? 'Bu mulkun birim kaydi bulunamadi.'
+              : 'Bu binada henuz daire yok. "+ Daire Ekle" ile ekleyebilirsiniz.'}
           </div>
         ) : (
           apartments.map((apt, i) => {
             const tenant = apt.tenants?.[0]
             const isOccupied = !!tenant
             const nextPay = tenant ? getNextPayment(tenant.id) : null
-            const label = unitLabel(apt)
+            const label = singleUnit ? bt.label : unitLabel(apt)
 
             return (
               <motion.div key={apt.id}
@@ -571,15 +587,17 @@ export default function BuildingDetail() {
                     }}>
                     <Pencil style={{ width: 14, height: 14 }} />
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={(e) => handleAptDelete(e, apt.id, label)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
-                    }}>
-                    <Trash2 style={{ width: 14, height: 14 }} />
-                  </motion.button>
+                  {!singleUnit && (
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      onClick={(e) => handleAptDelete(e, apt.id, label)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'transparent', border: 'none', cursor: 'pointer', color: C.textMuted
+                      }}>
+                      <Trash2 style={{ width: 14, height: 14 }} />
+                    </motion.button>
+                  )}
                 </div>
               </motion.div>
             )

@@ -7,13 +7,19 @@ import { useToast } from '../components/Toast'
 import {
   Building2, Plus, Search, X, Check, ChevronRight, AlertCircle, Home
 } from 'lucide-react'
+import { BUILDING_TYPES, BUILDING_TYPE_ORDER, isMultiUnit, getBuildingType } from '@/lib/buildingTypes'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 const money = n => Number(n).toLocaleString('tr-TR')
 
 const EMPTY_BLD_FORM = {
   name: '', city: '', district: '', address: '',
-  building_age: '', notes: ''
+  building_age: '', notes: '',
+  building_type: 'apartman',
+  /* tek-birim alanlari (yalnizca non-apartman tiplerde kullanilir) */
+  room_count: '', floor_no: '',
+  m2_gross: '', m2_net: '', furnished: false,
+  deposit: ''
 }
 
 const EMPTY_APT_FORM = {
@@ -121,6 +127,7 @@ export default function Properties() {
     e.preventDefault(); setSavingBld(true)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingBld(false); return }
+    const multi = isMultiUnit(bldForm.building_type)
     const record = {
       user_id: session.user.id,
       name: bldForm.name.trim(),
@@ -128,25 +135,59 @@ export default function Properties() {
       district: bldForm.district.trim(),
       address: bldForm.address.trim(),
       building_age: bldForm.building_age === '' ? null : parseInt(bldForm.building_age),
-      notes: bldForm.notes.trim()
+      notes: bldForm.notes.trim(),
+      building_type: bldForm.building_type
     }
     const { data, error: err } = await supabase.from('buildings').insert(record).select()
+    if (err) { setSavingBld(false); showToast('Hata: ' + err.message, 'error'); return }
+    const newBuildingId = data?.[0]?.id
+
+    /* Non-apartman: tek apartment kaydini otomatik olustur */
+    if (!multi && newBuildingId) {
+      const aptRecord = {
+        user_id: session.user.id,
+        building_id: newBuildingId,
+        unit_no: '1',
+        property_type: bldForm.building_type,
+        room_count: bldForm.room_count.trim(),
+        floor_no: bldForm.floor_no.trim(),
+        m2_gross: bldForm.m2_gross === '' ? null : parseFloat(bldForm.m2_gross),
+        m2_net:   bldForm.m2_net   === '' ? null : parseFloat(bldForm.m2_net),
+        furnished: bldForm.furnished,
+        deposit:   bldForm.deposit === '' ? 0 : parseFloat(bldForm.deposit),
+        notes: '',
+        status: 'vacant'
+      }
+      const { error: aptErr } = await supabase.from('apartments').insert(aptRecord)
+      if (aptErr) {
+        setSavingBld(false)
+        showToast('Bina eklendi ama birim kaydinda hata: ' + aptErr.message, 'error')
+        setShowBldPopup(false)
+        await loadData()
+        if (newBuildingId) navigate(`/properties/building/${newBuildingId}`)
+        return
+      }
+    }
+
     setSavingBld(false)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Bina eklendi.', 'success')
+    showToast(multi ? 'Bina eklendi.' : 'Mulk eklendi.', 'success')
     setShowBldPopup(false)
     await loadData()
-    if (data?.[0]?.id) navigate(`/properties/building/${data[0].id}`)
+    if (newBuildingId) navigate(`/properties/building/${newBuildingId}`)
   }
 
-  /* Daire Ekle — buradan sadece modal; kullanici bina secer, kaydedince o binanin detayina gider */
+  /* Daire Ekle — sadece apartman tipindeki binalara daire eklenebilir */
+  const apartmanBuildings = useMemo(
+    () => buildings.filter(b => isMultiUnit(b.building_type)),
+    [buildings]
+  )
+
   const openAptAdd = () => {
-    if (buildings.length === 0) {
-      showToast('Once bir bina ekleyiniz.', 'error')
-      openBldAdd()
+    if (apartmanBuildings.length === 0) {
+      showToast('Apartman tipinde bina yok. Once bir apartman ekleyiniz.', 'error')
       return
     }
-    setAptForm({ ...EMPTY_APT_FORM, building_id: buildings[0].id })
+    setAptForm({ ...EMPTY_APT_FORM, building_id: apartmanBuildings[0].id })
     setShowAptPopup(true)
   }
 
@@ -231,19 +272,21 @@ export default function Properties() {
               background: 'white', color: C.teal, border: `1.5px solid ${C.teal}`,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <Building2 style={{ width: 15, height: 15 }} /> Bina Ekle
+            <Building2 style={{ width: 15, height: 15 }} /> Mulk Ekle
           </motion.button>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={openAptAdd}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '10px 20px', borderRadius: 12,
-              background: C.teal, color: 'white', border: 'none',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
-              boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
-            }}>
-            <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
-          </motion.button>
+          {apartmanBuildings.length > 0 && (
+            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={openAptAdd}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '10px 20px', borderRadius: 12,
+                background: C.teal, color: 'white', border: 'none',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
+                boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
+              }}>
+              <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
@@ -341,6 +384,9 @@ export default function Properties() {
             const s = statsByBuilding[b.id] || { total: 0, occupied: 0, income: 0 }
             const vacantRow = s.total - s.occupied
             const location = [b.district, b.city].filter(Boolean).join(', ') || '—'
+            const bt = getBuildingType(b.building_type)
+            const TIcon = bt.Icon
+            const multi = isMultiUnit(b.building_type)
             return (
               <motion.div key={b.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -357,16 +403,28 @@ export default function Properties() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 10,
-                    background: 'rgba(2,88,100,0.08)', color: C.teal,
+                    background: bt.chipBg, color: bt.chipFg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                   }}>
-                    <Building2 style={{ width: 17, height: 17 }} />
+                    <TIcon style={{ width: 17, height: 17 }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{
-                      fontSize: 14, fontWeight: 700, color: C.text,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                    }}>{b.name}</div>
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      whiteSpace: 'nowrap', overflow: 'hidden'
+                    }}>
+                      <span style={{
+                        fontSize: 14, fontWeight: 700, color: C.text,
+                        overflow: 'hidden', textOverflow: 'ellipsis'
+                      }}>{b.name}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        padding: '3px 8px', borderRadius: 999,
+                        background: bt.chipBg, color: bt.chipFg,
+                        letterSpacing: '0.02em',
+                        flexShrink: 0
+                      }}>{bt.label}</span>
+                    </div>
                     {b.building_age ? (
                       <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>
                         {b.building_age} yasinda
@@ -381,7 +439,9 @@ export default function Properties() {
                   {b.address ? `${b.address} · ${location}` : location}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right' }}>
-                  {s.total}
+                  {multi ? s.total : (
+                    <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>1 Birim</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#059669', textAlign: 'right' }}>
                   {s.occupied}
@@ -437,7 +497,7 @@ export default function Properties() {
                     <Building2 style={{ width: 18, height: 18 }} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    Yeni Bina Ekle
+                    Yeni Mulk Ekle
                   </h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -452,11 +512,47 @@ export default function Properties() {
               </div>
 
               <form onSubmit={handleBldSave}>
-                <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+                  {/* Tip seçici */}
                   <div>
-                    <label style={labelStyle}>Bina Adi *</label>
+                    <label style={labelStyle}>Mulk Tipi *</label>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8
+                    }}>
+                      {BUILDING_TYPE_ORDER.map(k => {
+                        const t = BUILDING_TYPES[k]
+                        const TIcon = t.Icon
+                        const active = bldForm.building_type === k
+                        return (
+                          <motion.button
+                            key={k} type="button"
+                            whileHover={{ scale: active ? 1 : 1.02 }} whileTap={{ scale: 0.98 }}
+                            onClick={() => updateBldForm('building_type', k)}
+                            style={{
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                              padding: '12px 8px', borderRadius: 12,
+                              border: `1.5px solid ${active ? C.teal : C.border}`,
+                              background: active ? 'rgba(2,88,100,0.06)' : 'white',
+                              color: active ? C.teal : C.textMuted,
+                              cursor: 'pointer', fontFamily: font,
+                              transition: 'all 0.15s'
+                            }}>
+                            <TIcon style={{ width: 18, height: 18 }} />
+                            <span style={{ fontSize: 11, fontWeight: 700 }}>{t.label}</span>
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Bina bilgileri */}
+                  <div>
+                    <label style={labelStyle}>
+                      {isMultiUnit(bldForm.building_type) ? 'Bina Adi *' : 'Mulk Adi *'}
+                    </label>
                     <input style={inputStyle} type="text" required
-                      placeholder="Cömertkent Sitesi H1 Blok"
+                      placeholder={isMultiUnit(bldForm.building_type) ? 'Cömertkent Sitesi H1 Blok' : 'Deniz Manzarali Villa'}
                       value={bldForm.name} onChange={e => updateBldForm('name', e.target.value)} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -478,7 +574,9 @@ export default function Properties() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Bina Yasi</label>
+                      <label style={labelStyle}>
+                        {isMultiUnit(bldForm.building_type) ? 'Bina Yasi' : 'Yapim Yili'}
+                      </label>
                       <input style={inputStyle} type="number" min="0" placeholder="5"
                         value={bldForm.building_age} onChange={e => updateBldForm('building_age', e.target.value)} />
                     </div>
@@ -488,6 +586,60 @@ export default function Properties() {
                         value={bldForm.notes} onChange={e => updateBldForm('notes', e.target.value)} />
                     </div>
                   </div>
+
+                  {/* Tek-birim alanlari (yalnizca non-apartman) */}
+                  {!isMultiUnit(bldForm.building_type) && (
+                    <div style={{
+                      marginTop: 6, padding: '16px 18px',
+                      borderRadius: 12, background: '#FAFBFC',
+                      border: `1px dashed ${C.border}`,
+                      display: 'flex', flexDirection: 'column', gap: 14
+                    }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        fontSize: 12, fontWeight: 700, color: C.teal,
+                        letterSpacing: '0.02em', textTransform: 'uppercase'
+                      }}>
+                        <Home style={{ width: 14, height: 14 }} />
+                        Birim Bilgileri
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                        <div>
+                          <label style={labelStyle}>Oda Sayisi</label>
+                          <input style={inputStyle} type="text" placeholder="3+1"
+                            value={bldForm.room_count} onChange={e => updateBldForm('room_count', e.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Kat</label>
+                          <input style={inputStyle} type="text" placeholder="—"
+                            value={bldForm.floor_no} onChange={e => updateBldForm('floor_no', e.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Depozito (₺)</label>
+                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                            value={bldForm.deposit} onChange={e => updateBldForm('deposit', e.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Brut m²</label>
+                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="120"
+                            value={bldForm.m2_gross} onChange={e => updateBldForm('m2_gross', e.target.value)} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Net m²</label>
+                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="100"
+                            value={bldForm.m2_net} onChange={e => updateBldForm('m2_net', e.target.value)} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={bldForm.furnished}
+                              onChange={e => updateBldForm('furnished', e.target.checked)}
+                              style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Esyali</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{
@@ -577,7 +729,7 @@ export default function Properties() {
                     <select required value={aptForm.building_id}
                       onChange={e => updateAptForm('building_id', e.target.value)}
                       style={selectStyle}>
-                      {buildings.map(b => (
+                      {apartmanBuildings.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
                     </select>
