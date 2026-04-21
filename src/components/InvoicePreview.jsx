@@ -85,7 +85,6 @@ export default function InvoicePreview({
           overflow-y: auto;
           padding: 28px 24px 80px;
         }
-        body.collapsed .invoice-backdrop { left: var(--sb-w-col); }
         @media (max-width: 768px) {
           .invoice-backdrop { left: 0; }
         }

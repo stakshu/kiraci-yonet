@@ -614,7 +614,8 @@ export default function BuildingDetail() {
             style={{
               position: 'fixed', inset: 0, zIndex: 1000,
               background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20, paddingLeft: 'calc(20px + var(--sb-w))'
             }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -749,7 +750,8 @@ export default function BuildingDetail() {
             style={{
               position: 'fixed', inset: 0, zIndex: 1000,
               background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20, paddingLeft: 'calc(20px + var(--sb-w))'
             }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -920,7 +922,8 @@ export default function BuildingDetail() {
             style={{
               position: 'fixed', inset: 0, zIndex: 1000,
               background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20, paddingLeft: 'calc(20px + var(--sb-w))'
             }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}

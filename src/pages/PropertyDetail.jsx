@@ -1052,7 +1052,8 @@ export default function PropertyDetail() {
             style={{
               position: 'fixed', inset: 0, zIndex: 9999,
               background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)'
             }}
             onClick={() => !endingLease && setShowEndLease(false)}>
             <motion.div
@@ -1126,7 +1127,8 @@ export default function PropertyDetail() {
             style={{
               position: 'fixed', inset: 0, zIndex: 9999,
               background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)'
             }}
             onClick={() => !deletingProperty && setShowDeleteProperty(false)}>
             <motion.div

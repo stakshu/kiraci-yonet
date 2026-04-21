@@ -1,13 +1,13 @@
 /* ── KiraciYonet — Sidebar — Lucide + Motion ── */
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from './Toast'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, HelpCircle,
-  Home, PanelLeftClose, ChevronDown, LogOut
+  Home, ChevronDown, LogOut
 } from 'lucide-react'
 
 const ICON_MAP = {
@@ -19,8 +19,7 @@ const ICON_MAP = {
   chart: BarChart3,
   file: FileText,
   help: HelpCircle,
-  home: Home,
-  collapse: PanelLeftClose
+  home: Home
 }
 
 const NAV_SECTIONS = [
@@ -49,7 +48,7 @@ function Icon({ name, className }) {
   return <LucideIcon className={className} />
 }
 
-export default function Sidebar({ collapsed, onToggleCollapse }) {
+export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, signOut } = useAuth()
@@ -83,9 +82,6 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
           <Home className="w-[18px] h-[18px] text-white" strokeWidth={2} />
         </motion.div>
         <span className="sb-logo-text">KiraciYonet</span>
-        <button className="sb-collapse-btn" onClick={onToggleCollapse} title="Menuyu daralt">
-          <PanelLeftClose className="w-[14px] h-[14px]" />
-        </button>
       </div>
 
       {/* Navigation */}

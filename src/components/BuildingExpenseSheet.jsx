@@ -215,6 +215,7 @@ export default function BuildingExpenseSheet({
         style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          paddingLeft: 'var(--sb-w)',
           zIndex: 1050, backdropFilter: 'blur(4px)',
         }}
         onClick={onClose}

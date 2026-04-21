@@ -1171,6 +1171,7 @@ export default function Expenses() {
             style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
             onClick={() => setShowExpenseModal(false)}
@@ -1477,6 +1478,7 @@ export default function Expenses() {
             style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
             onClick={() => setShowCategoryModal(false)}
@@ -1712,6 +1714,7 @@ export default function Expenses() {
             style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)',
               zIndex: 1000, backdropFilter: 'blur(4px)'
             }}
             onClick={() => setShowAbrechnung(false)}
@@ -2306,6 +2309,7 @@ export default function Expenses() {
             style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)',
               zIndex: 1100, backdropFilter: 'blur(4px)'
             }}
             onClick={() => setConfirmDelete(null)}
