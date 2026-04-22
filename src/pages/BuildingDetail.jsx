@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
-import { unitLabel, floorOnlyLabel } from '../lib/apartmentLabel'
 import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
@@ -500,11 +499,19 @@ export default function BuildingDetail() {
             const tenant = apt.tenants?.[0]
             const isOccupied = !!tenant
             const nextPay = tenant ? getNextPayment(tenant.id) : null
-            // Kiracı adı sağ kolonda zaten görünür — kiracılı satırlarda sadece
-            // kat yazıyor ki "Kat X Daire Y" tekrarı olmasın. Boş satırlarda
-            // kiracı adı olmadığı için tam "Kat X Daire Y" etiketi kalır.
-            const fullLabel = singleUnit ? t(`buildingTypes.${building.building_type || 'apartman'}`) : unitLabel(apt)
-            const label = singleUnit ? fullLabel : (isOccupied ? floorOnlyLabel(apt) : fullLabel)
+            // Bu ekranda bina bağlamı zaten belli — "Kat / Daire" gibi prefix'ler
+            // gürültü oluyor. Kullanıcının floor_no / unit_no alanlarına girdiği ham
+            // değeri göster: kiracılı satırda yalnız floor_no, boş satırda
+            // floor_no · unit_no. Tekli bina tipinde üst etiket zaten anlamlı.
+            const floorRaw = apt.floor_no || ''
+            const unitRaw  = apt.unit_no || ''
+            const rawFull  = floorRaw && unitRaw
+              ? `${floorRaw} · ${unitRaw}`
+              : (floorRaw || unitRaw || '—')
+            const rawOccupied = floorRaw || unitRaw || '—'
+            const label = singleUnit
+              ? t(`buildingTypes.${building.building_type || 'apartman'}`)
+              : (isOccupied ? rawOccupied : rawFull)
 
             return (
               <motion.div key={apt.id}
