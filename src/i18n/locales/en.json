@@ -1161,5 +1161,90 @@
       "objectionNotice": "Any objections to this statement must be submitted in writing within 12 months of receipt. Supporting documents are available for inspection by appointment.",
       "issueDate": "Issued: {{date}} · KiraciYonet"
     }
+  },
+  "overdue": {
+    "kpi": {
+      "overdueCount": "Overdue Payments",
+      "totalOverdue": "Total Overdue",
+      "debtorTenants": "Tenants in Arrears",
+      "maxDelay": "Longest Delay (Days)"
+    },
+    "searchPh": "Search tenant or building...",
+    "table": {
+      "tenant": "Tenant",
+      "apartment": "Unit",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "delay": "Delay",
+      "action": "Action",
+      "loading": "Loading...",
+      "error": "Error: {{msg}}",
+      "emptyFiltered": "No overdue payments match your search.",
+      "empty": "No overdue payments.",
+      "daysLate": "{{n}} days late"
+    },
+    "actions": {
+      "markPaid": "Mark Paid",
+      "remind": "Remind",
+      "remindTitle": "Send overdue reminder"
+    },
+    "toasts": {
+      "errorPrefix": "Error: {{msg}}",
+      "paid": "Payment recorded.",
+      "noEmail": "The tenant's email address is missing.",
+      "reminderSent": "Reminder sent: {{email}}",
+      "mailFailed": "Could not send email: {{msg}}",
+      "unknownError": "Unknown error"
+    },
+    "mailFallback": {
+      "landlordDefault": "Landlord",
+      "emailSubject": "Overdue Payment"
+    }
+  },
+  "accounting": {
+    "title": "Accounting",
+    "subtitle": "Income / expense overview and financial reporting",
+    "kpi": {
+      "totalIncome": "Total Income",
+      "totalExpense": "Total Expense",
+      "netProfit": "Net Profit",
+      "collectionRate": "Collection Rate",
+      "collectedSuffix": "collected"
+    },
+    "charts": {
+      "monthlyTitle": "Monthly Income vs Expense",
+      "legendIncome": "Income",
+      "legendExpense": "Expense",
+      "categoryTitle": "Expense Breakdown",
+      "categoryEmpty": "No expenses recorded this year"
+    },
+    "property": {
+      "title": "Per-Property Profitability",
+      "yearSuffix": "",
+      "colProperty": "Property",
+      "colRentIncome": "Rent Income",
+      "colAidatIncome": "Service Fee Income",
+      "colExpense": "Total Expense",
+      "colNetProfit": "Net Profit",
+      "colProfitRate": "Margin",
+      "empty": "No properties recorded yet.",
+      "totalRow": "TOTAL"
+    },
+    "months": {
+      "jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr",
+      "may": "May", "jun": "Jun", "jul": "Jul", "aug": "Aug",
+      "sep": "Sep", "oct": "Oct", "nov": "Nov", "dec": "Dec"
+    },
+    "fallbackCategory": "Other"
+  },
+  "emptyPage": {
+    "fallbackTitle": "Page",
+    "pages": {
+      "expenses": "Expenses",
+      "accounting": "Accounting",
+      "documents": "Documents"
+    },
+    "phase": "Phase {{n}}",
+    "description": "This module will become active in {{phase}}. It is being rolled out incrementally during development."
   }
 }

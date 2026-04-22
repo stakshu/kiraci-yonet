@@ -1161,5 +1161,90 @@
       "objectionNotice": "Einwendungen gegen diese Abrechnung sind innerhalb von 12 Monaten nach Zugang schriftlich mitzuteilen. Belege können nach Vereinbarung eingesehen werden.",
       "issueDate": "Ausgestellt am: {{date}} · KiraciYonet"
     }
+  },
+  "overdue": {
+    "kpi": {
+      "overdueCount": "Überfällige Zahlungen",
+      "totalOverdue": "Gesamtrückstand",
+      "debtorTenants": "Säumige Mieter",
+      "maxDelay": "Längster Verzug (Tage)"
+    },
+    "searchPh": "Mieter oder Gebäude suchen...",
+    "table": {
+      "tenant": "Mieter",
+      "apartment": "Wohnung",
+      "dueDate": "Fälligkeitsdatum",
+      "amount": "Betrag",
+      "delay": "Verzug",
+      "action": "Aktion",
+      "loading": "Wird geladen...",
+      "error": "Fehler: {{msg}}",
+      "emptyFiltered": "Keine überfälligen Zahlungen entsprechen der Suche.",
+      "empty": "Keine überfälligen Zahlungen.",
+      "daysLate": "{{n}} Tage überfällig"
+    },
+    "actions": {
+      "markPaid": "Bezahlt",
+      "remind": "Erinnern",
+      "remindTitle": "Mahnung senden"
+    },
+    "toasts": {
+      "errorPrefix": "Fehler: {{msg}}",
+      "paid": "Zahlung erfasst.",
+      "noEmail": "Für diesen Mieter ist keine E-Mail-Adresse hinterlegt.",
+      "reminderSent": "Erinnerung gesendet: {{email}}",
+      "mailFailed": "E-Mail konnte nicht gesendet werden: {{msg}}",
+      "unknownError": "Unbekannter Fehler"
+    },
+    "mailFallback": {
+      "landlordDefault": "Vermieter",
+      "emailSubject": "Überfällige Zahlung"
+    }
+  },
+  "accounting": {
+    "title": "Buchhaltung",
+    "subtitle": "Einnahmen-/Ausgabenübersicht und Finanzberichte",
+    "kpi": {
+      "totalIncome": "Gesamteinnahmen",
+      "totalExpense": "Gesamtausgaben",
+      "netProfit": "Nettogewinn",
+      "collectionRate": "Einzugsquote",
+      "collectedSuffix": "eingezogen"
+    },
+    "charts": {
+      "monthlyTitle": "Monatliche Einnahmen & Ausgaben",
+      "legendIncome": "Einnahmen",
+      "legendExpense": "Ausgaben",
+      "categoryTitle": "Ausgaben nach Kategorie",
+      "categoryEmpty": "In diesem Jahr sind keine Ausgaben erfasst"
+    },
+    "property": {
+      "title": "Rentabilität je Objekt",
+      "yearSuffix": "",
+      "colProperty": "Objekt",
+      "colRentIncome": "Mieteinnahmen",
+      "colAidatIncome": "Nebenkosten-Vorauszahlungen",
+      "colExpense": "Gesamtausgaben",
+      "colNetProfit": "Nettogewinn",
+      "colProfitRate": "Marge",
+      "empty": "Noch keine Objekte erfasst.",
+      "totalRow": "GESAMT"
+    },
+    "months": {
+      "jan": "Jan", "feb": "Feb", "mar": "Mär", "apr": "Apr",
+      "may": "Mai", "jun": "Jun", "jul": "Jul", "aug": "Aug",
+      "sep": "Sep", "oct": "Okt", "nov": "Nov", "dec": "Dez"
+    },
+    "fallbackCategory": "Sonstige"
+  },
+  "emptyPage": {
+    "fallbackTitle": "Seite",
+    "pages": {
+      "expenses": "Nebenkosten",
+      "accounting": "Buchhaltung",
+      "documents": "Dokumente"
+    },
+    "phase": "Phase {{n}}",
+    "description": "Dieses Modul wird in {{phase}} aktiv. Es wird schrittweise während der Entwicklung eingeführt."
   }
 }

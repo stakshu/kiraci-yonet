@@ -1,9 +1,10 @@
 /* ── KiraciYonet — Bos Sayfa Placeholder ── */
+import { useTranslation } from 'react-i18next'
 
 const PAGE_INFO = {
-  '/expenses':             { title: 'Giderler', phase: 'Faz 8', icon: 'dollar', color: 'amber' },
-  '/accounting':           { title: 'Muhasebe', phase: 'Faz 10', icon: 'chart', color: 'blue' },
-  '/documents':            { title: 'Belgeler', phase: 'Faz 12', icon: 'folder', color: 'amber' }
+  '/expenses':   { titleKey: 'expenses',   phaseNum: 8,  icon: 'dollar', color: 'amber' },
+  '/accounting': { titleKey: 'accounting', phaseNum: 10, icon: 'chart',  color: 'blue'  },
+  '/documents':  { titleKey: 'documents',  phaseNum: 12, icon: 'folder', color: 'amber' }
 }
 
 const ICONS = {
@@ -28,19 +29,25 @@ const COLOR_MAP = {
 }
 
 export default function EmptyPage({ path }) {
-  const info = PAGE_INFO[path] || { title: 'Sayfa', phase: '', icon: 'file', color: 'blue' }
-  const colors = COLOR_MAP[info.color]
+  const { t } = useTranslation()
+  const info = PAGE_INFO[path]
+  const colors = info ? COLOR_MAP[info.color] : COLOR_MAP.blue
+  const iconKey = info?.icon || 'file'
+  const title = info
+    ? t(`emptyPage.pages.${info.titleKey}`)
+    : t('emptyPage.fallbackTitle')
+  const phaseLabel = info ? t('emptyPage.phase', { n: info.phaseNum }) : ''
 
   return (
     <div className="empty-state">
       <div className="empty-state-icon" style={{ background: colors.bg }}>
         <svg viewBox="0 0 24 24" style={{ stroke: colors.stroke }}>
-          {ICONS[info.icon]}
+          {ICONS[iconKey]}
         </svg>
       </div>
-      <h3 className="empty-state-title">{info.title}</h3>
+      <h3 className="empty-state-title">{title}</h3>
       <p className="empty-state-desc">
-        Bu modul {info.phase}'te aktif olacak. Gelistirme surecinde adim adim eklenmektedir.
+        {t('emptyPage.description', { phase: phaseLabel })}
       </p>
     </div>
   )

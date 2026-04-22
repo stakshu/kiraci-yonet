@@ -1,9 +1,11 @@
 /* ── KiraciYonet — Muhasebe — Gelir-Gider & Finansal Raporlama ── */
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { apartmentLabel } from '../lib/apartmentLabel'
+import { formatMoney } from '../i18n/formatters'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   Cell, PieChart, Pie
@@ -14,8 +16,6 @@ import {
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
-const MO = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
 
 const C = {
   teal: '#025864', green: '#00D47E', darkTeal: '#03363D',
@@ -39,7 +39,7 @@ const cardBox = {
   overflow: 'hidden'
 }
 
-/* ── Custom Tooltip ── */
+/* ── Custom Tooltip (language-aware names passed via chart config) ── */
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
@@ -52,7 +52,7 @@ const ChartTooltip = ({ active, payload, label }) => {
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < payload.length - 1 ? 4 : 0 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
           <span style={{ fontSize: 12, color: '#E2E8F0', fontFamily: font }}>{p.name}:</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF', fontFamily: font }}>₺{money(p.value)}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF', fontFamily: font }}>{formatMoney(p.value)}</span>
         </div>
       ))}
     </div>
@@ -68,12 +68,13 @@ const PieTooltip = ({ active, payload }) => {
       boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
     }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: '#E2E8F0', fontFamily: font }}>{d.name}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', fontFamily: font, marginTop: 2 }}>₺{money(d.value)}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', fontFamily: font, marginTop: 2 }}>{formatMoney(d.value)}</div>
     </div>
   )
 }
 
 export default function Accounting() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [payments, setPayments] = useState([])
   const [expenses, setExpenses] = useState([])
@@ -81,6 +82,16 @@ export default function Accounting() {
   const [loading, setLoading] = useState(true)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [yearOpen, setYearOpen] = useState(false)
+
+  const monthLabels = useMemo(() => [
+    t('accounting.months.jan'), t('accounting.months.feb'), t('accounting.months.mar'),
+    t('accounting.months.apr'), t('accounting.months.may'), t('accounting.months.jun'),
+    t('accounting.months.jul'), t('accounting.months.aug'), t('accounting.months.sep'),
+    t('accounting.months.oct'), t('accounting.months.nov'), t('accounting.months.dec'),
+  ], [t])
+
+  const incomeLabel = t('accounting.charts.legendIncome')
+  const expenseLabel = t('accounting.charts.legendExpense')
 
   useEffect(() => {
     if (user) loadData()
@@ -103,7 +114,6 @@ export default function Accounting() {
     setLoading(false)
   }
 
-  /* ── Available years ── */
   const availableYears = useMemo(() => {
     const years = new Set()
     payments.forEach(p => years.add(new Date(p.due_date).getFullYear()))
@@ -112,7 +122,6 @@ export default function Accounting() {
     return [...years].sort((a, b) => b - a)
   }, [payments, expenses])
 
-  /* ── Filtered data for selected year ── */
   const yearPayments = useMemo(() =>
     payments.filter(p => new Date(p.due_date).getFullYear() === selectedYear),
     [payments, selectedYear]
@@ -122,7 +131,6 @@ export default function Accounting() {
     [expenses, selectedYear]
   )
 
-  /* ── KPI calculations ── */
   const totalIncome = useMemo(() =>
     yearPayments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0),
     [yearPayments]
@@ -138,35 +146,33 @@ export default function Accounting() {
   )
   const collectionRate = totalExpected > 0 ? Math.round((totalIncome / totalExpected) * 100) : 0
 
-  /* ── Monthly chart data ── */
+  /* ── Monthly chart data — keys are translated labels, language-aware ── */
   const monthlyData = useMemo(() => {
-    const data = MO.map((m, i) => ({ name: m, Gelir: 0, Gider: 0 }))
+    const data = monthLabels.map((m) => ({ name: m, [incomeLabel]: 0, [expenseLabel]: 0 }))
     yearPayments.filter(p => p.status === 'paid').forEach(p => {
       const mi = new Date(p.due_date).getMonth()
-      data[mi].Gelir += Number(p.amount)
+      data[mi][incomeLabel] += Number(p.amount)
     })
     yearExpenses.forEach(e => {
       const mi = new Date(e.expense_date).getMonth()
-      data[mi].Gider += Number(e.amount)
+      data[mi][expenseLabel] += Number(e.amount)
     })
     return data
-  }, [yearPayments, yearExpenses])
+  }, [yearPayments, yearExpenses, monthLabels, incomeLabel, expenseLabel])
 
-  /* ── Category breakdown ── */
   const categoryData = useMemo(() => {
     const map = {}
     yearExpenses.forEach(e => {
-      const name = e.expense_categories?.name || 'Diğer'
+      const name = e.expense_categories?.name || t('accounting.fallbackCategory')
       const color = e.expense_categories?.color || '#94A3B8'
       if (!map[name]) map[name] = { name, value: 0, color }
       map[name].value += Number(e.amount)
     })
     return Object.values(map).sort((a, b) => b.value - a.value)
-  }, [yearExpenses])
+  }, [yearExpenses, t])
 
   const categoryTotal = categoryData.reduce((s, c) => s + c.value, 0)
 
-  /* ── Property profitability ── */
   const propertyData = useMemo(() => {
     const map = {}
     apartments.forEach(a => {
@@ -196,13 +202,14 @@ export default function Accounting() {
       .sort((a, b) => b.netProfit - a.netProfit)
   }, [apartments, yearPayments, yearExpenses])
 
-  /* ── Loading ── */
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, fontFamily: font }}>
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
     </div>
   )
+
+  const yearSuffix = t('accounting.property.yearSuffix')
 
   return (
     <motion.div variants={container} initial="hidden" animate="show"
@@ -212,10 +219,10 @@ export default function Accounting() {
       <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
-            Muhasebe
+            {t('accounting.title')}
           </h1>
           <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
-            Gelir-gider özeti ve finansal raporlama
+            {t('accounting.subtitle')}
           </p>
         </div>
 
@@ -287,7 +294,7 @@ export default function Accounting() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>
-                  Toplam Gelir
+                  {t('accounting.kpi.totalIncome')}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {selectedYear}
@@ -302,7 +309,7 @@ export default function Accounting() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {money(totalIncome)} ₺
+              {formatMoney(totalIncome)}
             </div>
           </div>
         </motion.div>
@@ -319,7 +326,7 @@ export default function Accounting() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Toplam Gider
+                {t('accounting.kpi.totalExpense')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -330,7 +337,7 @@ export default function Accounting() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {money(totalExpense)} ₺
+              {formatMoney(totalExpense)}
             </div>
           </div>
         </motion.div>
@@ -347,7 +354,7 @@ export default function Accounting() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Net Kâr
+                {t('accounting.kpi.netProfit')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -360,7 +367,7 @@ export default function Accounting() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: netProfit >= 0 ? '#059669' : C.red, letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {netProfit >= 0 ? '' : '-'}{money(Math.abs(netProfit))} ₺
+              {netProfit >= 0 ? '' : '-'}{formatMoney(Math.abs(netProfit))}
             </div>
           </div>
         </motion.div>
@@ -377,7 +384,7 @@ export default function Accounting() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Tahsilat Oranı
+                {t('accounting.kpi.collectionRate')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -392,7 +399,7 @@ export default function Accounting() {
                 %{collectionRate}
               </div>
               <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 500 }}>
-                tahsil edildi
+                {t('accounting.kpi.collectedSuffix')}
               </div>
             </div>
           </div>
@@ -405,15 +412,15 @@ export default function Accounting() {
         {/* Aylık Gelir-Gider */}
         <motion.div variants={fadeItem} style={{ ...cardBox, padding: '22px 22px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Aylık Gelir-Gider</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t('accounting.charts.monthlyTitle')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: C.teal }} />
-                <span style={{ fontSize: 11, color: C.textFaint, fontWeight: 500 }}>Gelir</span>
+                <span style={{ fontSize: 11, color: C.textFaint, fontWeight: 500 }}>{incomeLabel}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: '#EF4444' }} />
-                <span style={{ fontSize: 11, color: C.textFaint, fontWeight: 500 }}>Gider</span>
+                <span style={{ fontSize: 11, color: C.textFaint, fontWeight: 500 }}>{expenseLabel}</span>
               </div>
             </div>
           </div>
@@ -425,19 +432,19 @@ export default function Accounting() {
                 tick={{ fontSize: 10, fill: '#94A3B8', fontFamily: font }}
                 tickFormatter={v => v >= 1000 ? `${Math.round(v / 1000)}K` : v} />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(2,88,100,0.04)', radius: 6 }} />
-              <Bar dataKey="Gelir" fill={C.teal} radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="Gider" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey={incomeLabel} fill={C.teal} radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey={expenseLabel} fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
 
         {/* Gider Dağılımı */}
         <motion.div variants={fadeItem} style={{ ...cardBox, padding: '22px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16 }}>Gider Dağılımı</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16 }}>{t('accounting.charts.categoryTitle')}</div>
 
           {categoryData.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: C.textFaint, fontSize: 13 }}>
-              Bu yıl gider kaydı yok
+              {t('accounting.charts.categoryEmpty')}
             </div>
           ) : (
             <>
@@ -466,7 +473,7 @@ export default function Accounting() {
                         {cat.name}
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                        ₺{money(cat.value)}
+                        {formatMoney(cat.value)}
                       </div>
                       <div style={{
                         fontSize: 10, fontWeight: 600, color: C.textFaint,
@@ -491,9 +498,9 @@ export default function Accounting() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Building2 style={{ width: 18, height: 18, color: C.teal }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Mülk Bazlı Kârlılık</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t('accounting.property.title')}</span>
           </div>
-          <span style={{ fontSize: 11, color: C.textFaint }}>{selectedYear} yılı</span>
+          <span style={{ fontSize: 11, color: C.textFaint }}>{selectedYear}{yearSuffix ? ` ${yearSuffix}` : ''}</span>
         </div>
 
         {/* Table header */}
@@ -503,7 +510,14 @@ export default function Accounting() {
           padding: '12px 24px', background: '#FAFBFC',
           borderBottom: `1px solid ${C.borderLight}`
         }}>
-          {['Mülk', 'Kira Geliri', 'Aidat Geliri', 'Toplam Gider', 'Net Kâr', 'Kârlılık'].map((h, i) => (
+          {[
+            t('accounting.property.colProperty'),
+            t('accounting.property.colRentIncome'),
+            t('accounting.property.colAidatIncome'),
+            t('accounting.property.colExpense'),
+            t('accounting.property.colNetProfit'),
+            t('accounting.property.colProfitRate'),
+          ].map((h, i) => (
             <div key={i} style={{
               fontSize: 10, fontWeight: 700, color: C.textFaint,
               textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -515,7 +529,7 @@ export default function Accounting() {
         {/* Table rows */}
         {propertyData.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 13 }}>
-            Henüz mülk kaydı yok.
+            {t('accounting.property.empty')}
           </div>
         ) : propertyData.map((p, idx) => (
           <motion.div key={p.id}
@@ -544,17 +558,17 @@ export default function Accounting() {
 
             {/* Kira Geliri */}
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              {p.rentIncome > 0 ? `₺${money(p.rentIncome)}` : '—'}
+              {p.rentIncome > 0 ? formatMoney(p.rentIncome) : '—'}
             </div>
 
             {/* Aidat Geliri */}
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              {p.aidatIncome > 0 ? `₺${money(p.aidatIncome)}` : '—'}
+              {p.aidatIncome > 0 ? formatMoney(p.aidatIncome) : '—'}
             </div>
 
             {/* Toplam Gider */}
             <div style={{ fontSize: 13, fontWeight: 600, color: p.expense > 0 ? C.red : C.textFaint, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              {p.expense > 0 ? `₺${money(p.expense)}` : '—'}
+              {p.expense > 0 ? formatMoney(p.expense) : '—'}
             </div>
 
             {/* Net Kâr */}
@@ -568,7 +582,7 @@ export default function Accounting() {
                   ? <ArrowUpRight style={{ width: 13, height: 13 }} />
                   : <ArrowDownRight style={{ width: 13, height: 13 }} />
               )}
-              {p.totalIncome > 0 ? `₺${money(Math.abs(p.netProfit))}` : '—'}
+              {p.totalIncome > 0 ? formatMoney(Math.abs(p.netProfit)) : '—'}
             </div>
 
             {/* Kârlılık */}
@@ -599,18 +613,18 @@ export default function Accounting() {
             padding: '14px 24px', alignItems: 'center',
             background: '#F8FAFC', borderTop: `2px solid ${C.border}`
           }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.teal }}>TOPLAM</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.teal }}>{t('accounting.property.totalRow')}</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              ₺{money(propertyData.reduce((s, p) => s + p.rentIncome, 0))}
+              {formatMoney(propertyData.reduce((s, p) => s + p.rentIncome, 0))}
             </div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              ₺{money(propertyData.reduce((s, p) => s + p.aidatIncome, 0))}
+              {formatMoney(propertyData.reduce((s, p) => s + p.aidatIncome, 0))}
             </div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.red, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              ₺{money(totalExpense)}
+              {formatMoney(totalExpense)}
             </div>
             <div style={{ fontSize: 13, fontWeight: 800, color: netProfit >= 0 ? '#059669' : C.red, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              ₺{money(Math.abs(netProfit))}
+              {formatMoney(Math.abs(netProfit))}
             </div>
             <div style={{ textAlign: 'right' }}>
               {totalIncome > 0 && (

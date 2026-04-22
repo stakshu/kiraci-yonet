@@ -1,17 +1,11 @@
 /* ── KiraciYonet — Geciken Odemeler ── */
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
+import { formatMoney, formatDate } from '../i18n/formatters'
 
-/* ── Tarih formatlama ── */
-function formatDate(dateStr) {
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
-
-/* ── Gun farki ── */
 function daysDiff(dateStr) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -21,6 +15,7 @@ function daysDiff(dateStr) {
 }
 
 export default function OverduePayments() {
+  const { t } = useTranslation()
   const { showToast } = useToast()
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +46,6 @@ export default function OverduePayments() {
     setLoading(false)
   }
 
-  /* ── Odendi isaretle ── */
   const markAsPaid = async (id) => {
     const today = new Date().toISOString().split('T')[0]
     const { error: err } = await supabase
@@ -60,23 +54,22 @@ export default function OverduePayments() {
       .eq('id', id)
 
     if (err) {
-      showToast('Hata: ' + err.message, 'error')
+      showToast(t('overdue.toasts.errorPrefix', { msg: err.message }), 'error')
       return
     }
-    showToast('Odeme kaydedildi.', 'success')
+    showToast(t('overdue.toasts.paid'), 'success')
     loadOverdue()
   }
 
-  /* ── Hatirlatma gonder ── */
   const sendReminder = async (payment) => {
     const tenantEmail = payment.tenants?.email
     if (!tenantEmail) {
-      showToast('Kiracinin e-posta adresi bulunamadi.', 'error')
+      showToast(t('overdue.toasts.noEmail'), 'error')
       return
     }
 
     const { data: { session } } = await supabase.auth.getSession()
-    const landlordName = session?.user?.email?.split('@')[0] || 'Mulk Sahibi'
+    const landlordName = session?.user?.email?.split('@')[0] || t('overdue.mailFallback.landlordDefault')
     const diff = daysDiff(payment.due_date)
 
     try {
@@ -101,18 +94,18 @@ export default function OverduePayments() {
         payment_id: payment.id,
         email_type: 'overdue',
         recipient: tenantEmail,
-        subject: 'Geciken Odeme',
+        subject: t('overdue.mailFallback.emailSubject'),
         status: result.success ? 'sent' : 'failed',
         error_message: result.error || null
       })
 
       if (result.success) {
-        showToast(`Hatirlatma gonderildi: ${tenantEmail}`, 'success')
+        showToast(t('overdue.toasts.reminderSent', { email: tenantEmail }), 'success')
       } else {
-        showToast('Mail gonderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error')
+        showToast(t('overdue.toasts.mailFailed', { msg: result.error || t('overdue.toasts.unknownError') }), 'error')
       }
     } catch (err) {
-      showToast('Mail gonderilemedi: ' + err.message, 'error')
+      showToast(t('overdue.toasts.mailFailed', { msg: err.message }), 'error')
     }
   }
 
@@ -143,7 +136,7 @@ export default function OverduePayments() {
           </div>
           <div className="stat-info">
             <div className="stat-number"><span>{totalOverdue}</span></div>
-            <div className="stat-label">Geciken Odeme</div>
+            <div className="stat-label">{t('overdue.kpi.overdueCount')}</div>
           </div>
         </div>
 
@@ -152,8 +145,8 @@ export default function OverduePayments() {
             <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
           <div className="stat-info">
-            <div className="stat-number"><span>{totalAmount.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Toplam Geciken ({'\u20BA'})</div>
+            <div className="stat-number"><span>{formatMoney(totalAmount)}</span></div>
+            <div className="stat-label">{t('overdue.kpi.totalOverdue')}</div>
           </div>
         </div>
 
@@ -163,7 +156,7 @@ export default function OverduePayments() {
           </div>
           <div className="stat-info">
             <div className="stat-number"><span>{uniqueTenants}</span></div>
-            <div className="stat-label">Borclu Kiraci</div>
+            <div className="stat-label">{t('overdue.kpi.debtorTenants')}</div>
           </div>
         </div>
 
@@ -173,7 +166,7 @@ export default function OverduePayments() {
           </div>
           <div className="stat-info">
             <div className="stat-number"><span>{maxDays}</span></div>
-            <div className="stat-label">En Fazla Gecikme (Gun)</div>
+            <div className="stat-label">{t('overdue.kpi.maxDelay')}</div>
           </div>
         </div>
       </div>
@@ -182,7 +175,7 @@ export default function OverduePayments() {
       <div className="table-controls">
         <div className="table-search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Kiraci veya bina ara..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input type="text" placeholder={t('overdue.searchPh')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -191,22 +184,22 @@ export default function OverduePayments() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Kiraci</th>
-              <th>Daire</th>
-              <th>Vade Tarihi</th>
-              <th>Tutar ({'\u20BA'})</th>
-              <th>Gecikme</th>
-              <th>Aksiyon</th>
+              <th>{t('overdue.table.tenant')}</th>
+              <th>{t('overdue.table.apartment')}</th>
+              <th>{t('overdue.table.dueDate')}</th>
+              <th>{t('overdue.table.amount')}</th>
+              <th>{t('overdue.table.delay')}</th>
+              <th>{t('overdue.table.action')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('overdue.table.loading')}</td></tr>
             ) : error ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>{t('overdue.table.error', { msg: error })}</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                {search ? 'Aramayla eslesen geciken odeme bulunamadi.' : 'Geciken odeme bulunmuyor.'}
+                {search ? t('overdue.table.emptyFiltered') : t('overdue.table.empty')}
               </td></tr>
             ) : filtered.map(p => {
               const diff = Math.abs(daysDiff(p.due_date))
@@ -223,19 +216,19 @@ export default function OverduePayments() {
                   </td>
                   <td>{aptName}</td>
                   <td>{formatDate(p.due_date)}</td>
-                  <td>{Number(p.amount).toLocaleString('tr-TR')}</td>
+                  <td>{formatMoney(p.amount)}</td>
                   <td style={{ color: 'var(--red)', fontWeight: 600 }}>
-                    {diff} gun gecikti
+                    {t('overdue.table.daysLate', { n: diff })}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => markAsPaid(p.id)}>
                         <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><polyline points="20 6 9 17 4 12"/></svg>
-                        Odendi
+                        {t('overdue.actions.markPaid')}
                       </button>
-                      <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => sendReminder(p)} title="Gecikme hatirlatmasi gonder">
+                      <button className="btn btn-outline" style={{ fontSize: 12, padding: '4px 10px' }} onClick={() => sendReminder(p)} title={t('overdue.actions.remindTitle')}>
                         <svg viewBox="0 0 24 24" style={{ width: 14, height: 14 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                        Hatirla
+                        {t('overdue.actions.remind')}
                       </button>
                     </div>
                   </td>

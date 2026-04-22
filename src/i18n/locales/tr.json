@@ -1158,5 +1158,90 @@
       "objectionNotice": "Hesaba yapılacak itirazların, hesabın tarafınıza ulaşmasından itibaren 12 ay içinde yazılı olarak bildirilmesi gerekmektedir. Belgeler randevu ile incelenebilir.",
       "issueDate": "Düzenleme Tarihi: {{date}} · KiraciYonet"
     }
+  },
+  "overdue": {
+    "kpi": {
+      "overdueCount": "Geciken Ödeme",
+      "totalOverdue": "Toplam Geciken",
+      "debtorTenants": "Borçlu Kiracı",
+      "maxDelay": "En Fazla Gecikme (Gün)"
+    },
+    "searchPh": "Kiracı veya bina ara...",
+    "table": {
+      "tenant": "Kiracı",
+      "apartment": "Daire",
+      "dueDate": "Vade Tarihi",
+      "amount": "Tutar",
+      "delay": "Gecikme",
+      "action": "Aksiyon",
+      "loading": "Yükleniyor...",
+      "error": "Hata: {{msg}}",
+      "emptyFiltered": "Aramayla eşleşen geciken ödeme bulunamadı.",
+      "empty": "Geciken ödeme bulunmuyor.",
+      "daysLate": "{{n}} gün gecikti"
+    },
+    "actions": {
+      "markPaid": "Ödendi",
+      "remind": "Hatırlat",
+      "remindTitle": "Gecikme hatırlatması gönder"
+    },
+    "toasts": {
+      "errorPrefix": "Hata: {{msg}}",
+      "paid": "Ödeme kaydedildi.",
+      "noEmail": "Kiracının e-posta adresi bulunamadı.",
+      "reminderSent": "Hatırlatma gönderildi: {{email}}",
+      "mailFailed": "Mail gönderilemedi: {{msg}}",
+      "unknownError": "Bilinmeyen hata"
+    },
+    "mailFallback": {
+      "landlordDefault": "Mülk Sahibi",
+      "emailSubject": "Geciken Ödeme"
+    }
+  },
+  "accounting": {
+    "title": "Muhasebe",
+    "subtitle": "Gelir-gider özeti ve finansal raporlama",
+    "kpi": {
+      "totalIncome": "Toplam Gelir",
+      "totalExpense": "Toplam Gider",
+      "netProfit": "Net Kâr",
+      "collectionRate": "Tahsilat Oranı",
+      "collectedSuffix": "tahsil edildi"
+    },
+    "charts": {
+      "monthlyTitle": "Aylık Gelir-Gider",
+      "legendIncome": "Gelir",
+      "legendExpense": "Gider",
+      "categoryTitle": "Gider Dağılımı",
+      "categoryEmpty": "Bu yıl gider kaydı yok"
+    },
+    "property": {
+      "title": "Mülk Bazlı Kârlılık",
+      "yearSuffix": "yılı",
+      "colProperty": "Mülk",
+      "colRentIncome": "Kira Geliri",
+      "colAidatIncome": "Aidat Geliri",
+      "colExpense": "Toplam Gider",
+      "colNetProfit": "Net Kâr",
+      "colProfitRate": "Kârlılık",
+      "empty": "Henüz mülk kaydı yok.",
+      "totalRow": "TOPLAM"
+    },
+    "months": {
+      "jan": "Oca", "feb": "Şub", "mar": "Mar", "apr": "Nis",
+      "may": "May", "jun": "Haz", "jul": "Tem", "aug": "Ağu",
+      "sep": "Eyl", "oct": "Eki", "nov": "Kas", "dec": "Ara"
+    },
+    "fallbackCategory": "Diğer"
+  },
+  "emptyPage": {
+    "fallbackTitle": "Sayfa",
+    "pages": {
+      "expenses": "Giderler",
+      "accounting": "Muhasebe",
+      "documents": "Belgeler"
+    },
+    "phase": "Faz {{n}}",
+    "description": "Bu modül {{phase}}'te aktif olacak. Geliştirme sürecinde adım adım eklenmektedir."
   }
 }
