@@ -2,29 +2,20 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { unitLabel } from '../lib/apartmentLabel'
 import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
+import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
   ArrowLeft, AlertCircle, UserPlus, Home, UserCheck
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
-
-const PROPERTY_TYPES = {
-  daire: 'Daire', mustakil: 'Mustakil Ev', villa: 'Villa',
-  dukkan: 'Dukkan', ofis: 'Ofis', arsa: 'Arsa', diger: 'Diger'
-}
+const PROPERTY_TYPE_KEYS = ['daire', 'mustakil', 'villa', 'dukkan', 'ofis', 'arsa', 'diger']
 
 const EMPTY_APT_FORM = {
   building_id: '', unit_no: '', property_type: 'daire',
@@ -46,6 +37,7 @@ const C = {
 }
 
 export default function BuildingDetail() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -94,7 +86,7 @@ export default function BuildingDetail() {
     ])
     if (bldRes.error) { setError(bldRes.error.message); setLoading(false); return }
     if (!bldRes.data) {
-      showToast('Bina bulunamadi.', 'error')
+      showToast(t('buildingDetail.toasts.buildingNotFound'), 'error')
       navigate('/properties', { replace: true })
       return
     }
@@ -125,20 +117,20 @@ export default function BuildingDetail() {
     }
     const { error: err } = await supabase.from('buildings').update(record).eq('id', id)
     setSavingBld(false)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Bina guncellendi.', 'success')
+    if (err) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('buildingDetail.toasts.buildingUpdated'), 'success')
     setShowBldPopup(false)
     loadData()
   }
 
   const handleBldDelete = async () => {
     const msg = apartments.length > 0
-      ? `Bu bina ve icindeki ${apartments.length} daire (+ bagli kiracilar ve odemeler) silinecek. Emin misiniz?`
-      : 'Bina silinsin mi?'
+      ? t('buildingDetail.confirm.deleteMulti', { n: apartments.length })
+      : t('buildingDetail.confirm.deleteSingle')
     if (!confirm(msg)) return
     const { error: err } = await supabase.from('buildings').delete().eq('id', id)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Bina silindi.', 'success')
+    if (err) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('buildingDetail.toasts.buildingDeleted'), 'success')
     navigate('/properties', { replace: true })
   }
 
@@ -153,7 +145,7 @@ export default function BuildingDetail() {
   const openAptEdit = async (e, aptId) => {
     e.stopPropagation()
     const { data } = await supabase.from('apartments').select('*').eq('id', aptId).single()
-    if (!data) { showToast('Daire bulunamadi.', 'error'); return }
+    if (!data) { showToast(t('buildingDetail.toasts.apartmentNotFound'), 'error'); return }
     setEditAptId(aptId)
     setAptForm({
       building_id: data.building_id || id,
@@ -169,10 +161,10 @@ export default function BuildingDetail() {
 
   const handleAptSave = async (e) => {
     e.preventDefault()
-    if (!aptForm.building_id) { showToast('Bina seciniz.', 'error'); return }
+    if (!aptForm.building_id) { showToast(t('buildingDetail.toasts.buildingRequired'), 'error'); return }
     setSavingApt(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingApt(false); return }
+    if (!session) { showToast(t('buildingDetail.toasts.sessionExpired'), 'error'); setSavingApt(false); return }
     const record = {
       user_id: session.user.id,
       building_id: aptForm.building_id,
@@ -190,18 +182,18 @@ export default function BuildingDetail() {
       ? await supabase.from('apartments').update(record).eq('id', editAptId)
       : await supabase.from('apartments').insert(record)
     setSavingApt(false)
-    if (result.error) { showToast('Hata: ' + result.error.message, 'error'); return }
-    showToast(editAptId ? 'Daire guncellendi.' : 'Daire eklendi.', 'success')
+    if (result.error) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: result.error.message }), 'error'); return }
+    showToast(editAptId ? t('buildingDetail.toasts.apartmentUpdated') : t('buildingDetail.toasts.apartmentAdded'), 'success')
     setShowAptPopup(false)
     loadData()
   }
 
   const handleAptDelete = async (e, aptId, name) => {
     e.stopPropagation()
-    if (!confirm(name + ' silinsin mi?')) return
+    if (!confirm(t('buildingDetail.confirm.deleteApartment', { name }))) return
     const { error: err } = await supabase.from('apartments').delete().eq('id', aptId)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Daire silindi.', 'success'); loadData()
+    if (err) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('buildingDetail.toasts.apartmentDeleted'), 'success'); loadData()
   }
 
   const loadInactiveTenants = async () => {
@@ -240,7 +232,7 @@ export default function BuildingDetail() {
   const handleTenantSave = async (e) => {
     e.preventDefault(); setSavingTenant(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingTenant(false); return }
+    if (!session) { showToast(t('buildingDetail.toasts.sessionExpired'), 'error'); setSavingTenant(false); return }
 
     const rentAmount = parseFloat(tenantForm.rent) || 0
     const leaseStart = tenantForm.lease_start || null
@@ -249,7 +241,7 @@ export default function BuildingDetail() {
     let tenantId = null
 
     if (tenantMode === 'existing') {
-      if (!existingTenantId) { showToast('Inaktif kiraci secin.', 'error'); setSavingTenant(false); return }
+      if (!existingTenantId) { showToast(t('buildingDetail.toasts.selectInactiveRequired'), 'error'); setSavingTenant(false); return }
       const { error: updErr } = await supabase
         .from('tenants')
         .update({
@@ -261,7 +253,7 @@ export default function BuildingDetail() {
           status: 'active'
         })
         .eq('id', existingTenantId)
-      if (updErr) { showToast('Hata: ' + updErr.message, 'error'); setSavingTenant(false); return }
+      if (updErr) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: updErr.message }), 'error'); setSavingTenant(false); return }
       tenantId = existingTenantId
     } else {
       const record = {
@@ -274,7 +266,7 @@ export default function BuildingDetail() {
         status: 'active'
       }
       const result = await supabase.from('tenants').insert(record).select()
-      if (result.error) { showToast('Hata: ' + result.error.message, 'error'); setSavingTenant(false); return }
+      if (result.error) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: result.error.message }), 'error'); setSavingTenant(false); return }
       tenantId = result.data?.[0]?.id
     }
 
@@ -299,7 +291,7 @@ export default function BuildingDetail() {
     }
 
     setSavingTenant(false)
-    showToast(tenantMode === 'existing' ? 'Kiraci atandi.' : 'Kiraci eklendi.', 'success')
+    showToast(tenantMode === 'existing' ? t('buildingDetail.toasts.tenantAssigned') : t('buildingDetail.toasts.tenantAdded'), 'success')
     setShowTenantPopup(false)
     loadData()
   }
@@ -350,7 +342,7 @@ export default function BuildingDetail() {
   }
 
   if (error) {
-    return <div style={{ padding: 40, color: C.red }}>Hata: {error}</div>
+    return <div style={{ padding: 40, color: C.red }}>{t('buildingDetail.toasts.errorPrefix', { msg: error })}</div>
   }
 
   const occupied = apartments.filter(a => a.tenants?.[0]).length
@@ -370,7 +362,7 @@ export default function BuildingDetail() {
             background: 'none', border: 'none', cursor: 'pointer', color: C.teal,
             fontWeight: 600, fontFamily: font, fontSize: 13, padding: 0
           }}>
-          <ArrowLeft style={{ width: 14, height: 14 }} /> Mulklerim
+          <ArrowLeft style={{ width: 14, height: 14 }} /> {t('buildingDetail.backToProperties')}
         </motion.button>
         <span style={{ color: C.textFaint }}>/</span>
         <span style={{ color: C.text, fontWeight: 600 }}>{building.name}</span>
@@ -401,14 +393,14 @@ export default function BuildingDetail() {
               padding: '4px 10px', borderRadius: 999,
               background: bt.chipBg, color: bt.chipFg,
               letterSpacing: '0.02em'
-            }}>{bt.label}</span>
+            }}>{t(`buildingTypes.${building.building_type || 'apartman'}`)}</span>
           </div>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>
             {[
               building.address,
               [building.district, building.city].filter(Boolean).join(', '),
-              building.building_age ? `${building.building_age} yasinda` : null
-            ].filter(Boolean).join(' • ') || 'Adres bilgisi girilmemis'}
+              building.building_age ? t('properties.table.yearsOld', { n: building.building_age }) : null
+            ].filter(Boolean).join(' • ') || t('buildingDetail.addressNotSet')}
           </div>
           {building.notes && (
             <div style={{ fontSize: 12, color: C.textFaint, marginTop: 8, fontStyle: 'italic' }}>
@@ -424,7 +416,7 @@ export default function BuildingDetail() {
               background: 'white', color: C.teal, border: `1.5px solid ${C.teal}`,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <Pencil style={{ width: 13, height: 13 }} /> Duzenle
+            <Pencil style={{ width: 13, height: 13 }} /> {t('buildingDetail.editBuilding')}
           </motion.button>
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={handleBldDelete}
             style={{
@@ -433,7 +425,7 @@ export default function BuildingDetail() {
               background: '#FEF2F2', color: C.red, border: 'none',
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <Trash2 style={{ width: 13, height: 13 }} /> Sil
+            <Trash2 style={{ width: 13, height: 13 }} /> {t('buildingDetail.deleteBuilding')}
           </motion.button>
         </div>
       </motion.div>
@@ -446,10 +438,10 @@ export default function BuildingDetail() {
         flexWrap: 'wrap'
       }}>
         {[
-          { label: singleUnit ? 'Birim' : 'Daire', value: apartments.length, color: C.teal },
-          { label: 'Kirada', value: occupied, color: '#059669' },
-          { label: 'Bosta', value: vacant, color: '#DC2626' },
-          { label: 'Aylik', value: `${money(monthlyIncome)} ₺`, color: C.teal }
+          { label: singleUnit ? t('buildingDetail.stats.unit') : t('buildingDetail.stats.apartment'), value: apartments.length, color: C.teal },
+          { label: t('buildingDetail.stats.occupied'), value: occupied, color: '#059669' },
+          { label: t('buildingDetail.stats.vacant'), value: vacant, color: '#DC2626' },
+          { label: t('buildingDetail.stats.monthly'), value: formatMoney(monthlyIncome), color: C.teal }
         ].map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -473,7 +465,7 @@ export default function BuildingDetail() {
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
               boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
             }}>
-            <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
+            <Plus style={{ width: 15, height: 15 }} /> {t('buildingDetail.addApartment')}
           </motion.button>
         </div>
       )}
@@ -489,7 +481,7 @@ export default function BuildingDetail() {
           padding: '14px 24px', borderBottom: `1px solid ${C.borderLight}`,
           background: '#FAFBFC'
         }}>
-          {[singleUnit ? 'Birim' : 'Daire', 'Kiraci', 'Siradaki Odeme', 'Sozlesme Bitis', ''].map((h, i) => (
+          {[singleUnit ? t('buildingDetail.table.unit') : t('buildingDetail.table.apartment'), t('buildingDetail.table.tenant'), t('buildingDetail.table.nextPayment'), t('buildingDetail.table.leaseEnd'), ''].map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
               textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -500,15 +492,15 @@ export default function BuildingDetail() {
         {apartments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
             {singleUnit
-              ? 'Bu mulkun birim kaydi bulunamadi.'
-              : 'Bu binada henuz daire yok. "+ Daire Ekle" ile ekleyebilirsiniz.'}
+              ? t('buildingDetail.empty.single')
+              : t('buildingDetail.empty.multi')}
           </div>
         ) : (
           apartments.map((apt, i) => {
             const tenant = apt.tenants?.[0]
             const isOccupied = !!tenant
             const nextPay = tenant ? getNextPayment(tenant.id) : null
-            const label = singleUnit ? bt.label : unitLabel(apt)
+            const label = singleUnit ? t(`buildingTypes.${building.building_type || 'apartman'}`) : unitLabel(apt)
 
             return (
               <motion.div key={apt.id}
@@ -530,7 +522,7 @@ export default function BuildingDetail() {
                     background: isOccupied ? '#ECFDF5' : '#FEF2F2',
                     color: isOccupied ? '#059669' : '#DC2626'
                   }}>
-                    {isOccupied ? 'Kirada' : 'Bosta'}
+                    {isOccupied ? t('buildingDetail.table.occupied') : t('buildingDetail.table.vacant')}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{label}</div>
                 </div>
@@ -543,7 +535,7 @@ export default function BuildingDetail() {
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         fontSize: 12, fontWeight: 600, color: C.teal, cursor: 'pointer'
                       }}>
-                      <UserPlus style={{ width: 13, height: 13 }} /> Kiraci Ekle
+                      <UserPlus style={{ width: 13, height: 13 }} /> {t('buildingDetail.table.addTenant')}
                     </div>
                   )}
                 </div>
@@ -553,9 +545,9 @@ export default function BuildingDetail() {
                       <div style={{
                         fontSize: 13, fontWeight: 500,
                         color: new Date(nextPay.due_date) < new Date() ? C.red : C.text
-                      }}>{formatDate(nextPay.due_date)}</div>
+                      }}>{fmtDate(nextPay.due_date)}</div>
                     ) : (
-                      <div style={{ fontSize: 12, color: C.textFaint }}>Odeme kaydi yok</div>
+                      <div style={{ fontSize: 12, color: C.textFaint }}>{t('buildingDetail.table.noPaymentRecord')}</div>
                     )
                   ) : (
                     <div style={{ fontSize: 12, color: C.textFaint }}>—</div>
@@ -566,13 +558,13 @@ export default function BuildingDetail() {
                     <div style={{
                       fontSize: 13, fontWeight: 500,
                       color: new Date(tenant.lease_end) < new Date() ? C.red : C.text
-                    }}>{formatDate(tenant.lease_end)}</div>
+                    }}>{fmtDate(tenant.lease_end)}</div>
                   ) : tenant ? (
                     <div onClick={(e) => { e.stopPropagation(); navigate(`/properties/${apt.id}`) }}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         fontSize: 12, fontWeight: 600, color: C.teal, cursor: 'pointer'
-                      }}>Sozlesme Ekle</div>
+                      }}>{t('buildingDetail.table.addLease')}</div>
                   ) : (
                     <div style={{ fontSize: 12, color: C.textFaint }}>—</div>
                   )}
@@ -640,7 +632,7 @@ export default function BuildingDetail() {
                     <Building2 style={{ width: 18, height: 18 }} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    Binayi Duzenle
+                    {t('buildingDetail.bldModal.title')}
                   </h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -657,47 +649,47 @@ export default function BuildingDetail() {
               <form onSubmit={handleBldSave}>
                 <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label style={labelStyle}>Bina Adi *</label>
+                    <label style={labelStyle}>{t('buildingDetail.bldModal.name')}</label>
                     <input style={inputStyle} type="text" required
-                      placeholder="Cömertkent Sitesi H1 Blok"
+                      placeholder={t('buildingDetail.bldModal.namePh')}
                       value={bldForm.name} onChange={e => updateBldForm('name', e.target.value)}
                       onFocus={e => e.target.style.borderColor = C.teal}
                       onBlur={e => e.target.style.borderColor = C.border} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Sehir</label>
-                      <input style={inputStyle} type="text" placeholder="Istanbul"
+                      <label style={labelStyle}>{t('buildingDetail.bldModal.city')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.cityPh')}
                         value={bldForm.city} onChange={e => updateBldForm('city', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Ilce</label>
-                      <input style={inputStyle} type="text" placeholder="Kadikoy"
+                      <label style={labelStyle}>{t('buildingDetail.bldModal.district')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.districtPh')}
                         value={bldForm.district} onChange={e => updateBldForm('district', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Adres</label>
-                    <input style={inputStyle} type="text" placeholder="Mahalle, Sokak, No"
+                    <label style={labelStyle}>{t('buildingDetail.bldModal.address')}</label>
+                    <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.addressPh')}
                       value={bldForm.address} onChange={e => updateBldForm('address', e.target.value)}
                       onFocus={e => e.target.style.borderColor = C.teal}
                       onBlur={e => e.target.style.borderColor = C.border} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Bina Yasi</label>
+                      <label style={labelStyle}>{t('buildingDetail.bldModal.buildingAge')}</label>
                       <input style={inputStyle} type="number" min="0" placeholder="5"
                         value={bldForm.building_age} onChange={e => updateBldForm('building_age', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Notlar</label>
-                      <input style={inputStyle} type="text" placeholder="Opsiyonel"
+                      <label style={labelStyle}>{t('buildingDetail.bldModal.notes')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.notesPh')}
                         value={bldForm.notes} onChange={e => updateBldForm('notes', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
@@ -718,7 +710,7 @@ export default function BuildingDetail() {
                         background: '#F1F5F9', color: C.textMuted, border: 'none',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                       }}>
-                      Iptal
+                      {t('common.cancel')}
                     </motion.button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       type="submit" disabled={savingBld}
@@ -731,7 +723,7 @@ export default function BuildingDetail() {
                         boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                       }}>
                       <Check style={{ width: 15, height: 15 }} />
-                      {savingBld ? 'Kaydediliyor...' : 'Kaydet'}
+                      {savingBld ? t('common.saving') : t('common.save')}
                     </motion.button>
                   </div>
                 </div>
@@ -776,7 +768,7 @@ export default function BuildingDetail() {
                     <Home style={{ width: 18, height: 18 }} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    {editAptId ? 'Daireyi Duzenle' : 'Yeni Daire Ekle'}
+                    {editAptId ? t('buildingDetail.aptModal.titleEdit') : t('buildingDetail.aptModal.titleAdd')}
                   </h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -795,7 +787,7 @@ export default function BuildingDetail() {
 
                   {/* Bina select (zorunlu) */}
                   <div>
-                    <label style={labelStyle}>Bina *</label>
+                    <label style={labelStyle}>{t('buildingDetail.aptModal.building')}</label>
                     <select required value={aptForm.building_id}
                       onChange={e => updateAptForm('building_id', e.target.value)}
                       style={{ ...inputStyle, cursor: 'pointer', ...selectStyle, background: '#FAFBFC', minWidth: 'auto' }}
@@ -807,17 +799,17 @@ export default function BuildingDetail() {
                   {/* Unit no + Type */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Daire No *</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.unitNo')}</label>
                       <input style={inputStyle} type="text" required placeholder="20"
                         value={aptForm.unit_no} onChange={e => updateAptForm('unit_no', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Mulk Tipi</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.propertyType')}</label>
                       <select style={{ ...inputStyle, cursor: 'pointer' }}
                         value={aptForm.property_type} onChange={e => updateAptForm('property_type', e.target.value)}>
-                        {Object.entries(PROPERTY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {PROPERTY_TYPE_KEYS.map(k => <option key={k} value={k}>{t(`propertyTypes.${k}`)}</option>)}
                       </select>
                     </div>
                   </div>
@@ -825,35 +817,35 @@ export default function BuildingDetail() {
                   {/* Oda, Kat, m2, Depozito */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Oda Sayisi</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.roomCount')}</label>
                       <input style={inputStyle} type="text" placeholder="2+1"
                         value={aptForm.room_count} onChange={e => updateAptForm('room_count', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Kat</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.floor')}</label>
                       <input style={inputStyle} type="text" placeholder="2"
                         value={aptForm.floor_no} onChange={e => updateAptForm('floor_no', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Depozito (₺)</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.deposit')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                         value={aptForm.deposit} onChange={e => updateAptForm('deposit', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Brut m²</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.grossArea')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="120"
                         value={aptForm.m2_gross} onChange={e => updateAptForm('m2_gross', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Net m²</label>
+                      <label style={labelStyle}>{t('buildingDetail.aptModal.netArea')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="100"
                         value={aptForm.m2_net} onChange={e => updateAptForm('m2_net', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
@@ -864,16 +856,16 @@ export default function BuildingDetail() {
                         <input type="checkbox" checked={aptForm.furnished}
                           onChange={e => updateAptForm('furnished', e.target.checked)}
                           style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Esyali</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t('buildingDetail.aptModal.furnished')}</span>
                       </label>
                     </div>
                   </div>
 
                   {/* Notes */}
                   <div>
-                    <label style={labelStyle}>Notlar</label>
+                    <label style={labelStyle}>{t('buildingDetail.aptModal.notes')}</label>
                     <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
-                      placeholder="Opsiyonel notlar..."
+                      placeholder={t('buildingDetail.aptModal.notesPh')}
                       value={aptForm.notes} onChange={e => updateAptForm('notes', e.target.value)}
                       onFocus={e => e.target.style.borderColor = C.teal}
                       onBlur={e => e.target.style.borderColor = C.border} />
@@ -891,7 +883,7 @@ export default function BuildingDetail() {
                       background: '#F1F5F9', color: C.textMuted, border: 'none',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    Iptal
+                    {t('common.cancel')}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     type="submit" disabled={savingApt}
@@ -904,7 +896,7 @@ export default function BuildingDetail() {
                       boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {savingApt ? 'Kaydediliyor...' : 'Kaydet'}
+                    {savingApt ? t('common.saving') : t('common.save')}
                   </motion.button>
                 </div>
               </form>
@@ -942,7 +934,7 @@ export default function BuildingDetail() {
               }}>
                 <div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    Kiraci Ekle
+                    {t('buildingDetail.tenantModal.title')}
                   </h3>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, marginTop: 4 }}>
                     {tenantAptName}
@@ -966,8 +958,8 @@ export default function BuildingDetail() {
                   display: 'flex', gap: 6
                 }}>
                   {[
-                    { key: 'new', label: 'Yeni Kiraci', icon: UserPlus, count: null },
-                    { key: 'existing', label: 'Inaktif Kiracidan Ata', icon: UserCheck, count: inactiveTenants.length }
+                    { key: 'new', label: t('buildingDetail.tenantModal.modeNew'), icon: UserPlus, count: null },
+                    { key: 'existing', label: t('buildingDetail.tenantModal.modeExisting'), icon: UserCheck, count: inactiveTenants.length }
                   ].map(m => {
                     const MIcon = m.icon
                     const active = tenantMode === m.key
@@ -1014,10 +1006,10 @@ export default function BuildingDetail() {
                           <AlertCircle style={{ width: 22, height: 22 }} />
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
-                          Inaktif kiraci yok
+                          {t('buildingDetail.tenantModal.noInactiveTitle')}
                         </div>
                         <div style={{ fontSize: 12, color: '#92400E', marginBottom: 12 }}>
-                          "Yeni Kiraci" sekmesinden ekleyebilirsiniz.
+                          {t('buildingDetail.tenantModal.noInactiveSub')}
                         </div>
                         <button type="button" onClick={() => setTenantMode('new')}
                           style={{
@@ -1025,20 +1017,20 @@ export default function BuildingDetail() {
                             background: C.teal, color: 'white', border: 'none',
                             fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                           }}>
-                          Yeni Kiraci Olustur
+                          {t('buildingDetail.tenantModal.createNewCta')}
                         </button>
                       </div>
                     ) : (
                       <>
                         <div>
-                          <label style={labelStyle}>Inaktif Kiraci Sec *</label>
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.selectInactive')}</label>
                           <select style={{ ...selectStyle }} required
                             value={existingTenantId}
                             onChange={e => selectExistingTenant(e.target.value)}>
-                            <option value="">Inaktif kiraci secin...</option>
-                            {inactiveTenants.map(t => (
-                              <option key={t.id} value={t.id}>
-                                {t.full_name}{t.phone ? ` · ${t.phone}` : ''}
+                            <option value="">{t('buildingDetail.tenantModal.selectInactivePh')}</option>
+                            {inactiveTenants.map(ten => (
+                              <option key={ten.id} value={ten.id}>
+                                {ten.full_name}{ten.phone ? ` · ${ten.phone}` : ''}
                               </option>
                             ))}
                           </select>
@@ -1063,15 +1055,15 @@ export default function BuildingDetail() {
                     <>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Ad Soyad *</label>
-                          <input style={inputStyle} required placeholder="Ahmet Yilmaz"
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.fullName')}</label>
+                          <input style={inputStyle} required placeholder={t('buildingDetail.tenantModal.fullNamePh')}
                             value={tenantForm.full_name} onChange={e => updateTenantForm('full_name', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
                         </div>
                         <div>
-                          <label style={labelStyle}>TC No</label>
-                          <input style={inputStyle} placeholder="12345678901"
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.tcNo')}</label>
+                          <input style={inputStyle} placeholder={t('buildingDetail.tenantModal.tcNoPh')}
                             value={tenantForm.tc_no} onChange={e => updateTenantForm('tc_no', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
@@ -1079,15 +1071,15 @@ export default function BuildingDetail() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Telefon</label>
-                          <input style={inputStyle} placeholder="0532 xxx xx xx"
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.phone')}</label>
+                          <input style={inputStyle} placeholder={t('buildingDetail.tenantModal.phonePh')}
                             value={tenantForm.phone} onChange={e => updateTenantForm('phone', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
                         </div>
                         <div>
-                          <label style={labelStyle}>E-posta</label>
-                          <input style={inputStyle} type="email" placeholder="ornek@mail.com"
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.email')}</label>
+                          <input style={inputStyle} type="email" placeholder={t('buildingDetail.tenantModal.emailPh')}
                             value={tenantForm.email} onChange={e => updateTenantForm('email', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
@@ -1101,14 +1093,14 @@ export default function BuildingDetail() {
                     <>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Sozlesme Baslangic</label>
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.leaseStart')}</label>
                           <input style={inputStyle} type="date"
                             value={tenantForm.lease_start} onChange={e => updateTenantForm('lease_start', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Sozlesme Bitis</label>
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.leaseEnd')}</label>
                           <input style={inputStyle} type="date"
                             value={tenantForm.lease_end} onChange={e => updateTenantForm('lease_end', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
@@ -1117,14 +1109,14 @@ export default function BuildingDetail() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Aylik Kira (₺)</label>
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.monthlyRent')}</label>
                           <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                             value={tenantForm.rent} onChange={e => updateTenantForm('rent', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
                             onBlur={e => e.target.style.borderColor = C.border} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Depozito (₺)</label>
+                          <label style={labelStyle}>{t('buildingDetail.tenantModal.deposit')}</label>
                           <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                             value={tenantForm.deposit} onChange={e => updateTenantForm('deposit', e.target.value)}
                             onFocus={e => e.target.style.borderColor = C.teal}
@@ -1146,7 +1138,7 @@ export default function BuildingDetail() {
                       background: '#F1F5F9', color: C.textMuted, border: 'none',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    Iptal
+                    {t('common.cancel')}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     type="submit" disabled={savingTenant}
@@ -1160,8 +1152,8 @@ export default function BuildingDetail() {
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
                     {savingTenant
-                      ? 'Kaydediliyor...'
-                      : (tenantMode === 'existing' ? 'Ata' : 'Kiraci Ekle')}
+                      ? t('common.saving')
+                      : (tenantMode === 'existing' ? t('buildingDetail.tenantModal.submitAssign') : t('buildingDetail.tenantModal.submitNew'))}
                   </motion.button>
                 </div>
               </form>

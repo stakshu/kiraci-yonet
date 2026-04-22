@@ -1,9 +1,11 @@
 /* ── KiraciYonet — Bina Aylık Gider Tablosu (toplu giriş) ── */
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from './Toast'
-import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
+import { DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
+import { formatMoney, formatMonthYear } from '../i18n/formatters'
 import {
   X, Check, Building2, Calendar, Layers,
   Receipt, Landmark, Droplets, Waves, Flame, Thermometer,
@@ -13,8 +15,6 @@ import {
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = (n) => Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const MONTH_NAMES = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
 
 const C = {
   teal: '#025864', green: '#00D47E', darkTeal: '#03363D',
@@ -41,32 +41,26 @@ const inputStyle = {
   width: '100%', boxSizing: 'border-box',
 }
 
-/**
- * Tek bir modalda bina için ay+yıl dönemi gider kalemlerini toplu girmek içindir.
- * Açıldığında DB'deki mevcut building-scope kayıtları çeker ve form'a prefill eder.
- * "Tümünü Kaydet" sırasında INSERT (yeni), UPDATE (değişen), DELETE (boşaltılan) diff uygular.
- */
 export default function BuildingExpenseSheet({
   isOpen,
   onClose,
   onSaved,
-  building,           // { id, name }
-  apartmentCount,     // o binadaki daire sayısı (bilgi chip'i için)
-  categories,         // [{ id, name, icon, color, is_tenant_billable, default_distribution_key, sort_order }]
-  initialMonth,       // 1-12
-  initialYear,        // number
+  building,
+  apartmentCount,
+  categories,
+  initialMonth,
+  initialYear,
 }) {
+  const { t } = useTranslation()
   const { showToast } = useToast()
 
   const [month, setMonth] = useState(initialMonth || new Date().getMonth() + 1)
   const [year, setYear] = useState(initialYear || new Date().getFullYear())
 
-  // rows: { [categoryId]: { amount, distKey, isBillable, existingId } }
   const [rows, setRows] = useState({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Her ay/yıl/bina değişiminde mevcut kayıtları yükle
   useEffect(() => {
     if (!isOpen || !building?.id) return
     let cancelled = false
@@ -88,7 +82,6 @@ export default function BuildingExpenseSheet({
         return
       }
 
-      // Her kategori için default row, üstüne DB'den gelenler override.
       const init = {}
       categories.forEach(c => {
         init[c.id] = {
@@ -121,7 +114,6 @@ export default function BuildingExpenseSheet({
     setRows(prev => ({ ...prev, [catId]: { ...prev[catId], ...patch } }))
   }
 
-  // Özet
   const summary = useMemo(() => {
     const filled = Object.entries(rows).filter(([, r]) => r && r.amount !== '' && Number(r.amount) > 0)
     const total = filled.reduce((s, [, r]) => s + Number(r.amount), 0)
@@ -188,14 +180,17 @@ export default function BuildingExpenseSheet({
         const { error } = await supabase.from('property_expenses').delete().in('id', deletes)
         if (error) throw error
       }
+      const savedCount = inserts.length + updates.length
       showToast(
-        `${inserts.length + updates.length} kalem kaydedildi${deletes.length ? `, ${deletes.length} silindi` : ''}.`,
+        deletes.length
+          ? t('buildingExpenseSheet.toasts.savedWithDeletes', { saved: savedCount, deleted: deletes.length })
+          : t('buildingExpenseSheet.toasts.saved', { saved: savedCount }),
         'success'
       )
       onSaved?.(building.id)
       onClose()
     } catch (e) {
-      showToast(e.message || 'Kaydetme sırasında hata.', 'error')
+      showToast(e.message || t('buildingExpenseSheet.toasts.saveError'), 'error')
     } finally {
       setSaving(false)
     }
@@ -207,6 +202,10 @@ export default function BuildingExpenseSheet({
   }, [])
 
   if (!isOpen) return null
+
+  const subtitle = apartmentCount != null
+    ? t('buildingExpenseSheet.subtitle', { count: apartmentCount })
+    : t('buildingExpenseSheet.subtitleUnknownCount')
 
   return (
     <AnimatePresence>
@@ -248,10 +247,10 @@ export default function BuildingExpenseSheet({
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: '-0.3px' }}>
-                  {building?.name || 'Bina'}
+                  {building?.name || t('buildingExpenseSheet.fallbackBuilding')}
                 </h2>
                 <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-                  Aylık bina gider tablosu · {apartmentCount ?? '—'} daire
+                  {subtitle}
                 </p>
               </div>
             </div>
@@ -275,15 +274,15 @@ export default function BuildingExpenseSheet({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Calendar size={15} color={C.teal} />
               <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Dönem
+                {t('buildingExpenseSheet.period')}
               </span>
             </div>
             <select
               value={month} onChange={e => setMonth(Number(e.target.value))}
-              style={{ ...inputStyle, width: 140, cursor: 'pointer' }}
+              style={{ ...inputStyle, width: 160, cursor: 'pointer' }}
             >
-              {MONTH_NAMES.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <option key={i} value={i + 1}>{formatMonthYear(i + 1, year).split(' ')[0]}</option>
               ))}
             </select>
             <select
@@ -295,7 +294,7 @@ export default function BuildingExpenseSheet({
             <div style={{ flex: 1 }} />
             {loading && (
               <span style={{ fontSize: 12, color: C.textFaint, fontStyle: 'italic' }}>
-                Mevcut kayıtlar yükleniyor...
+                {t('buildingExpenseSheet.loadingExisting')}
               </span>
             )}
           </div>
@@ -311,10 +310,10 @@ export default function BuildingExpenseSheet({
               textTransform: 'uppercase', letterSpacing: '0.6px',
               position: 'sticky', top: 0, background: '#fff', zIndex: 1,
             }}>
-              <div>Kategori</div>
-              <div style={{ textAlign: 'right' }}>Tutar (₺)</div>
-              <div>Dağıtım Anahtarı</div>
-              <div style={{ textAlign: 'center' }}>Yansıtılır</div>
+              <div>{t('buildingExpenseSheet.tableHeader.category')}</div>
+              <div style={{ textAlign: 'right' }}>{t('buildingExpenseSheet.tableHeader.amount')}</div>
+              <div>{t('buildingExpenseSheet.tableHeader.distKey')}</div>
+              <div style={{ textAlign: 'center' }}>{t('buildingExpenseSheet.tableHeader.billable')}</div>
             </div>
 
             {categories.map(cat => {
@@ -331,7 +330,6 @@ export default function BuildingExpenseSheet({
                     background: hasAmount ? 'rgba(0,212,126,0.03)' : 'transparent',
                   }}
                 >
-                  {/* Category */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: 8,
@@ -345,7 +343,6 @@ export default function BuildingExpenseSheet({
                     </span>
                   </div>
 
-                  {/* Amount */}
                   <div style={{ paddingRight: 12 }}>
                     <input
                       type="number" step="0.01" min="0"
@@ -362,7 +359,6 @@ export default function BuildingExpenseSheet({
                     />
                   </div>
 
-                  {/* Distribution Key */}
                   <div style={{ paddingRight: 12 }}>
                     <select
                       value={row.distKey}
@@ -377,13 +373,12 @@ export default function BuildingExpenseSheet({
                     >
                       {DISTRIBUTION_KEY_ORDER.map(k => (
                         <option key={k} value={k}>
-                          {DISTRIBUTION_KEYS[k].label}
+                          {t(`distributionKeys.${k}.label`)}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Billable toggle */}
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
@@ -393,7 +388,7 @@ export default function BuildingExpenseSheet({
                         background: row.isBillable ? C.green : C.border,
                         position: 'relative', transition: 'background 0.2s',
                       }}
-                      aria-label={row.isBillable ? 'Yansıtılır' : 'Yansıtılmaz'}
+                      aria-label={row.isBillable ? t('buildingExpenseSheet.billableOn') : t('buildingExpenseSheet.billableOff')}
                     >
                       <motion.div
                         animate={{ x: row.isBillable ? 20 : 0 }}
@@ -427,10 +422,10 @@ export default function BuildingExpenseSheet({
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Özet
+                  {t('buildingExpenseSheet.summary')}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {summary.count} kalem · ₺{money(summary.total)}
+                  {t('buildingExpenseSheet.summaryLine', { count: summary.count, total: formatMoney(summary.total) })}
                 </div>
               </div>
             </div>
@@ -447,7 +442,7 @@ export default function BuildingExpenseSheet({
                   opacity: saving ? 0.6 : 1,
                 }}
               >
-                İptal
+                {t('buildingExpenseSheet.cancel')}
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -465,7 +460,12 @@ export default function BuildingExpenseSheet({
                   boxShadow: summary.count > 0 ? '0 4px 12px rgba(0,212,126,0.3)' : 'none',
                 }}
               >
-                <Check size={16} /> {saving ? 'Kaydediliyor...' : `Tümünü Kaydet${summary.count > 0 ? ` (${summary.count})` : ''}`}
+                <Check size={16} />
+                {saving
+                  ? t('buildingExpenseSheet.saving')
+                  : (summary.count > 0
+                      ? t('buildingExpenseSheet.saveAllCount', { count: summary.count })
+                      : t('buildingExpenseSheet.saveAll'))}
               </motion.button>
             </div>
           </div>

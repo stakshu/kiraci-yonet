@@ -2,9 +2,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { apartmentLabel, unitLabel } from '../lib/apartmentLabel'
+import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
   ArrowLeft, Building2, MapPin, Home, BedDouble, Armchair,
   Layers, Maximize2, Clock, Check, Undo2, Pencil, X, Save,
@@ -15,14 +17,6 @@ import {
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
 
 function daysDiff(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
@@ -30,10 +24,7 @@ function daysDiff(dateStr) {
   return Math.ceil((target - today) / 864e5)
 }
 
-const PROPERTY_TYPES = {
-  daire: 'Daire', mustakil: 'Mustakil Ev', villa: 'Villa',
-  dukkan: 'Dukkan', ofis: 'Ofis', arsa: 'Arsa', diger: 'Diger'
-}
+const PROPERTY_TYPE_KEYS = ['daire', 'mustakil', 'villa', 'dukkan', 'ofis', 'arsa', 'diger']
 
 const C = {
   teal: '#025864',
@@ -58,11 +49,11 @@ const fadeItem = {
 }
 
 const TABS = [
-  { key: 'details', label: 'Mulk Detaylari', icon: Building2 },
-  { key: 'payments', label: 'Odeme Akisi', icon: CreditCard },
-  { key: 'lease', label: 'Kira Sozlesmesi Bilgileri', icon: ScrollText },
-  { key: 'documents', label: 'Belgeler', icon: FileText },
-  { key: 'notes', label: 'Notlar', icon: StickyNote }
+  { key: 'details', icon: Building2 },
+  { key: 'payments', icon: CreditCard },
+  { key: 'lease', icon: ScrollText },
+  { key: 'documents', icon: FileText },
+  { key: 'notes', icon: StickyNote }
 ]
 
 const inputStyle = {
@@ -82,6 +73,7 @@ export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useTranslation()
   const fileRef = useRef(null)
 
   const [apt, setApt] = useState(null)
@@ -135,7 +127,7 @@ export default function PropertyDetail() {
       .eq('id', id)
       .single()
     if (error || !data) {
-      showToast('Mulk bulunamadi.', 'error')
+      showToast(t('propertyDetail.toasts.propertyNotFound'), 'error')
       navigate('/properties')
       return
     }
@@ -185,19 +177,18 @@ export default function PropertyDetail() {
   }
 
   const confirmEndLease = async () => {
-    const t = apt?.tenants?.[0]
-    if (!t) return
+    const ten = apt?.tenants?.[0]
+    if (!ten) return
     setEndingLease(true)
     const { error } = await supabase
       .from('tenants')
       .update({ apartment_id: null, status: 'former' })
-      .eq('id', t.id)
+      .eq('id', ten.id)
     setEndingLease(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast(`${t.full_name} sözleşmesi sonlandırıldı.`, 'success')
+    if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); return }
+    showToast(t('propertyDetail.toasts.leaseEnded', { name: ten.full_name }), 'success')
     setShowEndLease(false)
     loadProperty()
-    // Refresh past tenants if lease tab is active
     if (tab === 'lease') loadPastTenants()
   }
 
@@ -205,8 +196,8 @@ export default function PropertyDetail() {
     setDeletingProperty(true)
     const { error } = await supabase.from('apartments').delete().eq('id', id)
     setDeletingProperty(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Mulk silindi.', 'success')
+    if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); return }
+    showToast(t('propertyDetail.toasts.propertyDeleted'), 'success')
     navigate('/properties')
   }
 
@@ -232,7 +223,7 @@ export default function PropertyDetail() {
   }
 
   const saveDetails = async () => {
-    if (!detailForm.building_id) { showToast('Bina seciniz.', 'error'); return }
+    if (!detailForm.building_id) { showToast(t('propertyDetail.toasts.buildingRequired'), 'error'); return }
     setSavingDetails(true)
     const { error } = await supabase.from('apartments').update({
       building_id: detailForm.building_id,
@@ -246,8 +237,8 @@ export default function PropertyDetail() {
       deposit: parseFloat(detailForm.deposit) || 0
     }).eq('id', id)
     setSavingDetails(false)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Mulk bilgileri guncellendi.', 'success')
+    if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); return }
+    showToast(t('propertyDetail.toasts.propertyUpdated'), 'success')
     setEditingDetails(false)
     loadProperty()
   }
@@ -263,16 +254,16 @@ export default function PropertyDetail() {
     setSavingNote(true)
     if (editingNote === 'property') {
       const { error } = await supabase.from('apartments').update({ notes: noteText.trim() }).eq('id', id)
-      if (error) { showToast('Hata: ' + error.message, 'error'); setSavingNote(false); return }
+      if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); setSavingNote(false); return }
     } else {
-      const t = apt.tenants?.[0]
-      if (t) {
-        const { error } = await supabase.from('tenants').update({ notes: noteText.trim() }).eq('id', t.id)
-        if (error) { showToast('Hata: ' + error.message, 'error'); setSavingNote(false); return }
+      const ten = apt.tenants?.[0]
+      if (ten) {
+        const { error } = await supabase.from('tenants').update({ notes: noteText.trim() }).eq('id', ten.id)
+        if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); setSavingNote(false); return }
       }
     }
     setSavingNote(false)
-    showToast('Not kaydedildi.', 'success')
+    showToast(t('propertyDetail.toasts.noteSaved'), 'success')
     setEditingNote(null)
     loadProperty()
   }
@@ -287,8 +278,8 @@ export default function PropertyDetail() {
       .from('documents')
       .upload(`apartments/${id}/${fileName}`, file)
     setUploading(false)
-    if (error) { showToast('Yukleme hatasi: ' + error.message, 'error'); return }
-    showToast('Belge yuklendi.', 'success')
+    if (error) { showToast(t('propertyDetail.toasts.uploadError', { msg: error.message }), 'error'); return }
+    showToast(t('propertyDetail.toasts.documentUploaded'), 'success')
     loadDocuments()
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -301,12 +292,12 @@ export default function PropertyDetail() {
   }
 
   const deleteDoc = async (name) => {
-    if (!confirm(`${name} silinsin mi?`)) return
+    if (!confirm(t('propertyDetail.toasts.confirmDeleteDoc', { name }))) return
     const { error } = await supabase.storage
       .from('documents')
       .remove([`apartments/${id}/${name}`])
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Belge silindi.', 'success')
+    if (error) { showToast(t('propertyDetail.toasts.errorPrefix', { msg: error.message }), 'error'); return }
+    showToast(t('propertyDetail.toasts.documentDeleted'), 'success')
     loadDocuments()
   }
 
@@ -329,44 +320,46 @@ export default function PropertyDetail() {
   const bld = apt.buildings || {}
   const location = [bld.city, bld.district].filter(Boolean).join(', ')
 
+  const ptLabel = apt.property_type ? t(`propertyTypes.${apt.property_type}`) : '—'
+
   const summaryCards = [
-    { icon: Building2, label: 'Bina', value: bld.name || '—' },
-    { icon: Home, label: 'Daire', value: unitLabel(apt) },
-    { icon: MapPin, label: 'Lokasyon', value: location || '—' },
-    { icon: Home, label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || apt.property_type || '—' },
-    { icon: BedDouble, label: 'Oda sayisi', value: apt.room_count || '—' },
-    { icon: Armchair, label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
-    { icon: Maximize2, label: 'm2 (Net)', value: apt.m2_net || '—' },
-    { icon: Clock, label: 'Bina yasi', value: bld.building_age != null ? bld.building_age : '—' }
+    { icon: Building2, label: t('propertyDetail.fields.building'), value: bld.name || '—' },
+    { icon: Home, label: t('propertyDetail.fields.apartment'), value: unitLabel(apt) },
+    { icon: MapPin, label: t('propertyDetail.fields.location'), value: location || '—' },
+    { icon: Home, label: t('propertyDetail.fields.propertyType'), value: ptLabel },
+    { icon: BedDouble, label: t('propertyDetail.fields.roomCount'), value: apt.room_count || '—' },
+    { icon: Armchair, label: t('propertyDetail.fields.furnished'), value: apt.furnished ? t('common.yes') : t('common.no') },
+    { icon: Maximize2, label: t('propertyDetail.fields.m2Net'), value: apt.m2_net || '—' },
+    { icon: Clock, label: t('propertyDetail.fields.buildingAge'), value: bld.building_age != null ? bld.building_age : '—' }
   ]
 
   const detailRows = [
-    { label: 'Bina', value: bld.name || '—' },
-    { label: 'Adresi', value: bld.address ? `${bld.address}${location ? ', ' + location : ''}` : location || '—' },
-    { label: 'Mulk tipi', value: PROPERTY_TYPES[apt.property_type] || '—' },
-    { label: 'm2 (Brut)', value: apt.m2_gross || '—' },
-    { label: 'm2 (Net)', value: apt.m2_net || '—' },
-    { label: 'Oda sayisi', value: apt.room_count || '—' },
-    { label: 'Bulundugu kat', value: apt.floor_no || '—' },
-    { label: 'Bina yasi', value: bld.building_age != null ? bld.building_age : '—' },
-    { label: 'Esyali', value: apt.furnished ? 'Evet' : 'Hayir' },
-    { label: 'Depozito', value: apt.deposit ? money(apt.deposit) + ' ₺' : '—' }
+    { label: t('propertyDetail.fields.building'), value: bld.name || '—' },
+    { label: t('propertyDetail.fields.address'), value: bld.address ? `${bld.address}${location ? ', ' + location : ''}` : location || '—' },
+    { label: t('propertyDetail.fields.propertyType'), value: ptLabel },
+    { label: t('propertyDetail.fields.m2Gross'), value: apt.m2_gross || '—' },
+    { label: t('propertyDetail.fields.m2Net'), value: apt.m2_net || '—' },
+    { label: t('propertyDetail.fields.roomCount'), value: apt.room_count || '—' },
+    { label: t('propertyDetail.fields.floor'), value: apt.floor_no || '—' },
+    { label: t('propertyDetail.fields.buildingAge'), value: bld.building_age != null ? bld.building_age : '—' },
+    { label: t('propertyDetail.fields.furnished'), value: apt.furnished ? t('common.yes') : t('common.no') },
+    { label: t('propertyDetail.fields.deposit'), value: apt.deposit ? formatMoney(apt.deposit) : '—' }
   ]
 
   const DF = (field, val) => setDetailForm(p => ({ ...p, [field]: val }))
 
   /* Helper: render tenant info card (used for both current and past) */
-  const renderTenantInfo = (t) => (
+  const renderTenantInfo = (ten) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
       {[
-        { icon: IdCard, label: 'Ad Soyad', value: t.full_name },
-        { icon: Mail, label: 'E-posta', value: t.email || '—' },
-        { icon: Phone, label: 'Telefon', value: t.phone || '—' },
-        { icon: Shield, label: 'TC No', value: t.tc_no || '—' },
-        { icon: CalendarDays, label: 'Sozlesme Baslangic', value: formatDate(t.lease_start) },
-        { icon: CalendarDays, label: 'Sozlesme Bitis', value: formatDate(t.lease_end) },
-        { icon: DollarSign, label: 'Aylik Kira', value: t.rent ? money(t.rent) + ' ₺' : '—' },
-        { icon: DollarSign, label: 'Depozito', value: t.deposit ? money(t.deposit) + ' ₺' : '—' }
+        { icon: IdCard, label: t('propertyDetail.tenantInfo.fullName'), value: ten.full_name },
+        { icon: Mail, label: t('propertyDetail.tenantInfo.email'), value: ten.email || '—' },
+        { icon: Phone, label: t('propertyDetail.tenantInfo.phone'), value: ten.phone || '—' },
+        { icon: Shield, label: t('propertyDetail.tenantInfo.tcNo'), value: ten.tc_no || '—' },
+        { icon: CalendarDays, label: t('propertyDetail.tenantInfo.leaseStart'), value: fmtDate(ten.lease_start) },
+        { icon: CalendarDays, label: t('propertyDetail.tenantInfo.leaseEnd'), value: fmtDate(ten.lease_end) },
+        { icon: DollarSign, label: t('propertyDetail.tenantInfo.monthlyRent'), value: ten.rent ? formatMoney(ten.rent) : '—' },
+        { icon: DollarSign, label: t('propertyDetail.tenantInfo.deposit'), value: ten.deposit ? formatMoney(ten.deposit) : '—' }
       ].map((r, i, arr) => {
         const Icon = r.icon
         return (
@@ -407,7 +400,7 @@ export default function PropertyDetail() {
             fontFamily: font, padding: 0
           }}>
           <ArrowLeft style={{ width: 16, height: 16 }} />
-          Mulklerime Don
+          {t('propertyDetail.back')}
         </motion.button>
       </motion.div>
 
@@ -418,12 +411,12 @@ export default function PropertyDetail() {
         borderBottom: `2px solid ${C.borderLight}`,
         flexShrink: 0
       }}>
-        {TABS.map(t => {
-          const Icon = t.icon
-          const isActive = tab === t.key
+        {TABS.map(tb => {
+          const Icon = tb.icon
+          const isActive = tab === tb.key
           return (
-            <button key={t.key}
-              onClick={() => setTab(t.key)}
+            <button key={tb.key}
+              onClick={() => setTab(tb.key)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '12px 18px', fontSize: 13, fontWeight: isActive ? 700 : 500,
@@ -435,7 +428,7 @@ export default function PropertyDetail() {
                 transition: 'color 0.2s, border-color 0.2s'
               }}>
               <Icon style={{ width: 15, height: 15 }} />
-              {t.label}
+              {t(`propertyDetail.tabs.${tb.key}`)}
             </button>
           )
         })}
@@ -449,7 +442,7 @@ export default function PropertyDetail() {
           {/* Header with edit button */}
           <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>
-              Mulk Ozeti
+              {t('propertyDetail.summary.title')}
             </h2>
             {!editingDetails && (
               <div style={{ display: 'flex', gap: 8 }}>
@@ -462,7 +455,7 @@ export default function PropertyDetail() {
                     fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
                     boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
                   }}>
-                  <Pencil style={{ width: 13, height: 13 }} /> Duzenle
+                  <Pencil style={{ width: 13, height: 13 }} /> {t('propertyDetail.summary.edit')}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                   onClick={() => setShowDeleteProperty(true)}
@@ -472,7 +465,7 @@ export default function PropertyDetail() {
                     background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA',
                     fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                   }}>
-                  <Trash2 style={{ width: 13, height: 13 }} /> Mulku Sil
+                  <Trash2 style={{ width: 13, height: 13 }} /> {t('propertyDetail.summary.delete')}
                 </motion.button>
               </div>
             )}
@@ -517,7 +510,7 @@ export default function PropertyDetail() {
               {/* Temel Bilgiler table */}
               <motion.div variants={fadeItem}>
                 <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
-                  Temel Bilgiler
+                  {t('propertyDetail.basics')}
                 </h2>
                 <div style={cardBox}>
                   {detailRows.map((r, i) => (
@@ -540,61 +533,61 @@ export default function PropertyDetail() {
               <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Bina *</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.buildingLabel')}</label>
                     <select
                       style={{ ...inputStyle, cursor: 'pointer' }}
                       value={detailForm.building_id}
                       onChange={e => DF('building_id', e.target.value)}
                     >
-                      <option value="">Bina seciniz</option>
+                      <option value="">{t('propertyDetail.edit.buildingPh')}</option>
                       {buildings.map(b => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Daire No</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.unitNo')}</label>
                     <input style={inputStyle} value={detailForm.unit_no} onChange={e => DF('unit_no', e.target.value)} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Mulk Tipi</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.propertyType')}</label>
                     <select style={{ ...inputStyle, cursor: 'pointer' }} value={detailForm.property_type} onChange={e => DF('property_type', e.target.value)}>
-                      {Object.entries(PROPERTY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      {PROPERTY_TYPE_KEYS.map(k => <option key={k} value={k}>{t(`propertyTypes.${k}`)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Oda Sayisi</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.roomCount')}</label>
                     <input style={inputStyle} value={detailForm.room_count} onChange={e => DF('room_count', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Kat</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.floor')}</label>
                     <input style={inputStyle} value={detailForm.floor_no} onChange={e => DF('floor_no', e.target.value)} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Brut m²</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.grossArea')}</label>
                     <input style={inputStyle} type="number" value={detailForm.m2_gross} onChange={e => DF('m2_gross', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Net m²</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.netArea')}</label>
                     <input style={inputStyle} type="number" value={detailForm.m2_net} onChange={e => DF('m2_net', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>Depozito (₺)</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 6, display: 'block' }}>{t('propertyDetail.edit.deposit')}</label>
                     <input style={inputStyle} type="number" value={detailForm.deposit} onChange={e => DF('deposit', e.target.value)} />
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: C.textFaint, margin: 0, fontStyle: 'italic' }}>
-                  Bina bilgileri (sehir, ilce, adres, bina yasi) bina seviyesinde duzenlenir.
+                  {t('propertyDetail.edit.buildingScopeNote')}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" id="furn" checked={detailForm.furnished}
                     onChange={e => DF('furnished', e.target.checked)}
                     style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
-                  <label htmlFor="furn" style={{ fontSize: 13, fontWeight: 600, color: C.text, cursor: 'pointer' }}>Esyali</label>
+                  <label htmlFor="furn" style={{ fontSize: 13, fontWeight: 600, color: C.text, cursor: 'pointer' }}>{t('propertyDetail.edit.furnished')}</label>
                 </div>
               </div>
               <div style={{
@@ -603,7 +596,7 @@ export default function PropertyDetail() {
               }}>
                 <button onClick={() => setEditingDetails(false)}
                   style={{ padding: '9px 18px', borderRadius: 10, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
-                  Iptal
+                  {t('common.cancel')}
                 </button>
                 <button onClick={saveDetails} disabled={savingDetails}
                   style={{
@@ -613,7 +606,7 @@ export default function PropertyDetail() {
                     opacity: savingDetails ? 0.7 : 1, boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                   }}>
                   <Save style={{ width: 14, height: 14 }} />
-                  {savingDetails ? 'Kaydediliyor...' : 'Kaydet'}
+                  {savingDetails ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </motion.div>
@@ -631,7 +624,7 @@ export default function PropertyDetail() {
             </div>
           ) : payments.length === 0 ? (
             <div style={{ ...cardBox, textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-              Odeme kaydi bulunamadi.
+              {t('propertyDetail.payments.empty')}
             </div>
           ) : (() => {
             // Group payments by tenant
@@ -639,7 +632,7 @@ export default function PropertyDetail() {
             const grouped = {}
             payments.forEach(p => {
               const tid = p.tenant_id || 'unknown'
-              if (!grouped[tid]) grouped[tid] = { name: p.tenants?.full_name || 'Bilinmeyen', payments: [], isCurrent: tid === currentTenantId }
+              if (!grouped[tid]) grouped[tid] = { name: p.tenants?.full_name || t('propertyDetail.payments.unknownTenant'), payments: [], isCurrent: tid === currentTenantId }
               grouped[tid].payments.push(p)
             })
             // Sort: current tenant first, then past tenants
@@ -667,7 +660,7 @@ export default function PropertyDetail() {
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{section.name}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: section.isCurrent ? '#059669' : C.textFaint }}>
-                      {section.isCurrent ? 'Guncel Kiraci' : 'Gecmis Kiraci'} · {section.payments.length} odeme
+                      {section.isCurrent ? t('propertyDetail.payments.currentTenant') : t('propertyDetail.payments.pastTenant')} · {t('propertyDetail.payments.paymentCount', { n: section.payments.length })}
                     </div>
                   </div>
                 </div>
@@ -679,7 +672,7 @@ export default function PropertyDetail() {
                     padding: '12px 24px', background: '#FAFBFC',
                     borderBottom: `1px solid ${C.borderLight}`
                   }}>
-                    {['Vade Tarihi', 'Tutar', 'Durum', 'Odeme Tarihi'].map((h, i) => (
+                    {[t('propertyDetail.payments.thDueDate'), t('propertyDetail.payments.thAmount'), t('propertyDetail.payments.thStatus'), t('propertyDetail.payments.thPaidDate')].map((h, i) => (
                       <div key={i} style={{
                         fontSize: 11, fontWeight: 700, color: C.textFaint,
                         textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -698,18 +691,18 @@ export default function PropertyDetail() {
                         borderBottom: i < section.payments.length - 1 ? `1px solid ${C.borderLight}` : 'none',
                         background: i % 2 === 0 ? 'white' : '#FAFBFC'
                       }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)} ₺</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(p.due_date)}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(p.amount)}</div>
                         <div>
                           <span style={{
                             padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
                             background: isPaid ? '#ECFDF5' : isOverdue ? '#FEF2F2' : '#FFF7ED',
                             color: isPaid ? '#059669' : isOverdue ? '#DC2626' : '#D97706'
                           }}>
-                            {isPaid ? 'Odendi' : isOverdue ? 'Gecikti' : 'Bekliyor'}
+                            {isPaid ? t('propertyDetail.payments.paid') : isOverdue ? t('propertyDetail.payments.overdue') : t('propertyDetail.payments.pending')}
                           </span>
                         </div>
-                        <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>{p.paid_date ? formatDate(p.paid_date) : '—'}</div>
+                        <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>{p.paid_date ? fmtDate(p.paid_date) : '—'}</div>
                       </div>
                     )
                   })}
@@ -725,7 +718,7 @@ export default function PropertyDetail() {
         <motion.div variants={fadeItem}>
           {/* ── Güncel Kiracı ── */}
           <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px', letterSpacing: '-0.01em' }}>
-            Guncel Kiraci Bilgileri
+            {t('propertyDetail.lease.currentTitle')}
           </h2>
           {tenant ? (
             <div style={cardBox}>
@@ -744,7 +737,7 @@ export default function PropertyDetail() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tenant.full_name}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 1 }}>Aktif Kiraci</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 1 }}>{t('propertyDetail.lease.activeTenant')}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -756,7 +749,7 @@ export default function PropertyDetail() {
                       fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
                     <UserMinus style={{ width: 13, height: 13 }} />
-                    Sozlesmeyi Sonlandir
+                    {t('propertyDetail.lease.endLease')}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     onClick={() => navigate(`/tenants/list/${tenant.id}`)}
@@ -766,7 +759,7 @@ export default function PropertyDetail() {
                       background: C.teal, color: 'white', border: 'none',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    Detaya Git
+                    {t('propertyDetail.lease.viewDetail')}
                   </motion.button>
                 </div>
               </div>
@@ -774,14 +767,14 @@ export default function PropertyDetail() {
             </div>
           ) : (
             <div style={{ ...cardBox, textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-              Bu mulkte guncel kiraci bulunmuyor.
+              {t('propertyDetail.lease.noCurrent')}
             </div>
           )}
 
           {/* ── Geçmiş Kiracılar ── */}
           <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '32px 0 16px', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Users style={{ width: 18, height: 18, color: C.textMuted }} />
-            Gecmis Kiracilar
+            {t('propertyDetail.lease.pastTitle')}
           </h2>
           {pastTenantsLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
@@ -790,7 +783,7 @@ export default function PropertyDetail() {
             </div>
           ) : pastTenants.length === 0 ? (
             <div style={{ ...cardBox, textAlign: 'center', padding: '28px 24px', color: C.textFaint, fontSize: 14 }}>
-              Gecmis kiraci kaydi bulunamadi.
+              {t('propertyDetail.lease.noPast')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -819,15 +812,15 @@ export default function PropertyDetail() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{pt.full_name}</div>
                         <div style={{ fontSize: 12, color: C.textFaint, marginTop: 1 }}>
-                          {formatDate(pt.lease_start)} — {formatDate(pt.lease_end)}
-                          {pt.rent ? ` · ${money(pt.rent)} ₺/ay` : ''}
+                          {fmtDate(pt.lease_start)} — {fmtDate(pt.lease_end)}
+                          {pt.rent ? ` · ${formatMoney(pt.rent)}/${t('propertyDetail.lease.rentSuffix')}` : ''}
                         </div>
                       </div>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
                         background: '#F1F5F9', color: C.textMuted, border: '1px solid #E2E8F0'
                       }}>
-                        Eski Kiraci
+                        {t('propertyDetail.lease.formerTenant')}
                       </span>
                       {isExpanded
                         ? <ChevronDown style={{ width: 16, height: 16, color: C.textFaint }} />
@@ -859,7 +852,7 @@ export default function PropertyDetail() {
       {tab === 'documents' && (
         <motion.div variants={fadeItem}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>Belgeler</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.01em' }}>{t('propertyDetail.documents.title')}</h2>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -868,7 +861,7 @@ export default function PropertyDetail() {
                 opacity: uploading ? 0.7 : 1, boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
               }}>
               <Upload style={{ width: 14, height: 14 }} />
-              {uploading ? 'Yukleniyor...' : 'Belge Yukle'}
+              {uploading ? t('propertyDetail.documents.uploading') : t('propertyDetail.documents.upload')}
             </button>
             <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style={{ display: 'none' }}
               onChange={handleFileUpload} />
@@ -878,9 +871,9 @@ export default function PropertyDetail() {
             {documents.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 24px' }}>
                 <FileUp style={{ width: 28, height: 28, color: C.textFaint, marginBottom: 8 }} />
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>Henuz belge yuklenmemis.</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>{t('propertyDetail.documents.empty')}</div>
                 <div style={{ fontSize: 12, color: C.textFaint, marginTop: 4 }}>
-                  PDF, Word veya gorsel dosyalarini yukleyebilirsiniz.
+                  {t('propertyDetail.documents.emptyHint')}
                 </div>
               </div>
             ) : (
@@ -890,7 +883,7 @@ export default function PropertyDetail() {
                   padding: '14px 24px', background: '#FAFBFC',
                   borderBottom: `1px solid ${C.borderLight}`
                 }}>
-                  {['Dosya Adi', 'Boyut', 'Tarih', ''].map((h, i) => (
+                  {[t('propertyDetail.documents.thName'), t('propertyDetail.documents.thSize'), t('propertyDetail.documents.thDate'), ''].map((h, i) => (
                     <div key={i} style={{
                       fontSize: 11, fontWeight: 700, color: C.textFaint,
                       textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -913,7 +906,7 @@ export default function PropertyDetail() {
                       </div>
                       <div style={{ fontSize: 12, color: C.textMuted }}>{formatFileSize(doc.metadata?.size)}</div>
                       <div style={{ fontSize: 12, color: C.textMuted }}>
-                        {doc.created_at ? formatDate(doc.created_at.split('T')[0]) : '—'}
+                        {doc.created_at ? fmtDate(doc.created_at.split('T')[0]) : '—'}
                       </div>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                         <button onClick={() => downloadDoc(doc.name)}
@@ -944,7 +937,7 @@ export default function PropertyDetail() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '16px 24px', borderBottom: `1px solid ${C.borderLight}`
               }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Mulk Notu</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t('propertyDetail.notes.propertyNote')}</div>
                 {editingNote !== 'property' && (
                   <button onClick={() => startEditNote('property')}
                     style={{
@@ -952,7 +945,7 @@ export default function PropertyDetail() {
                       padding: '6px 14px', borderRadius: 8, background: '#F1F5F9', color: C.textMuted,
                       border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    {apt.notes ? <><Pencil style={{ width: 12, height: 12 }} /> Duzenle</> : <><Plus style={{ width: 12, height: 12 }} /> Not Ekle</>}
+                    {apt.notes ? <><Pencil style={{ width: 12, height: 12 }} /> {t('propertyDetail.notes.edit')}</> : <><Plus style={{ width: 12, height: 12 }} /> {t('propertyDetail.notes.add')}</>}
                   </button>
                 )}
               </div>
@@ -960,7 +953,7 @@ export default function PropertyDetail() {
                 {editingNote === 'property' ? (
                   <div>
                     <textarea value={noteText} onChange={e => setNoteText(e.target.value)}
-                      placeholder="Mulk hakkinda not yazin..."
+                      placeholder={t('propertyDetail.notes.propertyPh')}
                       style={{
                         ...inputStyle, resize: 'vertical', minHeight: 100,
                         lineHeight: 1.7
@@ -968,7 +961,7 @@ export default function PropertyDetail() {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
                       <button onClick={() => setEditingNote(null)}
                         style={{ padding: '8px 16px', borderRadius: 8, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
-                        Iptal
+                        {t('common.cancel')}
                       </button>
                       <button onClick={saveNote} disabled={savingNote}
                         style={{
@@ -977,14 +970,14 @@ export default function PropertyDetail() {
                           fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
                           opacity: savingNote ? 0.7 : 1
                         }}>
-                        <Save style={{ width: 12, height: 12 }} /> Kaydet
+                        <Save style={{ width: 12, height: 12 }} /> {t('common.save')}
                       </button>
                     </div>
                   </div>
                 ) : apt.notes ? (
                   <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7 }}>{apt.notes}</div>
                 ) : (
-                  <div style={{ fontSize: 13, color: C.textFaint }}>Henuz not eklenmemis.</div>
+                  <div style={{ fontSize: 13, color: C.textFaint }}>{t('propertyDetail.notes.empty')}</div>
                 )}
               </div>
             </div>
@@ -996,7 +989,7 @@ export default function PropertyDetail() {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '16px 24px', borderBottom: `1px solid ${C.borderLight}`
                 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Kiraci Notu — {tenant.full_name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t('propertyDetail.notes.tenantNote', { name: tenant.full_name })}</div>
                   {editingNote !== 'tenant' && (
                     <button onClick={() => startEditNote('tenant')}
                       style={{
@@ -1004,7 +997,7 @@ export default function PropertyDetail() {
                         padding: '6px 14px', borderRadius: 8, background: '#F1F5F9', color: C.textMuted,
                         border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
                       }}>
-                      {tenant.notes ? <><Pencil style={{ width: 12, height: 12 }} /> Duzenle</> : <><Plus style={{ width: 12, height: 12 }} /> Not Ekle</>}
+                      {tenant.notes ? <><Pencil style={{ width: 12, height: 12 }} /> {t('propertyDetail.notes.edit')}</> : <><Plus style={{ width: 12, height: 12 }} /> {t('propertyDetail.notes.add')}</>}
                     </button>
                   )}
                 </div>
@@ -1012,7 +1005,7 @@ export default function PropertyDetail() {
                   {editingNote === 'tenant' ? (
                     <div>
                       <textarea value={noteText} onChange={e => setNoteText(e.target.value)}
-                        placeholder="Kiraci hakkinda not yazin..."
+                        placeholder={t('propertyDetail.notes.tenantPh')}
                         style={{
                           ...inputStyle, resize: 'vertical', minHeight: 100,
                           lineHeight: 1.7
@@ -1020,7 +1013,7 @@ export default function PropertyDetail() {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
                         <button onClick={() => setEditingNote(null)}
                           style={{ padding: '8px 16px', borderRadius: 8, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
-                          Iptal
+                          {t('common.cancel')}
                         </button>
                         <button onClick={saveNote} disabled={savingNote}
                           style={{
@@ -1029,14 +1022,14 @@ export default function PropertyDetail() {
                             fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font,
                             opacity: savingNote ? 0.7 : 1
                           }}>
-                          <Save style={{ width: 12, height: 12 }} /> Kaydet
+                          <Save style={{ width: 12, height: 12 }} /> {t('common.save')}
                         </button>
                       </div>
                     </div>
                   ) : tenant.notes ? (
                     <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7 }}>{tenant.notes}</div>
                   ) : (
-                    <div style={{ fontSize: 13, color: C.textFaint }}>Henuz not eklenmemis.</div>
+                    <div style={{ fontSize: 13, color: C.textFaint }}>{t('propertyDetail.notes.empty')}</div>
                   )}
                 </div>
               </div>
@@ -1080,15 +1073,13 @@ export default function PropertyDetail() {
                 fontSize: 18, fontWeight: 800, color: C.text,
                 textAlign: 'center', margin: '0 0 8px', letterSpacing: '-0.01em'
               }}>
-                Sozlesmeyi Sonlandir
+                {t('propertyDetail.endLeaseModal.title')}
               </h3>
               <p style={{
                 fontSize: 14, color: C.textMuted, textAlign: 'center',
                 margin: '0 0 24px', lineHeight: 1.6
               }}>
-                <strong style={{ color: C.text }}>{tenant?.full_name}</strong> adli kiraci
-                bu daireden cikarilacaktir. Kiraci gecmis kiracilar listesine tasinacaktir.
-                <br />Bu islemi onayliyor musunuz?
+                {t('propertyDetail.endLeaseModal.body', { name: tenant?.full_name })}
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
@@ -1099,7 +1090,7 @@ export default function PropertyDetail() {
                     background: '#F1F5F9', color: C.textMuted, border: 'none',
                     fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: font
                   }}>
-                  Vazgec
+                  {t('propertyDetail.endLeaseModal.cancel')}
                 </button>
                 <button
                   onClick={confirmEndLease}
@@ -1111,7 +1102,7 @@ export default function PropertyDetail() {
                     opacity: endingLease ? 0.7 : 1,
                     boxShadow: '0 4px 14px rgba(220,38,38,0.3)'
                   }}>
-                  {endingLease ? 'Isleniyor...' : 'Evet, Sonlandir'}
+                  {endingLease ? t('propertyDetail.endLeaseModal.processing') : t('propertyDetail.endLeaseModal.confirm')}
                 </button>
               </div>
             </motion.div>
@@ -1155,15 +1146,13 @@ export default function PropertyDetail() {
                 fontSize: 18, fontWeight: 800, color: C.text,
                 textAlign: 'center', margin: '0 0 8px', letterSpacing: '-0.01em'
               }}>
-                Mulku Sil
+                {t('propertyDetail.deletePropertyModal.title')}
               </h3>
               <p style={{
                 fontSize: 14, color: C.textMuted, textAlign: 'center',
                 margin: '0 0 24px', lineHeight: 1.6
               }}>
-                <strong style={{ color: C.text }}>{apartmentLabel(apt)}</strong> adli mulk kalici olarak silinecektir.
-                Bu mulke ait tum veriler (odemeler, belgeler) de silinecektir.
-                <br />Bu islemi onayliyor musunuz?
+                {t('propertyDetail.deletePropertyModal.body', { label: apartmentLabel(apt) })}
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
@@ -1174,7 +1163,7 @@ export default function PropertyDetail() {
                     background: '#F1F5F9', color: C.textMuted, border: 'none',
                     fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: font
                   }}>
-                  Vazgec
+                  {t('propertyDetail.deletePropertyModal.cancel')}
                 </button>
                 <button
                   onClick={confirmDeleteProperty}
@@ -1186,7 +1175,7 @@ export default function PropertyDetail() {
                     opacity: deletingProperty ? 0.7 : 1,
                     boxShadow: '0 4px 14px rgba(220,38,38,0.3)'
                   }}>
-                  {deletingProperty ? 'Siliniyor...' : 'Evet, Sil'}
+                  {deletingProperty ? t('propertyDetail.deletePropertyModal.deleting') : t('propertyDetail.deletePropertyModal.confirm')}
                 </button>
               </div>
             </motion.div>

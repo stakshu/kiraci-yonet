@@ -1,17 +1,18 @@
 /* ── KiraciYonet — Auth Overlay — "The Lobby" ── */
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from './Toast'
+import LanguageSwitcher from './LanguageSwitcher'
 import { Loader2, Building2, ShieldCheck, TrendingUp } from 'lucide-react'
 
-/* ── Turkce hata mapping ── */
-const ERR = {
-  'Invalid login credentials': 'E-posta veya şifre hatalı.',
-  'Email not confirmed': 'E-posta adresiniz henüz doğrulanmadı.',
-  'User already registered': 'Bu e-posta adresi zaten kayıtlı.',
-  'Password should be at least 6 characters': 'Şifre en az 6 karakter olmalıdır.',
-  'For security purposes, you can only request this once every 60 seconds': 'Güvenlik nedeniyle 60 saniyede bir istek gönderebilirsiniz.',
+const ERR_MAP = {
+  'Invalid login credentials': 'auth.error.invalidCredentials',
+  'Email not confirmed': 'auth.error.emailNotConfirmed',
+  'User already registered': 'auth.error.userExists',
+  'Password should be at least 6 characters': 'auth.error.passwordShort',
+  'For security purposes, you can only request this once every 60 seconds': 'auth.error.rateLimited'
 }
 
 const ease = [0.16, 1, 0.3, 1]
@@ -66,6 +67,7 @@ function AuthInput({ label, id, type = 'text', placeholder, required, minLength,
 }
 
 export default function AuthOverlay() {
+  const { t } = useTranslation()
   const { signIn, signUp, resetPassword } = useAuth()
   const { showToast } = useToast()
 
@@ -82,29 +84,33 @@ export default function AuthOverlay() {
 
   const clearMsg = () => setMessage(null)
   const switchView = (v) => { setView(v); clearMsg() }
+  const translateError = (msg) => {
+    const key = ERR_MAP[msg]
+    return key ? t(key) : msg
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault(); clearMsg(); setLoading(true)
     try {
       await signIn(loginEmail.trim(), loginPassword)
-      showToast('Başarıyla giriş yapıldı!')
+      showToast(t('auth.loginSuccess'))
     } catch (err) {
-      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+      setMessage({ type: 'error', text: translateError(err.message) })
     } finally { setLoading(false) }
   }
 
   const handleRegister = async (e) => {
     e.preventDefault(); clearMsg()
-    if (regPassword !== regConfirm) { setMessage({ type: 'error', text: 'Şifreler eşleşmiyor.' }); return }
+    if (regPassword !== regConfirm) { setMessage({ type: 'error', text: t('auth.passwordMismatch') }); return }
     setLoading(true)
     try {
       const data = await signUp(regEmail.trim(), regPassword)
       if (data.user && !data.session) {
-        setMessage({ type: 'success', text: 'Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.' })
+        setMessage({ type: 'success', text: t('auth.registerVerify') })
         switchView('login')
-      } else { showToast('Kayıt başarılı! Hoş geldiniz.') }
+      } else { showToast(t('auth.registerSuccess')) }
     } catch (err) {
-      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+      setMessage({ type: 'error', text: translateError(err.message) })
     } finally { setLoading(false) }
   }
 
@@ -112,24 +118,28 @@ export default function AuthOverlay() {
     e.preventDefault(); clearMsg(); setLoading(true)
     try {
       await resetPassword(forgotEmail.trim())
-      setMessage({ type: 'success', text: 'Sıfırlama linki e-posta adresinize gönderildi.' })
+      setMessage({ type: 'success', text: t('auth.resetSent') })
     } catch (err) {
-      setMessage({ type: 'error', text: ERR[err.message] || err.message })
+      setMessage({ type: 'error', text: translateError(err.message) })
     } finally { setLoading(false) }
   }
 
-  /* ── Titles ── */
   const titles = {
-    login: { h: 'Hoş Geldiniz', p: 'Hesabınıza giriş yapın' },
-    register: { h: 'Hesap Oluşturun', p: 'Hemen başlayın' },
-    forgot: { h: 'Şifre Sıfırlama', p: 'E-posta adresinize sıfırlama linki göndereceğiz' },
+    login:    { h: t('auth.loginTitle'),    p: t('auth.loginSubtitle') },
+    register: { h: t('auth.registerTitle'), p: t('auth.registerSubtitle') },
+    forgot:   { h: t('auth.forgotTitle'),   p: t('auth.forgotSubtitle') }
   }
 
-  /* ── Stats ── */
   const stats = [
-    { icon: Building2, label: '1.200+ Mülk', sub: 'Yönetiliyor' },
-    { icon: ShieldCheck, label: '%98 Tahsilat', sub: 'Oranı' },
-    { icon: TrendingUp, label: '₺2.4M+', sub: 'Aylık Takip' },
+    { icon: Building2,   label: t('auth.marketing.statPropertiesLabel'), sub: t('auth.marketing.statPropertiesSub') },
+    { icon: ShieldCheck, label: t('auth.marketing.statCollectionLabel'), sub: t('auth.marketing.statCollectionSub') },
+    { icon: TrendingUp,  label: t('auth.marketing.statVolumeLabel'),     sub: t('auth.marketing.statVolumeSub') }
+  ]
+
+  const marketingLines = [
+    t('auth.marketing.line1'),
+    t('auth.marketing.line2'),
+    t('auth.marketing.line3')
   ]
 
   /* ── Submit button ── */
@@ -218,7 +228,7 @@ export default function AuthOverlay() {
           </motion.div>
 
           {/* Ana başlık */}
-          {['Mülklerinizi', 'yönetmenin', 'en akıllı yolu.'].map((line, i) => (
+          {marketingLines.map((line, i) => (
             <motion.div
               key={i}
               style={{
@@ -249,7 +259,7 @@ export default function AuthOverlay() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.6 }}
           >
-            Kira takibi, gider yönetimi ve finansal raporlama — tek platformda.
+            {t('auth.marketing.description')}
           </motion.p>
 
           {/* İstatistikler */}
@@ -286,7 +296,7 @@ export default function AuthOverlay() {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.5 }}
         >
-          © 2026 KiraciYonet. Tüm hakları saklıdır.
+          {t('auth.marketing.copyright')}
         </motion.div>
       </motion.div>
 
@@ -382,9 +392,9 @@ export default function AuthOverlay() {
                 transition={{ duration: 0.3, ease }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
               >
-                <AuthInput label="E-posta" id="loginEmail" type="email" placeholder="ornek@email.com"
+                <AuthInput label={t('auth.email')} id="loginEmail" type="email" placeholder={t('auth.emailPlaceholder')}
                   required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
-                <AuthInput label="Şifre" id="loginPass" type="password" placeholder="••••••••"
+                <AuthInput label={t('auth.password')} id="loginPass" type="password" placeholder={t('auth.passwordPlaceholder')}
                   required minLength={6} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
@@ -397,11 +407,11 @@ export default function AuthOverlay() {
                     onMouseEnter={e => e.target.style.color = '#00D47E'}
                     onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
                   >
-                    Şifremi unuttum?
+                    {t('auth.forgotLink')}
                   </button>
                 </div>
 
-                <SubmitBtn>{loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}</SubmitBtn>
+                <SubmitBtn>{loading ? t('auth.loginLoading') : t('auth.loginButton')}</SubmitBtn>
 
                 {/* Ayırıcı */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '4px 0' }}>
@@ -413,13 +423,13 @@ export default function AuthOverlay() {
                 </div>
 
                 <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-                  Hesabınız yok mu?{' '}
+                  {t('auth.noAccount')}{' '}
                   <button type="button" onClick={() => switchView('register')}
                     style={{
                       background: 'none', border: 'none', color: '#00D47E',
                       fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
                     }}>
-                    Kayıt Ol
+                    {t('auth.signUpAction')}
                   </button>
                 </p>
               </motion.form>
@@ -435,14 +445,14 @@ export default function AuthOverlay() {
                 transition={{ duration: 0.3, ease }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
               >
-                <AuthInput label="E-posta" id="regEmail" type="email" placeholder="ornek@email.com"
+                <AuthInput label={t('auth.email')} id="regEmail" type="email" placeholder={t('auth.emailPlaceholder')}
                   required value={regEmail} onChange={e => setRegEmail(e.target.value)} />
-                <AuthInput label="Şifre" id="regPass" type="password" placeholder="En az 6 karakter"
+                <AuthInput label={t('auth.password')} id="regPass" type="password" placeholder={t('auth.passwordHint')}
                   required minLength={6} value={regPassword} onChange={e => setRegPassword(e.target.value)} />
-                <AuthInput label="Şifre Tekrar" id="regConfirm" type="password" placeholder="Şifrenizi tekrarlayın"
+                <AuthInput label={t('auth.passwordRepeat')} id="regConfirm" type="password" placeholder={t('auth.passwordRepeatPlaceholder')}
                   required minLength={6} value={regConfirm} onChange={e => setRegConfirm(e.target.value)} />
 
-                <SubmitBtn>{loading ? 'Kayıt yapılıyor...' : 'Kayıt Ol'}</SubmitBtn>
+                <SubmitBtn>{loading ? t('auth.registerLoading') : t('auth.registerButton')}</SubmitBtn>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '4px 0' }}>
                   <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
@@ -451,13 +461,13 @@ export default function AuthOverlay() {
                 </div>
 
                 <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-                  Zaten hesabınız var mı?{' '}
+                  {t('auth.haveAccount')}{' '}
                   <button type="button" onClick={() => switchView('login')}
                     style={{
                       background: 'none', border: 'none', color: '#00D47E',
                       fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
                     }}>
-                    Giriş Yap
+                    {t('auth.signInAction')}
                   </button>
                 </p>
               </motion.form>
@@ -473,10 +483,10 @@ export default function AuthOverlay() {
                 transition={{ duration: 0.3, ease }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
               >
-                <AuthInput label="E-posta" id="forgotEmail" type="email" placeholder="ornek@email.com"
+                <AuthInput label={t('auth.email')} id="forgotEmail" type="email" placeholder={t('auth.emailPlaceholder')}
                   required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} />
 
-                <SubmitBtn>{loading ? 'Gönderiliyor...' : 'Sıfırlama Linki Gönder'}</SubmitBtn>
+                <SubmitBtn>{loading ? t('auth.forgotLoading') : t('auth.forgotButton')}</SubmitBtn>
 
                 <button type="button" onClick={() => switchView('login')}
                   style={{
@@ -487,11 +497,18 @@ export default function AuthOverlay() {
                   onMouseEnter={e => e.target.style.color = '#00D47E'}
                   onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
                 >
-                  ← Giriş ekranına dön
+                  {t('auth.backToLogin')}
                 </button>
               </motion.form>
             )}
           </AnimatePresence>
+
+          {/* Language switcher */}
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 180 }}>
+              <LanguageSwitcher />
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>

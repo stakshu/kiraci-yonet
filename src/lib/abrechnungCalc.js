@@ -9,15 +9,14 @@
 // tenantsByApt: { [apartment_id]: tenant } — kişi hesabı için.
 
 import { householdSize } from './householdSize'
-import { getDistributionKey } from './distributionKeys'
 
 const round2 = (n) => Math.round(Number(n) * 100) / 100
 const nz = (n) => Number(n) || 0
 const aptArea = (a) => nz(a?.m2_net) || nz(a?.m2_gross) || 0
-const fmt2 = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt2 = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Bina içindeki bir daireye, bir bina-kapsamlı gider kaleminden düşen pay.
-// Anahtar m²/kişi verisi yoksa eşit bölmeye (fallback) düşer.
+// keyLabel yalnızca sayısal oran döndürür — dil-nötrdür, UI'da t() ile çerçevelenmez.
 export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt = {} }) {
   const total = nz(totalCost)
   const n = apartments?.length || 0
@@ -32,7 +31,7 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
         keyLabel: `${fmt2(a)} / ${fmt2(totalA)} m²`,
       }
     }
-    return { share: round2(total / n), keyLabel: `m² yok · eşit` }
+    return { share: round2(total / n), keyLabel: `1 / ${n}` }
   }
 
   if (key === 'persons') {
@@ -44,7 +43,7 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
         keyLabel: `${p} / ${totalP}`,
       }
     }
-    return { share: round2(total / n), keyLabel: `kişi yok · eşit` }
+    return { share: round2(total / n), keyLabel: `1 / ${n}` }
   }
 
   // 'equal' ve 'units' aynı sonucu verir (tek birim = bir daire)
@@ -104,11 +103,11 @@ export function computeApartmentRollup({
     const target = e.is_tenant_billed ? billableMap : nonBillableMap
     addRow(
       target,
-      e.expense_categories?.name || 'Diğer',
+      e.expense_categories?.name || '',
       e.expense_categories?.icon,
       e.expense_categories?.color,
       'equal',
-      'Daire özel',
+      '',
       nz(e.amount),
       nz(e.amount),
       false,
@@ -127,7 +126,7 @@ export function computeApartmentRollup({
     const target = e.is_tenant_billed ? billableMap : nonBillableMap
     addRow(
       target,
-      e.expense_categories?.name || 'Diğer',
+      e.expense_categories?.name || '',
       e.expense_categories?.icon,
       e.expense_categories?.color,
       distKey,

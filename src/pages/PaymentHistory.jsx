@@ -1,21 +1,12 @@
-/* ── KiraciYonet — Odeme Gecmisi ── */
+/* ── KiraciYonet — Ödeme Geçmişi ── */
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
-
-/* ── Tarih formatlama ── */
-function formatDate(dateStr) {
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
-
-/* ── Ay adi ── */
-function monthName(m) {
-  return ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'][m]
-}
+import { formatMoney, formatDate as fmtDate, formatMonthYear } from '../i18n/formatters'
 
 export default function PaymentHistory() {
+  const { t } = useTranslation()
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -44,7 +35,7 @@ export default function PaymentHistory() {
     setLoading(false)
   }
 
-  /* ── Ay secenekleri olustur ── */
+  /* ── Ay seçenekleri ── */
   const monthOptions = []
   const seenMonths = new Set()
   payments.forEach(p => {
@@ -52,11 +43,11 @@ export default function PaymentHistory() {
     const key = d.getFullYear() + '-' + String(d.getMonth()).padStart(2, '0')
     if (!seenMonths.has(key)) {
       seenMonths.add(key)
-      monthOptions.push({ key, label: monthName(d.getMonth()) + ' ' + d.getFullYear() })
+      monthOptions.push({ key, label: formatMonthYear(d.getMonth() + 1, d.getFullYear()) })
     }
   })
 
-  /* ── Istatistikler ── */
+  /* ── İstatistikler ── */
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
   const totalCount = payments.length
 
@@ -95,8 +86,8 @@ export default function PaymentHistory() {
             <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
           <div className="stat-info">
-            <div className="stat-number"><span>{totalPaid.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Toplam Tahsilat ({'\u20BA'})</div>
+            <div className="stat-number"><span>{formatMoney(totalPaid)}</span></div>
+            <div className="stat-label">{t('paymentHistory.stats.totalCollected')}</div>
           </div>
         </div>
 
@@ -105,8 +96,8 @@ export default function PaymentHistory() {
             <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
           <div className="stat-info">
-            <div className="stat-number"><span>{thisMonthTotal.toLocaleString('tr-TR')}</span></div>
-            <div className="stat-label">Bu Ay Tahsilat ({'\u20BA'})</div>
+            <div className="stat-number"><span>{formatMoney(thisMonthTotal)}</span></div>
+            <div className="stat-label">{t('paymentHistory.stats.thisMonth')}</div>
           </div>
         </div>
 
@@ -116,7 +107,7 @@ export default function PaymentHistory() {
           </div>
           <div className="stat-info">
             <div className="stat-number"><span>{totalCount}</span></div>
-            <div className="stat-label">Toplam Odeme</div>
+            <div className="stat-label">{t('paymentHistory.stats.totalCount')}</div>
           </div>
         </div>
 
@@ -126,7 +117,7 @@ export default function PaymentHistory() {
           </div>
           <div className="stat-info">
             <div className="stat-number"><span>{uniqueTenants}</span></div>
-            <div className="stat-label">Odeme Yapan Kiraci</div>
+            <div className="stat-label">{t('paymentHistory.stats.uniqueTenants')}</div>
           </div>
         </div>
       </div>
@@ -135,12 +126,12 @@ export default function PaymentHistory() {
       <div className="table-controls">
         <div className="table-search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Kiraci veya bina ara..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input type="text" placeholder={t('paymentHistory.searchPh')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="table-filter-group">
           <select className="filter-btn" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
             style={{ cursor: 'pointer', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}>
-            <option value="">Tum Aylar</option>
+            <option value="">{t('paymentHistory.allMonths')}</option>
             {monthOptions.map(m => (
               <option key={m.key} value={m.key}>{m.label}</option>
             ))}
@@ -153,22 +144,22 @@ export default function PaymentHistory() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Kiraci</th>
-              <th>Daire</th>
-              <th>Vade Tarihi</th>
-              <th>Odeme Tarihi</th>
-              <th>Tutar ({'\u20BA'})</th>
-              <th>Durum</th>
+              <th>{t('paymentHistory.table.tenant')}</th>
+              <th>{t('paymentHistory.table.apartment')}</th>
+              <th>{t('paymentHistory.table.dueDate')}</th>
+              <th>{t('paymentHistory.table.paidDate')}</th>
+              <th>{t('paymentHistory.table.amount')}</th>
+              <th>{t('paymentHistory.table.status')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>Yukleniyor...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('paymentHistory.loading')}</td></tr>
             ) : error ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>Hata: {error}</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--red)' }}>{t('paymentHistory.errorPrefix', { msg: error })}</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                {search || monthFilter ? 'Filtreyle eslesen odeme bulunamadi.' : 'Henuz odenmis odeme yok.'}
+                {search || monthFilter ? t('paymentHistory.emptyFiltered') : t('paymentHistory.emptyNone')}
               </td></tr>
             ) : filtered.map(p => {
               const tenantName = p.tenants?.full_name || '—'
@@ -186,12 +177,12 @@ export default function PaymentHistory() {
                     </div>
                   </td>
                   <td>{aptName}</td>
-                  <td>{formatDate(p.due_date)}</td>
-                  <td>{p.paid_date ? formatDate(p.paid_date) : '—'}</td>
-                  <td>{Number(p.amount).toLocaleString('tr-TR')}</td>
+                  <td>{fmtDate(p.due_date)}</td>
+                  <td>{p.paid_date ? fmtDate(p.paid_date) : '—'}</td>
+                  <td>{formatMoney(p.amount)}</td>
                   <td>
                     <span className={`status-badge ${isLate ? 'pending' : 'active'}`}>
-                      {isLate ? 'Gec Odendi' : 'Zamaninda'}
+                      {isLate ? t('paymentHistory.status.late') : t('paymentHistory.status.onTime')}
                     </span>
                   </td>
                 </tr>

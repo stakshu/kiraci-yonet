@@ -1,10 +1,12 @@
 /* ── KiraciYonet — Kiracı Detay — Full Page + Inline Edit ── */
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
+import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
@@ -16,14 +18,6 @@ import {
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
 
 function daysDiff(dateStr) {
   if (!dateStr) return 0
@@ -91,6 +85,7 @@ export default function TenantDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useTranslation()
 
   const [tenant, setTenant] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -110,7 +105,7 @@ export default function TenantDetail() {
       .eq('id', id)
       .single()
     if (error || !data) {
-      showToast('Kiracı bulunamadı.', 'error')
+      showToast(t('tenantDetail.notFound'), 'error')
       navigate('/tenants/list')
       return
     }
@@ -160,11 +155,11 @@ export default function TenantDetail() {
     }
     const { error } = await supabase.from('tenants').update(record).eq('id', id)
     if (error) {
-      showToast('Hata: ' + error.message, 'error')
+      showToast(t('tenantDetail.toasts.errorPrefix', { msg: error.message }), 'error')
       setSaving(false)
       return
     }
-    showToast('Kiracı bilgileri güncellendi.', 'success')
+    showToast(t('tenantDetail.toasts.updated'), 'success')
     setEditing(false)
     setSaving(false)
     loadTenant()
@@ -178,12 +173,12 @@ export default function TenantDetail() {
   /* ── Contract PDF ── */
   const generateContract = useCallback(async () => {
     if (!tenant) return
-    const t = tenant
-    const apt = apartmentLabel(t.apartments)
-    const m = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    const today = formatDate(new Date().toISOString())
-    const household = t.household_info || {}
-    const totalMonthly = (Number(t.rent) || 0) + (Number(t.nebenkosten_vorauszahlung) || 0)
+    const ten = tenant
+    const apt = apartmentLabel(ten.apartments)
+    const today = fmtDate(new Date().toISOString())
+    const household = ten.household_info || {}
+    const totalMonthly = (Number(ten.rent) || 0) + (Number(ten.nebenkosten_vorauszahlung) || 0)
+    const tc = t('tenantDetail.contract', { returnObjects: true })
 
     const wrapper = document.createElement('div')
     wrapper.style.cssText = `
@@ -200,14 +195,14 @@ export default function TenantDetail() {
         <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(0,212,126,0.08)"></div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">KiraciYonet</div>
-            <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">Kira Sözleşmesi</h1>
-            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.6)">Konut Kira Sözleşmesi</p>
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">${tc.brand}</div>
+            <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px">${tc.title}</h1>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.6)">${tc.subtitle}</p>
           </div>
           <div style="text-align:right">
-            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Sözleşme No</div>
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${tc.contractNo}</div>
             <div style="font-size:13px;font-weight:700;color:#fff">${Date.now().toString(36).toUpperCase()}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">Düzenlenme: ${today}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px">${t('tenantDetail.contract.issued', { date: today })}</div>
           </div>
         </div>
       </div>
@@ -218,108 +213,108 @@ export default function TenantDetail() {
         <!-- Taraflar -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
-          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Taraflar</h3>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">${tc.parties}</h3>
         </div>
         <div style="display:flex;gap:16px;margin-bottom:28px">
           <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Kiraya Veren (Mal Sahibi)</div>
-            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">Mülk Sahibi</div>
-            <div style="font-size:12px;color:#64748B">Mülk: ${apt}</div>
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${tc.landlord}</div>
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">${tc.landlordName}</div>
+            <div style="font-size:12px;color:#64748B">${t('tenantDetail.contract.propertyLabel', { apt })}</div>
           </div>
           <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Kiracı</div>
-            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">${t.full_name}</div>
-            ${t.tc_no ? `<div style="font-size:12px;color:#64748B">TC: ${t.tc_no}</div>` : ''}
-            ${t.phone ? `<div style="font-size:12px;color:#64748B">Tel: ${t.phone}</div>` : ''}
-            ${t.email ? `<div style="font-size:12px;color:#64748B">E-posta: ${t.email}</div>` : ''}
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${tc.tenantLabel}</div>
+            <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:4px">${ten.full_name}</div>
+            ${ten.tc_no ? `<div style="font-size:12px;color:#64748B">${t('tenantDetail.contract.tcLabel', { no: ten.tc_no })}</div>` : ''}
+            ${ten.phone ? `<div style="font-size:12px;color:#64748B">${t('tenantDetail.contract.telLabel', { no: ten.phone })}</div>` : ''}
+            ${ten.email ? `<div style="font-size:12px;color:#64748B">${t('tenantDetail.contract.emailLabel', { email: ten.email })}</div>` : ''}
           </div>
         </div>
 
         <!-- Kiralanan -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
-          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Kiralanan Taşınmaz</h3>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">${tc.propertySection}</h3>
         </div>
         <div style="background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:16px 20px;margin-bottom:28px">
           <div style="font-size:16px;font-weight:800;color:#025864">${apt}</div>
-          <div style="font-size:12px;color:#025864;margin-top:4px">Konut olarak kullanılmak üzere</div>
+          <div style="font-size:12px;color:#025864;margin-top:4px">${tc.residentialUse}</div>
         </div>
 
         <!-- Sözleşme Süresi -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
-          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Sözleşme Süresi</h3>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">${tc.duration}</h3>
         </div>
         <div style="display:flex;gap:16px;margin-bottom:28px">
           <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Başlangıç</div>
-            <div style="font-size:15px;font-weight:700;color:#0F172A">${formatDate(t.lease_start)}</div>
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${tc.start}</div>
+            <div style="font-size:15px;font-weight:700;color:#0F172A">${fmtDate(ten.lease_start)}</div>
           </div>
           <div style="flex:1;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px">
-            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Bitiş</div>
-            <div style="font-size:15px;font-weight:700;color:#0F172A">${formatDate(t.lease_end)}</div>
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${tc.end}</div>
+            <div style="font-size:15px;font-weight:700;color:#0F172A">${fmtDate(ten.lease_end)}</div>
           </div>
         </div>
 
         <!-- Finansal Koşullar -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <div style="width:4px;height:18px;border-radius:2px;background:#00D47E"></div>
-          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Finansal Koşullar</h3>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">${tc.financial}</h3>
         </div>
         <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin-bottom:28px">
           <tbody>
             <tr style="border-bottom:1px solid #F1F5F9">
-              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B;width:50%">Aylık Kira Bedeli</td>
-              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.rent || 0)}</td>
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B;width:50%">${tc.monthlyRent}</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">${formatMoney(ten.rent || 0)}</td>
             </tr>
-            ${Number(t.nebenkosten_vorauszahlung) > 0 ? `
+            ${Number(ten.nebenkosten_vorauszahlung) > 0 ? `
             <tr style="border-bottom:1px solid #F1F5F9">
-              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">Aylık Aidat</td>
-              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.nebenkosten_vorauszahlung)}</td>
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">${tc.monthlyDues}</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">${formatMoney(ten.nebenkosten_vorauszahlung)}</td>
             </tr>` : ''}
             <tr style="background:#F0FDF4;border-bottom:1px solid #BBF7D0">
-              <td style="padding:12px 20px;font-size:13px;font-weight:700;color:#059669">Toplam Aylık Ödeme</td>
-              <td style="padding:12px 20px;font-size:14px;font-weight:800;color:#059669;text-align:right;font-variant-numeric:tabular-nums">₺${m(totalMonthly)}</td>
+              <td style="padding:12px 20px;font-size:13px;font-weight:700;color:#059669">${tc.totalMonthly}</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:800;color:#059669;text-align:right;font-variant-numeric:tabular-nums">${formatMoney(totalMonthly)}</td>
             </tr>
             <tr>
-              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">Depozito</td>
-              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">₺${m(t.deposit || 0)}</td>
+              <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#64748B">${tc.deposit}</td>
+              <td style="padding:12px 20px;font-size:14px;font-weight:700;color:#0F172A;text-align:right;font-variant-numeric:tabular-nums">${formatMoney(ten.deposit || 0)}</td>
             </tr>
           </tbody>
         </table>
 
-        ${t.iban ? `
+        ${ten.iban ? `
         <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 20px;margin-bottom:28px">
-          <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Kiracı IBAN</div>
-          <div style="font-size:14px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">${t.iban}</div>
+          <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${tc.ibanRowLabel}</div>
+          <div style="font-size:14px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums">${ten.iban}</div>
         </div>` : ''}
 
         ${(household.spouse || household.children || household.roommate) ? `
         <!-- Hane Bilgisi -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <div style="width:4px;height:18px;border-radius:2px;background:#025864"></div>
-          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">Birlikte Yaşayanlar</h3>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:#0F172A">${tc.householdSection}</h3>
         </div>
         <div style="display:flex;gap:12px;margin-bottom:28px">
-          ${household.spouse ? `<div style="padding:10px 20px;border-radius:10px;background:#FDF2F8;border:1px solid #FBCFE8;font-size:13px;font-weight:600;color:#BE185D">Eş: ${household.spouse}</div>` : ''}
-          ${household.children ? `<div style="padding:10px 20px;border-radius:10px;background:#EFF6FF;border:1px solid #BFDBFE;font-size:13px;font-weight:600;color:#1D4ED8">Çocuk: ${household.children}</div>` : ''}
-          ${household.roommate ? `<div style="padding:10px 20px;border-radius:10px;background:#F5F3FF;border:1px solid #DDD6FE;font-size:13px;font-weight:600;color:#6D28D9">Oda Ark.: ${household.roommate}</div>` : ''}
+          ${household.spouse ? `<div style="padding:10px 20px;border-radius:10px;background:#FDF2F8;border:1px solid #FBCFE8;font-size:13px;font-weight:600;color:#BE185D">${t('tenantDetail.contract.spouseCount', { n: household.spouse })}</div>` : ''}
+          ${household.children ? `<div style="padding:10px 20px;border-radius:10px;background:#EFF6FF;border:1px solid #BFDBFE;font-size:13px;font-weight:600;color:#1D4ED8">${t('tenantDetail.contract.childrenCount', { n: household.children })}</div>` : ''}
+          ${household.roommate ? `<div style="padding:10px 20px;border-radius:10px;background:#F5F3FF;border:1px solid #DDD6FE;font-size:13px;font-weight:600;color:#6D28D9">${t('tenantDetail.contract.roommateCount', { n: household.roommate })}</div>` : ''}
         </div>` : ''}
 
         <!-- İmza -->
         <div style="display:flex;gap:48px;margin-top:48px;padding-top:32px;border-top:2px solid #E5E7EB">
           <div style="flex:1;text-align:center">
-            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">Kiraya Veren</div>
+            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">${tc.signatureLandlord}</div>
             <div style="border-top:1.5px solid #CBD5E1;padding-top:8px">
-              <div style="font-size:13px;font-weight:600;color:#0F172A">Ad Soyad / İmza</div>
-              <div style="font-size:11px;color:#94A3B8;margin-top:2px">Tarih: ___/___/______</div>
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${tc.nameSignature}</div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:2px">${tc.dateLine}</div>
             </div>
           </div>
           <div style="flex:1;text-align:center">
-            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">Kiracı</div>
+            <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:48px">${tc.signatureTenant}</div>
             <div style="border-top:1.5px solid #CBD5E1;padding-top:8px">
-              <div style="font-size:13px;font-weight:600;color:#0F172A">${t.full_name}</div>
-              <div style="font-size:11px;color:#94A3B8;margin-top:2px">Tarih: ___/___/______</div>
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${ten.full_name}</div>
+              <div style="font-size:11px;color:#94A3B8;margin-top:2px">${tc.dateLine}</div>
             </div>
           </div>
         </div>
@@ -327,7 +322,7 @@ export default function TenantDetail() {
 
       <!-- Footer -->
       <div style="border-top:1px solid #E5E7EB;padding:16px 48px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10px;color:#94A3B8">Bu belge KiraciYonet sistemi tarafından oluşturulmuştur.</span>
+        <span style="font-size:10px;color:#94A3B8">${tc.footer}</span>
         <span style="font-size:10px;color:#94A3B8">${today}</span>
       </div>
     `
@@ -367,9 +362,9 @@ export default function TenantDetail() {
       }
     }
 
-    doc.save(`Kira_Sozlesmesi_${t.full_name.replace(/\s+/g, '_')}.pdf`)
-    showToast('Sözleşme PDF olarak indirildi.', 'success')
-  }, [tenant])
+    doc.save(`${tc.fileName}_${ten.full_name.replace(/\s+/g, '_')}.pdf`)
+    showToast(t('tenantDetail.toasts.pdfDownloaded'), 'success')
+  }, [tenant, t])
 
   const stats = useMemo(() => {
     if (!payments.length) return { totalPaid: 0, totalOverdue: 0, successRate: 0, paidCount: 0, overdueCount: 0 }
@@ -389,9 +384,9 @@ export default function TenantDetail() {
   }, [payments])
 
   const getPaymentStatus = (p) => {
-    if (p.status === 'paid') return { label: 'Ödendi', bg: '#ECFDF5', color: '#059669' }
-    if (daysDiff(p.due_date) < 0) return { label: 'Gecikti', bg: '#FEF2F2', color: '#DC2626' }
-    return { label: 'Bekliyor', bg: '#FFFBEB', color: '#D97706' }
+    if (p.status === 'paid') return { label: t('tenantDetail.paymentHistory.paid'), bg: '#ECFDF5', color: '#059669' }
+    if (daysDiff(p.due_date) < 0) return { label: t('tenantDetail.paymentHistory.overdue'), bg: '#FEF2F2', color: '#DC2626' }
+    return { label: t('tenantDetail.paymentHistory.pending'), bg: '#FFFBEB', color: '#D97706' }
   }
 
   if (loading) {
@@ -415,12 +410,12 @@ export default function TenantDetail() {
   const leaseRemaining = () => {
     if (!tenant.lease_end) return null
     const diff = daysDiff(tenant.lease_end)
-    if (diff < 0) return { text: `${Math.abs(diff)} gün geçti`, color: C.red, urgent: true }
-    if (diff === 0) return { text: 'Bugün bitiyor', color: C.red, urgent: true }
-    if (diff <= 30) return { text: `${diff} gün kaldı`, color: C.amber, urgent: true }
-    if (diff <= 90) return { text: `${diff} gün kaldı`, color: C.textMuted, urgent: false }
+    if (diff < 0) return { text: t('tenantDetail.lease.daysLate', { n: Math.abs(diff) }), color: C.red, urgent: true }
+    if (diff === 0) return { text: t('tenantDetail.lease.endsToday'), color: C.red, urgent: true }
+    if (diff <= 30) return { text: t('tenantDetail.lease.daysLeft', { n: diff }), color: C.amber, urgent: true }
+    if (diff <= 90) return { text: t('tenantDetail.lease.daysLeft', { n: diff }), color: C.textMuted, urgent: false }
     const months = Math.floor(diff / 30)
-    return { text: `~${months} ay kaldı`, color: C.textMuted, urgent: false }
+    return { text: t('tenantDetail.lease.monthsLeft', { n: months }), color: C.textMuted, urgent: false }
   }
   const remaining = leaseRemaining()
 
@@ -451,7 +446,7 @@ export default function TenantDetail() {
               color: isActive ? '#059669' : C.textMuted,
               border: `1px solid ${isActive ? '#A7F3D0' : '#E2E8F0'}`
             }}>
-              {isActive ? 'Aktif Kiracı' : 'Eski Kiracı'}
+              {isActive ? t('tenantDetail.activeTenant') : t('tenantDetail.formerTenant')}
             </span>
             {isActive && apt !== '—' && (
               <span style={{ fontSize: 12, fontWeight: 600, color: C.teal, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -472,7 +467,7 @@ export default function TenantDetail() {
                   fontSize: 13, fontWeight: 700, cursor: 'pointer'
                 }}>
                 <FileText style={{ width: 14, height: 14 }} />
-                Sözleşme PDF
+                {t('tenantDetail.contractPdf')}
               </motion.button>
             )}
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
@@ -485,7 +480,7 @@ export default function TenantDetail() {
                 boxShadow: '0 2px 8px rgba(2,88,100,0.18)'
               }}>
               <Pencil style={{ width: 14, height: 14 }} />
-              Düzenle
+              {t('common.edit')}
             </motion.button>
           </div>
         ) : (
@@ -499,7 +494,7 @@ export default function TenantDetail() {
                 fontSize: 13, fontWeight: 700, cursor: 'pointer'
               }}>
               <X style={{ width: 14, height: 14 }} />
-              İptal
+              {t('common.cancel')}
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               onClick={handleSave} disabled={saving}
@@ -512,7 +507,7 @@ export default function TenantDetail() {
                 boxShadow: '0 2px 8px rgba(0,212,126,0.25)'
               }}>
               <Save style={{ width: 14, height: 14 }} />
-              {saving ? 'Kaydediliyor...' : 'Kaydet'}
+              {saving ? t('common.saving') : t('common.save')}
             </motion.button>
           </div>
         )}
@@ -528,25 +523,25 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={{ ...cardBox, ...(editing ? { border: `2px solid ${C.teal}20` } : {}) }}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <Users style={{ width: 13, height: 13 }} /> Kişisel Bilgiler
+                <Users style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.personal')}
               </div>
               {editing ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Ad Soyad</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.fullName')}</label>
                     <input style={inputStyle} value={form.full_name} onChange={e => f('full_name', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>TC No</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.tcNo')}</label>
                     <input style={inputStyle} value={form.tc_no} onChange={e => f('tc_no', e.target.value)} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Telefon</label>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.phone')}</label>
                       <input style={inputStyle} value={form.phone} onChange={e => f('phone', e.target.value)} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>E-posta</label>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.email')}</label>
                       <input style={inputStyle} value={form.email} onChange={e => f('email', e.target.value)} />
                     </div>
                   </div>
@@ -597,16 +592,16 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={{ ...cardBox, ...(editing ? { border: `2px solid ${C.teal}20` } : {}) }}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <Shield style={{ width: 13, height: 13 }} /> Acil Durum Kişisi
+                <Shield style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.emergency')}
               </div>
               {editing ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Ad Soyad</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.fullName')}</label>
                     <input style={inputStyle} value={form.emergency_contact_name} onChange={e => f('emergency_contact_name', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Telefon</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.phone')}</label>
                     <input style={inputStyle} value={form.emergency_contact_phone} onChange={e => f('emergency_contact_phone', e.target.value)} />
                   </div>
                 </div>
@@ -626,7 +621,7 @@ export default function TenantDetail() {
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>Belirtilmemiş</div>
+                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>{t('tenantDetail.notSpecified')}</div>
               )}
             </div>
           </motion.div>
@@ -635,20 +630,20 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={{ ...cardBox, ...(editing ? { border: `2px solid ${C.teal}20` } : {}) }}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <Home style={{ width: 13, height: 13 }} /> Hane Bilgisi
+                <Home style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.household')}
               </div>
               {editing ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Eş</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.spouse')}</label>
                     <input type="number" min="0" style={inputStyle} value={form.household_spouse} onChange={e => f('household_spouse', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Çocuk</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.children')}</label>
                     <input type="number" min="0" style={inputStyle} value={form.household_children} onChange={e => f('household_children', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Oda Ark.</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.roommate')}</label>
                     <input type="number" min="0" style={inputStyle} value={form.household_roommate} onChange={e => f('household_roommate', e.target.value)} />
                   </div>
                 </div>
@@ -662,7 +657,7 @@ export default function TenantDetail() {
                       fontSize: 13, fontWeight: 600, color: '#BE185D'
                     }}>
                       <Heart style={{ width: 13, height: 13 }} />
-                      Eş: {household.spouse}
+                      {t('tenantDetail.contract.spouseCount', { n: household.spouse })}
                     </div>
                   )}
                   {(household.children || 0) > 0 && (
@@ -673,7 +668,7 @@ export default function TenantDetail() {
                       fontSize: 13, fontWeight: 600, color: '#1D4ED8'
                     }}>
                       <Baby style={{ width: 13, height: 13 }} />
-                      Çocuk: {household.children}
+                      {t('tenantDetail.contract.childrenCount', { n: household.children })}
                     </div>
                   )}
                   {(household.roommate || 0) > 0 && (
@@ -684,12 +679,12 @@ export default function TenantDetail() {
                       fontSize: 13, fontWeight: 600, color: '#6D28D9'
                     }}>
                       <UserPlus style={{ width: 13, height: 13 }} />
-                      Oda Ark.: {household.roommate}
+                      {t('tenantDetail.contract.roommateCount', { n: household.roommate })}
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>Belirtilmemiş</div>
+                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>{t('tenantDetail.notSpecified')}</div>
               )}
             </div>
           </motion.div>
@@ -698,7 +693,7 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={{ ...cardBox, ...(editing ? { border: `2px solid ${C.teal}20` } : {}) }}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <StickyNote style={{ width: 13, height: 13 }} /> Notlar
+                <StickyNote style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.notes')}
               </div>
               {editing ? (
                 <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
@@ -713,7 +708,7 @@ export default function TenantDetail() {
                   {tenant.notes}
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>Not eklenmemiş</div>
+                <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>{t('tenantDetail.notesEmpty')}</div>
               )}
             </div>
           </motion.div>
@@ -726,28 +721,28 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={{ ...cardBox, ...(editing ? { border: `2px solid ${C.teal}20` } : {}) }}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <CreditCard style={{ width: 13, height: 13 }} /> Finansal Bilgiler
+                <CreditCard style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.financial')}
               </div>
               {editing ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Aylık Kira (₺)</label>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.monthlyRent')}</label>
                       <input type="number" style={inputStyle} value={form.rent} onChange={e => f('rent', e.target.value)} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Depozito (₺)</label>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.deposit')}</label>
                       <input type="number" style={inputStyle} value={form.deposit} onChange={e => f('deposit', e.target.value)} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>IBAN</label>
-                      <input style={inputStyle} value={form.iban} onChange={e => f('iban', e.target.value)} placeholder="DE..." />
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.iban')}</label>
+                      <input style={inputStyle} value={form.iban} onChange={e => f('iban', e.target.value)} placeholder={t('tenantDetail.fields.ibanPh')} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Aylık Aidat (₺/ay)</label>
-                      <input type="number" min="0" step="0.01" style={inputStyle} value={form.nebenkosten_vorauszahlung} onChange={e => f('nebenkosten_vorauszahlung', e.target.value)} placeholder="0,00" />
+                      <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.nebenkosten')}</label>
+                      <input type="number" min="0" step="0.01" style={inputStyle} value={form.nebenkosten_vorauszahlung} onChange={e => f('nebenkosten_vorauszahlung', e.target.value)} placeholder={t('tenantDetail.fields.nebenkostenPh')} />
                     </div>
                   </div>
                 </div>
@@ -758,27 +753,27 @@ export default function TenantDetail() {
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Aylık Kira</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>{t('tenantDetail.financial.monthlyRent')}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-                        {tenant.rent ? money(tenant.rent) + ' ₺' : '—'}
+                        {tenant.rent ? formatMoney(tenant.rent) : '—'}
                       </div>
                     </div>
                     <div style={{
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Aylık Aidat</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>{t('tenantDetail.financial.nebenkosten')}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-                        {tenant.nebenkosten_vorauszahlung ? money(tenant.nebenkosten_vorauszahlung) + ' ₺' : '—'}
+                        {tenant.nebenkosten_vorauszahlung ? formatMoney(tenant.nebenkosten_vorauszahlung) : '—'}
                       </div>
                     </div>
                     <div style={{
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F0FDF4', border: `1px solid #BBF7D0`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Toplam (Kira + Aidat)</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>{t('tenantDetail.financial.total')}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#059669' }}>
-                        ₺{money((Number(tenant.rent) || 0) + (Number(tenant.nebenkosten_vorauszahlung) || 0))}
+                        {formatMoney((Number(tenant.rent) || 0) + (Number(tenant.nebenkosten_vorauszahlung) || 0))}
                       </div>
                     </div>
                   </div>
@@ -787,9 +782,9 @@ export default function TenantDetail() {
                       padding: '14px 16px', borderRadius: 12,
                       background: '#F8FAFC', border: `1px solid ${C.borderLight}`
                     }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Depozito</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>{t('tenantDetail.financial.deposit')}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-                        {tenant.deposit ? money(tenant.deposit) + ' ₺' : '—'}
+                        {tenant.deposit ? formatMoney(tenant.deposit) : '—'}
                       </div>
                     </div>
                   </div>
@@ -801,14 +796,14 @@ export default function TenantDetail() {
                     }}>
                       <Banknote style={{ width: 16, height: 16, color: C.textFaint, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint }}>IBAN</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint }}>{t('tenantDetail.financial.iban')}</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
                           {tenant.iban}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ marginTop: 10, fontSize: 12, color: C.textFaint, fontStyle: 'italic' }}>IBAN belirtilmemiş</div>
+                    <div style={{ marginTop: 10, fontSize: 12, color: C.textFaint, fontStyle: 'italic' }}>{t('tenantDetail.financial.ibanNotSet')}</div>
                   )}
                 </>
               )}
@@ -820,7 +815,7 @@ export default function TenantDetail() {
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
                 <CalendarDays style={{ width: 13, height: 13 }} />
-                {isActive ? 'Kira & Sözleşme' : 'Geçmiş Sözleşme'}
+                {isActive ? t('tenantDetail.sections.lease') : t('tenantDetail.sections.pastLease')}
               </div>
               {!isActive && apt !== '—' && (
                 <div style={{
@@ -830,17 +825,17 @@ export default function TenantDetail() {
                   fontSize: 13, fontWeight: 500, color: C.textMuted
                 }}>
                   <Building2 style={{ width: 14, height: 14 }} />
-                  Son daire: {apt}
+                  {t('tenantDetail.lease.lastApartment', { apt })}
                 </div>
               )}
               {editing ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Başlangıç</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.leaseStart')}</label>
                     <input type="date" style={inputStyle} value={form.lease_start} onChange={e => f('lease_start', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>Bitiş</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>{t('tenantDetail.fields.leaseEnd')}</label>
                     <input type="date" style={inputStyle} value={form.lease_end} onChange={e => f('lease_end', e.target.value)} />
                   </div>
                 </div>
@@ -848,12 +843,12 @@ export default function TenantDetail() {
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Başlangıç</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{formatDate(tenant.lease_start)}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>{t('tenantDetail.fields.leaseStart')}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{fmtDate(tenant.lease_start)}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>Bitiş</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{formatDate(tenant.lease_end)}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4 }}>{t('tenantDetail.fields.leaseEnd')}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{fmtDate(tenant.lease_end)}</div>
                     </div>
                   </div>
                   {isActive && remaining && (
@@ -882,7 +877,7 @@ export default function TenantDetail() {
                   ...sectionTitle, cursor: 'pointer', justifyContent: 'space-between'
                 }} onClick={() => setShowRentCalc(!showRentCalc)}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <Calculator style={{ width: 13, height: 13 }} /> Kira Artışı Hesapla
+                    <Calculator style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.rentCalc')}
                   </div>
                   <motion.div animate={{ rotate: showRentCalc ? 180 : 0 }} transition={{ duration: 0.2 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -899,7 +894,7 @@ export default function TenantDetail() {
                     >
                       <div style={{ marginTop: 8 }}>
                         <label style={{ fontSize: 11, fontWeight: 600, color: C.textFaint, marginBottom: 4, display: 'block' }}>
-                          TÜFE Oranı (%)
+                          {t('tenantDetail.rentCalc.tufeLabel')}
                         </label>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                           <div style={{ position: 'relative', flex: 1 }}>
@@ -907,7 +902,7 @@ export default function TenantDetail() {
                               style={{ ...inputStyle, paddingRight: 32 }}
                               value={tufeRate}
                               onChange={e => setTufeRate(e.target.value)}
-                              placeholder="Ör: 44.38"
+                              placeholder={t('tenantDetail.rentCalc.tufePh')}
                             />
                             <Percent style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: C.textFaint }} />
                           </div>
@@ -919,22 +914,22 @@ export default function TenantDetail() {
                               background: '#F0FDF4', border: '1px solid #BBF7D0'
                             }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <span style={{ fontSize: 12, color: '#64748B' }}>Mevcut Kira</span>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>{t('tenantDetail.rentCalc.currentRent')}</span>
                                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                                  ₺{money(tenant.rent)}
+                                  {formatMoney(tenant.rent)}
                                 </span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <span style={{ fontSize: 12, color: '#64748B' }}>Artış Tutarı (%{Number(tufeRate).toLocaleString('tr-TR')})</span>
+                                <span style={{ fontSize: 12, color: '#64748B' }}>{t('tenantDetail.rentCalc.increaseAmount', { pct: Number(tufeRate).toLocaleString() })}</span>
                                 <span style={{ fontSize: 13, fontWeight: 700, color: C.amber, fontVariantNumeric: 'tabular-nums' }}>
-                                  +₺{money(Math.round(Number(tenant.rent) * Number(tufeRate) / 100))}
+                                  +{formatMoney(Math.round(Number(tenant.rent) * Number(tufeRate) / 100))}
                                 </span>
                               </div>
                               <div style={{ height: 1, background: '#BBF7D0', margin: '4px 0 8px' }} />
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>Yeni Kira</span>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>{t('tenantDetail.rentCalc.newRent')}</span>
                                 <span style={{ fontSize: 16, fontWeight: 800, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
-                                  ₺{money(Math.round(Number(tenant.rent) * (1 + Number(tufeRate) / 100)))}
+                                  {formatMoney(Math.round(Number(tenant.rent) * (1 + Number(tufeRate) / 100)))}
                                 </span>
                               </div>
                             </div>
@@ -952,7 +947,7 @@ export default function TenantDetail() {
           <motion.div variants={fadeItem} style={cardBox}>
             <div style={{ padding: '20px 24px' }}>
               <div style={sectionTitle}>
-                <TrendingUp style={{ width: 13, height: 13 }} /> Ödeme Özeti
+                <TrendingUp style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.paymentSummary')}
               </div>
               {loadingPayments ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -965,26 +960,26 @@ export default function TenantDetail() {
                     padding: '14px 12px', borderRadius: 12, textAlign: 'center',
                     background: '#ECFDF5', border: '1px solid #A7F3D0'
                   }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>Ödenen</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>{money(stats.totalPaid)} ₺</div>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: '#059669', marginTop: 2 }}>{stats.paidCount} ödeme</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 4 }}>{t('tenantDetail.paymentStats.paid')}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>{formatMoney(stats.totalPaid)}</div>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: '#059669', marginTop: 2 }}>{t('tenantDetail.paymentStats.paymentCount', { n: stats.paidCount })}</div>
                   </div>
                   <div style={{
                     padding: '14px 12px', borderRadius: 12, textAlign: 'center',
                     background: stats.totalOverdue > 0 ? '#FEF2F2' : '#F8FAFC',
                     border: `1px solid ${stats.totalOverdue > 0 ? '#FECACA' : C.borderLight}`
                   }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: stats.totalOverdue > 0 ? '#DC2626' : C.textFaint, marginBottom: 4 }}>Geciken</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: stats.totalOverdue > 0 ? '#DC2626' : C.textMuted }}>{money(stats.totalOverdue)} ₺</div>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: stats.totalOverdue > 0 ? '#DC2626' : C.textFaint, marginTop: 2 }}>{stats.overdueCount} ödeme</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: stats.totalOverdue > 0 ? '#DC2626' : C.textFaint, marginBottom: 4 }}>{t('tenantDetail.paymentStats.overdue')}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: stats.totalOverdue > 0 ? '#DC2626' : C.textMuted }}>{formatMoney(stats.totalOverdue)}</div>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: stats.totalOverdue > 0 ? '#DC2626' : C.textFaint, marginTop: 2 }}>{t('tenantDetail.paymentStats.paymentCount', { n: stats.overdueCount })}</div>
                   </div>
                   <div style={{
                     padding: '14px 12px', borderRadius: 12, textAlign: 'center',
                     background: '#F0FDFA', border: '1px solid #99F6E4'
                   }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.teal, marginBottom: 4 }}>Başarı</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.teal, marginBottom: 4 }}>{t('tenantDetail.paymentStats.success')}</div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: C.teal }}>%{stats.successRate}</div>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: C.teal, marginTop: 2 }}>ödeme oranı</div>
+                    <div style={{ fontSize: 11, fontWeight: 500, color: C.teal, marginTop: 2 }}>{t('tenantDetail.paymentStats.successRate')}</div>
                   </div>
                 </div>
               )}
@@ -997,15 +992,15 @@ export default function TenantDetail() {
       <motion.div variants={fadeItem} style={cardBox}>
         <div style={{ padding: '20px 24px' }}>
           <div style={sectionTitle}>
-            <Banknote style={{ width: 13, height: 13 }} /> Ödeme Geçmişi
+            <Banknote style={{ width: 13, height: 13 }} /> {t('tenantDetail.sections.paymentHistory')}
             <span style={{ fontSize: 11, fontWeight: 500, color: C.textFaint, marginLeft: 4 }}>
-              (Son 12 ay)
+              {t('tenantDetail.paymentHistory.last12')}
             </span>
           </div>
           {loadingPayments ? (
-            <div style={{ fontSize: 13, color: C.textFaint }}>Yükleniyor...</div>
+            <div style={{ fontSize: 13, color: C.textFaint }}>{t('tenantDetail.paymentHistory.loading')}</div>
           ) : last12Payments.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>Henüz ödeme kaydı bulunmuyor</div>
+            <div style={{ fontSize: 13, color: C.textFaint, fontStyle: 'italic' }}>{t('tenantDetail.paymentHistory.empty')}</div>
           ) : (
             <div style={{ borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden' }}>
               {/* Table header */}
@@ -1014,7 +1009,12 @@ export default function TenantDetail() {
                 padding: '10px 16px', background: '#FAFBFC',
                 borderBottom: `1px solid ${C.borderLight}`
               }}>
-                {['Vade Tarihi', 'Ödeme Tarihi', 'Tutar', 'Durum'].map((h, i) => (
+                {[
+                  t('tenantDetail.paymentHistory.thDueDate'),
+                  t('tenantDetail.paymentHistory.thPaidDate'),
+                  t('tenantDetail.paymentHistory.thAmount'),
+                  t('tenantDetail.paymentHistory.thStatus')
+                ].map((h, i) => (
                   <div key={i} style={{
                     fontSize: 11, fontWeight: 700, color: C.textFaint,
                     textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -1031,12 +1031,12 @@ export default function TenantDetail() {
                     borderBottom: i < last12Payments.length - 1 ? `1px solid ${C.borderLight}` : 'none',
                     background: i % 2 === 0 ? 'white' : '#FAFBFC'
                   }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{formatDate(p.due_date)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(p.due_date)}</div>
                     <div style={{ fontSize: 13, color: p.paid_date ? '#059669' : C.textFaint }}>
-                      {p.paid_date ? formatDate(p.paid_date) : '—'}
+                      {p.paid_date ? fmtDate(p.paid_date) : '—'}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                      {money(p.amount)} ₺
+                      {formatMoney(p.amount)}
                     </div>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,

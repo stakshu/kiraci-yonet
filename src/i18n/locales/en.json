@@ -1,0 +1,1165 @@
+{
+  "app": {
+    "name": "KiraciYonet",
+    "tagline": "Property management dashboard"
+  },
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "none": "None",
+    "loading": "Loading...",
+    "empty": "No records",
+    "yes": "Yes",
+    "no": "No",
+    "required": "Required",
+    "optional": "Optional",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "amount": "Amount",
+    "date": "Date",
+    "description": "Description",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
+    "select": "Select",
+    "selectPlaceholder": "Please select",
+    "download": "Download",
+    "print": "Print",
+    "export": "Export",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "more": "More",
+    "less": "Less",
+    "viewAll": "View all",
+    "reset": "Reset",
+    "apply": "Apply",
+    "logout": "Sign out",
+    "profile": "Profile",
+    "settings": "Settings",
+    "help": "Help",
+    "support": "Support",
+    "language": "Language"
+  },
+  "sidebar": {
+    "sectionGeneral": "GENERAL",
+    "sectionManagement": "MANAGEMENT",
+    "overview": "Overview",
+    "properties": "Properties",
+    "tenants": "Tenants",
+    "payments": "Payments",
+    "expenses": "Expenses",
+    "accounting": "Accounting",
+    "documents": "Documents",
+    "helpSupport": "Help & Support",
+    "online": "Online",
+    "notLoggedIn": "Not signed in",
+    "user": "User",
+    "logoutTitle": "Sign out",
+    "logoutSuccess": "Signed out successfully.",
+    "logoutError": "Sign-out error: {{msg}}"
+  },
+  "languages": {
+    "tr": "Turkish",
+    "en": "English",
+    "de": "German",
+    "switcherLabel": "Language",
+    "switcherTitle": "Change interface language"
+  },
+  "propertyTypes": {
+    "daire": "Apartment",
+    "mustakil": "Detached house",
+    "villa": "Villa",
+    "dukkan": "Shop",
+    "ofis": "Office",
+    "arsa": "Land",
+    "diger": "Other"
+  },
+  "buildingTypes": {
+    "apartman": "Apartment block",
+    "mustakil": "Detached house",
+    "villa": "Villa",
+    "dukkan": "Shop",
+    "ofis": "Office",
+    "diger": "Other"
+  },
+  "properties": {
+    "title": "My Properties",
+    "searchPlaceholder": "Search by building / city / district / address...",
+    "addProperty": "Add property",
+    "addApartment": "Add unit",
+    "stats": {
+      "totalBuildings": "Total buildings",
+      "totalUnits": "Total units",
+      "occupied": "Rented",
+      "vacant": "Vacant",
+      "monthlyIncome": "Monthly income"
+    },
+    "table": {
+      "building": "Building",
+      "address": "Address",
+      "units": "Units",
+      "occupied": "Rented",
+      "vacant": "Vacant",
+      "monthlyIncome": "Monthly income",
+      "singleUnit": "1 unit",
+      "yearsOld": "{{n}} years old"
+    },
+    "empty": {
+      "none": "No buildings yet. Start with \"+ Add property\".",
+      "search": "No buildings match your search."
+    },
+    "errorPrefix": "Error",
+    "toasts": {
+      "sessionExpired": "Your session has expired.",
+      "buildingRequired": "Please select a building.",
+      "apartmentBuildingsRequired": "No apartment-block building available. Add one first.",
+      "unitError": "Building added but unit save failed: {{msg}}",
+      "errorPrefix": "Error: {{msg}}",
+      "buildingAdded": "Building added.",
+      "propertyAdded": "Property added.",
+      "apartmentAdded": "Unit added."
+    },
+    "modal": {
+      "addBuildingTitle": "Add new property",
+      "addApartmentTitle": "Add new unit",
+      "typeLabel": "Property type *",
+      "buildingNameMulti": "Building name *",
+      "buildingNameSingle": "Property name *",
+      "buildingNameMultiPh": "Cömertkent Complex H1 Block",
+      "buildingNameSinglePh": "Seaview Villa",
+      "city": "City",
+      "cityPh": "Istanbul",
+      "district": "District",
+      "districtPh": "Kadıköy",
+      "address": "Address",
+      "addressPh": "Neighborhood, street, no.",
+      "buildingAge": "Building age",
+      "constructionYear": "Construction year",
+      "notes": "Notes",
+      "optional": "Optional",
+      "unitInfo": "Unit details",
+      "roomCount": "Rooms",
+      "floor": "Floor",
+      "deposit": "Deposit",
+      "grossArea": "Gross m²",
+      "netArea": "Net m²",
+      "furnished": "Furnished",
+      "building": "Building *",
+      "unitNo": "Unit no. *",
+      "propertyType": "Property type",
+      "notesPh": "Optional notes...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
+  },
+  "buildingDetail": {
+    "backToProperties": "Properties",
+    "editBuilding": "Edit",
+    "deleteBuilding": "Delete",
+    "addressNotSet": "No address on file",
+    "stats": {
+      "unit": "Unit",
+      "apartment": "Units",
+      "occupied": "Rented",
+      "vacant": "Vacant",
+      "monthly": "Monthly"
+    },
+    "addApartment": "Add unit",
+    "table": {
+      "unit": "Unit",
+      "apartment": "Unit",
+      "tenant": "Tenant",
+      "nextPayment": "Next payment",
+      "leaseEnd": "Lease ends",
+      "occupied": "Rented",
+      "vacant": "Vacant",
+      "noPaymentRecord": "No payments on file",
+      "addLease": "Add lease",
+      "addTenant": "Add tenant"
+    },
+    "empty": {
+      "single": "No unit record found for this property.",
+      "multi": "No units in this building yet. Use \"+ Add unit\" to create one."
+    },
+    "bldModal": {
+      "title": "Edit building",
+      "name": "Building name *",
+      "namePh": "Cömertkent Complex H1 Block",
+      "city": "City",
+      "cityPh": "Istanbul",
+      "district": "District",
+      "districtPh": "Kadıköy",
+      "address": "Address",
+      "addressPh": "Neighborhood, street, no.",
+      "buildingAge": "Building age",
+      "notes": "Notes",
+      "notesPh": "Optional"
+    },
+    "aptModal": {
+      "titleAdd": "Add new unit",
+      "titleEdit": "Edit unit",
+      "building": "Building *",
+      "unitNo": "Unit no. *",
+      "propertyType": "Property type",
+      "roomCount": "Rooms",
+      "floor": "Floor",
+      "deposit": "Deposit",
+      "grossArea": "Gross m²",
+      "netArea": "Net m²",
+      "furnished": "Furnished",
+      "notes": "Notes",
+      "notesPh": "Optional notes..."
+    },
+    "tenantModal": {
+      "title": "Add tenant",
+      "modeNew": "New tenant",
+      "modeExisting": "Assign from inactive",
+      "noInactiveTitle": "No inactive tenants",
+      "noInactiveSub": "Create one via the \"New tenant\" tab.",
+      "createNewCta": "Create new tenant",
+      "selectInactive": "Select inactive tenant *",
+      "selectInactivePh": "Select inactive tenant...",
+      "fullName": "Full name *",
+      "fullNamePh": "Ahmet Yılmaz",
+      "tcNo": "ID number",
+      "tcNoPh": "12345678901",
+      "phone": "Phone",
+      "phonePh": "0532 xxx xx xx",
+      "email": "Email",
+      "emailPh": "name@email.com",
+      "leaseStart": "Lease start",
+      "leaseEnd": "Lease end",
+      "monthlyRent": "Monthly rent",
+      "deposit": "Deposit",
+      "submitNew": "Add tenant",
+      "submitAssign": "Assign"
+    },
+    "confirm": {
+      "deleteMulti": "This building and its {{n}} units (plus tenants and payments) will be deleted. Proceed?",
+      "deleteSingle": "Delete this building?",
+      "deleteApartment": "Delete {{name}}?"
+    },
+    "toasts": {
+      "buildingNotFound": "Building not found.",
+      "buildingUpdated": "Building updated.",
+      "buildingDeleted": "Building deleted.",
+      "apartmentNotFound": "Unit not found.",
+      "apartmentUpdated": "Unit updated.",
+      "apartmentAdded": "Unit added.",
+      "apartmentDeleted": "Unit deleted.",
+      "selectInactiveRequired": "Select an inactive tenant.",
+      "tenantAssigned": "Tenant assigned.",
+      "tenantAdded": "Tenant added.",
+      "sessionExpired": "Your session has expired.",
+      "buildingRequired": "Please select a building.",
+      "errorPrefix": "Error: {{msg}}"
+    }
+  },
+  "propertyDetail": {
+    "back": "Back to properties",
+    "tabs": {
+      "details": "Property details",
+      "payments": "Payment activity",
+      "lease": "Lease information",
+      "documents": "Documents",
+      "notes": "Notes"
+    },
+    "summary": {
+      "title": "Property overview",
+      "edit": "Edit",
+      "delete": "Delete property"
+    },
+    "fields": {
+      "building": "Building",
+      "apartment": "Unit",
+      "location": "Location",
+      "propertyType": "Property type",
+      "roomCount": "Rooms",
+      "furnished": "Furnished",
+      "m2Net": "m² (net)",
+      "m2Gross": "m² (gross)",
+      "buildingAge": "Building age",
+      "address": "Address",
+      "floor": "Floor",
+      "deposit": "Deposit"
+    },
+    "basics": "Basic information",
+    "edit": {
+      "buildingLabel": "Building *",
+      "buildingPh": "Select a building",
+      "unitNo": "Unit number",
+      "propertyType": "Property type",
+      "roomCount": "Rooms",
+      "floor": "Floor",
+      "grossArea": "Gross m²",
+      "netArea": "Net m²",
+      "deposit": "Deposit (₺)",
+      "furnished": "Furnished",
+      "buildingScopeNote": "Building details (city, district, address, age) are managed at the building level."
+    },
+    "tenantInfo": {
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "tcNo": "ID number",
+      "leaseStart": "Lease start",
+      "leaseEnd": "Lease end",
+      "monthlyRent": "Monthly rent",
+      "deposit": "Deposit"
+    },
+    "payments": {
+      "empty": "No payment records found.",
+      "unknownTenant": "Unknown",
+      "currentTenant": "Current tenant",
+      "pastTenant": "Former tenant",
+      "paymentCount": "{{n}} payments",
+      "thDueDate": "Due date",
+      "thAmount": "Amount",
+      "thStatus": "Status",
+      "thPaidDate": "Paid on",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "pending": "Pending"
+    },
+    "lease": {
+      "currentTitle": "Current tenant",
+      "activeTenant": "Active tenant",
+      "endLease": "End lease",
+      "viewDetail": "View details",
+      "noCurrent": "There is no active tenant for this property.",
+      "pastTitle": "Past tenants",
+      "noPast": "No past tenants found.",
+      "formerTenant": "Former tenant",
+      "rentSuffix": "mo"
+    },
+    "documents": {
+      "title": "Documents",
+      "uploading": "Uploading...",
+      "upload": "Upload document",
+      "empty": "No documents uploaded yet.",
+      "emptyHint": "You can upload PDF, Word or image files.",
+      "thName": "File name",
+      "thSize": "Size",
+      "thDate": "Date"
+    },
+    "notes": {
+      "propertyNote": "Property note",
+      "tenantNote": "Tenant note — {{name}}",
+      "edit": "Edit",
+      "add": "Add note",
+      "propertyPh": "Write a note about the property...",
+      "tenantPh": "Write a note about the tenant...",
+      "empty": "No notes yet."
+    },
+    "endLeaseModal": {
+      "title": "End lease",
+      "body": "{{name}} will be removed from this unit and moved to the past tenants list. Do you confirm this action?",
+      "cancel": "Cancel",
+      "processing": "Processing...",
+      "confirm": "Yes, end lease"
+    },
+    "deletePropertyModal": {
+      "title": "Delete property",
+      "body": "{{label}} will be permanently deleted. All related data (payments, documents) will also be removed. Do you confirm this action?",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "confirm": "Yes, delete"
+    },
+    "toasts": {
+      "propertyNotFound": "Property not found.",
+      "buildingRequired": "Please select a building.",
+      "propertyUpdated": "Property details updated.",
+      "propertyDeleted": "Property deleted.",
+      "noteSaved": "Note saved.",
+      "leaseEnded": "{{name}}'s lease ended.",
+      "documentUploaded": "Document uploaded.",
+      "documentDeleted": "Document deleted.",
+      "uploadError": "Upload error: {{msg}}",
+      "errorPrefix": "Error: {{msg}}",
+      "confirmDeleteDoc": "Delete {{name}}?"
+    }
+  },
+  "dashboard": {
+    "greet": {
+      "night": "Good night",
+      "morning": "Good morning",
+      "day": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "addTenant": "Add tenant",
+    "addProperty": "Add property",
+    "addPayment": "Record payment",
+    "kpi": {
+      "thisMonth": "This month",
+      "collectedTitle": "Payments received",
+      "overdueTitle": "Overdue payments",
+      "upcomingTitle": "Upcoming payments",
+      "noPayment": "No payments",
+      "noOverdue": "Nothing overdue",
+      "noUpcoming": "Nothing pending",
+      "fromProperties": "from {{count}} property",
+      "fromProperties_plural": "from {{count}} properties"
+    },
+    "overdueList": {
+      "title": "Overdue rent",
+      "all": "View all",
+      "empty": "No overdue payments.",
+      "daysLate": "{{count}} day late",
+      "daysLate_plural": "{{count}} days late"
+    },
+    "trend": {
+      "title": "Collection trend",
+      "period": "12 months"
+    },
+    "recent": {
+      "title": "Recent activity",
+      "empty": "No payments yet.",
+      "all": "View all"
+    },
+    "status": {
+      "title": "Property status",
+      "occupied": "Occupied",
+      "vacant": "Vacant",
+      "summary": "{{b}} building · {{a}} unit",
+      "summary_plural": "{{b}} buildings · {{a}} units",
+      "occupancy": "{{pct}}% occupancy"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutes": "{{n}} min",
+      "hours": "{{n}} h",
+      "yesterday": "Yesterday",
+      "days": "{{n}} d"
+    }
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your account",
+    "registerTitle": "Create an account",
+    "registerSubtitle": "Get started now",
+    "forgotTitle": "Reset password",
+    "forgotSubtitle": "We'll send a reset link to your email",
+    "email": "Email",
+    "emailPlaceholder": "name@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "At least 6 characters",
+    "passwordRepeat": "Confirm password",
+    "passwordRepeatPlaceholder": "Re-enter your password",
+    "forgotLink": "Forgot your password?",
+    "loginButton": "Sign in",
+    "loginLoading": "Signing in...",
+    "registerButton": "Sign up",
+    "registerLoading": "Creating account...",
+    "forgotButton": "Send reset link",
+    "forgotLoading": "Sending...",
+    "backToLogin": "← Back to sign in",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "signUpAction": "Sign up",
+    "signInAction": "Sign in",
+    "loginSuccess": "Signed in successfully!",
+    "registerSuccess": "Account created. Welcome!",
+    "registerVerify": "Account created. Please verify your email address.",
+    "resetSent": "A reset link has been sent to your email.",
+    "passwordMismatch": "Passwords do not match.",
+    "error": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "Your email address has not been verified yet.",
+      "userExists": "This email address is already registered.",
+      "passwordShort": "Password must be at least 6 characters.",
+      "rateLimited": "For security reasons you can only request this once every 60 seconds."
+    },
+    "marketing": {
+      "line1": "The smartest way",
+      "line2": "to manage",
+      "line3": "your properties.",
+      "description": "Rent tracking, expense management and financial reporting — all in one place.",
+      "statPropertiesLabel": "1,200+ Properties",
+      "statPropertiesSub": "Managed",
+      "statCollectionLabel": "98% Collection",
+      "statCollectionSub": "Rate",
+      "statVolumeLabel": "$2.4M+",
+      "statVolumeSub": "Tracked monthly",
+      "copyright": "© 2026 KiraciYonet. All rights reserved."
+    }
+  },
+  "tenantsList": {
+    "heading": "Tenants",
+    "addTenant": "Add tenant",
+    "stats": {
+      "total": "Total tenants",
+      "active": "Active tenants",
+      "inactive": "Inactive tenants",
+      "former": "Former tenants",
+      "expiring": "Expiring (30 days)"
+    },
+    "tabs": {
+      "active": "Active tenants",
+      "inactive": "Inactive tenants",
+      "former": "Former tenants"
+    },
+    "searchPh": "Search tenants...",
+    "table": {
+      "tenant": "Tenant",
+      "phone": "Phone",
+      "apartment": "Apartment",
+      "leaseEnd": "Lease end",
+      "rent": "Rent",
+      "email": "Email",
+      "referenceRent": "Reference rent",
+      "lastApartment": "Last apartment",
+      "lastRent": "Last rent"
+    },
+    "lease": {
+      "daysLate": "{{n}} days overdue",
+      "endsToday": "Ends today",
+      "daysLeft": "{{n}} days left",
+      "monthsLeft": "~{{n}} months left"
+    },
+    "empty": {
+      "search": "No results found.",
+      "active": "No active tenants.",
+      "inactive": "No inactive tenants.",
+      "former": "No former tenants.",
+      "error": "Error: {{msg}}"
+    },
+    "actions": {
+      "edit": "Edit",
+      "changeApartment": "Change apartment",
+      "moveToPast": "Move to former tenants",
+      "assignApartment": "Assign apartment",
+      "delete": "Delete"
+    },
+    "modal": {
+      "titleAdd": "Add new tenant",
+      "titleEdit": "Edit tenant",
+      "fullName": "Full name *",
+      "fullNamePh": "John Smith",
+      "email": "Email",
+      "emailPh": "example@mail.com",
+      "phone": "Phone",
+      "phonePh": "+1 555 123 4567",
+      "tcNo": "ID / SSN",
+      "tcNoPh": "Optional",
+      "apartment": "Apartment",
+      "apartmentPh": "Select apartment...",
+      "leaseStart": "Lease start",
+      "leaseEnd": "Lease end",
+      "monthlyRent": "Monthly rent",
+      "deposit": "Deposit",
+      "emergencyTitle": "Emergency contact",
+      "contactName": "Full name",
+      "contactNamePh": "Contact name",
+      "contactPhone": "Phone",
+      "contactPhonePh": "+1 555 000 0000",
+      "financialTitle": "Financial details",
+      "iban": "IBAN",
+      "ibanPh": "DE00 0000 0000 0000 0000 00",
+      "nebenkosten": "Monthly service charge",
+      "nebenkostenPh": "0.00",
+      "householdTitle": "Household",
+      "spouse": "Spouse",
+      "children": "Children",
+      "roommate": "Roommate",
+      "notes": "Notes",
+      "notesPh": "Optional notes..."
+    },
+    "assign": {
+      "titleMove": "Change apartment",
+      "titleAssign": "Assign apartment",
+      "subtitleMove": "{{name}} · Current: {{apt}}",
+      "subtitleAssign": "Pick a vacant apartment for {{name}}",
+      "noVacantTitle": "No vacant apartments",
+      "noVacantBody": "Add an apartment first, or move an existing tenant to former tenants.",
+      "close": "Close",
+      "moveWarning": "Pending rent records for the old apartment will be deleted. Paid records remain in history.",
+      "newApartment": "New apartment *",
+      "apartment": "Apartment *",
+      "currentSuffix": "(current)",
+      "rentHint": "Up to 120 months of pending rent records are auto-generated from the lease start.",
+      "moveBtn": "Move",
+      "assignBtn": "Assign"
+    },
+    "toasts": {
+      "notFound": "Tenant not found.",
+      "sessionExpired": "Session expired.",
+      "errorPrefix": "Error: {{msg}}",
+      "deleteError": "Delete error: {{msg}}",
+      "tenantAdded": "Tenant added.",
+      "tenantUpdated": "Tenant updated.",
+      "tenantDeleted": "Tenant deleted.",
+      "confirmDelete": "Delete {{name}}? This action cannot be undone.",
+      "confirmMoveToPast": "Move {{name}} to former tenants?",
+      "movedToPast": "Tenant moved to former tenants.",
+      "selectApartment": "Pick an apartment.",
+      "sameApartment": "New apartment is the same as the current one.",
+      "deleteOldPaymentsError": "Could not delete old payments: {{msg}}",
+      "updateError": "Update error: {{msg}}",
+      "movedToNew": "Tenant moved to the new apartment.",
+      "assigned": "Apartment assigned to tenant."
+    }
+  },
+  "tenantDetail": {
+    "notFound": "Tenant not found.",
+    "activeTenant": "Active tenant",
+    "formerTenant": "Former tenant",
+    "contractPdf": "Contract PDF",
+    "notSpecified": "Not specified",
+    "sections": {
+      "personal": "Personal details",
+      "emergency": "Emergency contact",
+      "household": "Household",
+      "notes": "Notes",
+      "financial": "Financial details",
+      "lease": "Rent & lease",
+      "pastLease": "Past lease",
+      "rentCalc": "Rent increase calculator",
+      "paymentSummary": "Payment summary",
+      "paymentHistory": "Payment history"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "tcNo": "ID / SSN",
+      "phone": "Phone",
+      "email": "Email",
+      "monthlyRent": "Monthly rent",
+      "deposit": "Deposit",
+      "iban": "IBAN",
+      "ibanPh": "DE...",
+      "nebenkosten": "Monthly service charge",
+      "nebenkostenPh": "0.00",
+      "leaseStart": "Start",
+      "leaseEnd": "End",
+      "spouse": "Spouse",
+      "children": "Children",
+      "roommate": "Roommate"
+    },
+    "financial": {
+      "monthlyRent": "Monthly rent",
+      "nebenkosten": "Service charge",
+      "total": "Total (rent + charge)",
+      "deposit": "Deposit",
+      "iban": "IBAN",
+      "ibanNotSet": "IBAN not provided"
+    },
+    "lease": {
+      "lastApartment": "Last apartment: {{apt}}",
+      "daysLate": "{{n}} days past",
+      "endsToday": "Ends today",
+      "daysLeft": "{{n}} days left",
+      "monthsLeft": "~{{n}} months left"
+    },
+    "notesEmpty": "No notes yet",
+    "rentCalc": {
+      "tufeLabel": "CPI rate (%)",
+      "tufePh": "e.g. 44.38",
+      "currentRent": "Current rent",
+      "increaseAmount": "Increase ({{pct}}%)",
+      "newRent": "New rent"
+    },
+    "paymentStats": {
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "success": "Success",
+      "paymentCount": "{{n}} payments",
+      "successRate": "collection rate"
+    },
+    "paymentHistory": {
+      "last12": "(Last 12 months)",
+      "loading": "Loading...",
+      "empty": "No payments on record yet",
+      "thDueDate": "Due date",
+      "thPaidDate": "Paid date",
+      "thAmount": "Amount",
+      "thStatus": "Status",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "pending": "Pending"
+    },
+    "toasts": {
+      "updated": "Tenant details updated.",
+      "errorPrefix": "Error: {{msg}}",
+      "pdfDownloaded": "Contract downloaded as PDF."
+    },
+    "contract": {
+      "brand": "KiraciYonet",
+      "title": "Rental Agreement",
+      "subtitle": "Residential Lease",
+      "contractNo": "Contract No.",
+      "issued": "Issued: {{date}}",
+      "parties": "Parties",
+      "landlord": "Landlord (Owner)",
+      "landlordName": "Property Owner",
+      "propertyLabel": "Property: {{apt}}",
+      "tenantLabel": "Tenant",
+      "tcLabel": "ID: {{no}}",
+      "telLabel": "Tel: {{no}}",
+      "emailLabel": "Email: {{email}}",
+      "propertySection": "Leased Property",
+      "residentialUse": "For residential use",
+      "duration": "Lease Term",
+      "start": "Start",
+      "end": "End",
+      "financial": "Financial Terms",
+      "monthlyRent": "Monthly Rent",
+      "monthlyDues": "Monthly Service Charge",
+      "totalMonthly": "Total Monthly Payment",
+      "deposit": "Deposit",
+      "ibanRowLabel": "Tenant IBAN",
+      "householdSection": "Household Members",
+      "spouseCount": "Spouse: {{n}}",
+      "childrenCount": "Children: {{n}}",
+      "roommateCount": "Roommates: {{n}}",
+      "signatureLandlord": "Landlord",
+      "signatureTenant": "Tenant",
+      "nameSignature": "Name / Signature",
+      "dateLine": "Date: ___/___/______",
+      "footer": "Generated by the KiraciYonet system.",
+      "fileName": "Rental_Agreement"
+    }
+  },
+  "rentPayments": {
+    "titleRent": "Rent Payments",
+    "titleAidat": "Service Charge Payments",
+    "subtitle": "Payment tracking and collection",
+    "tabs": {
+      "rent": "Rent",
+      "aidat": "Service charge"
+    },
+    "kpi": {
+      "collected": "Collected",
+      "thisMonth": "This month",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "overdueUnit": "payments",
+      "totalCollected": "Total collected"
+    },
+    "searchPh": "Search tenant or apartment...",
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "paid": "Paid"
+    },
+    "table": {
+      "tenant": "Tenant",
+      "apartment": "Apartment",
+      "amount": "Amount",
+      "status": "Status",
+      "remaining": "Remaining",
+      "action": "Action"
+    },
+    "status": {
+      "overdue": "Overdue",
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "dayLabel": {
+      "overdue": "{{n}} days overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "daysLeft": "{{n}} days left"
+    },
+    "actions": {
+      "markPaid": "Paid",
+      "reminderTitle": "Send reminder email",
+      "remind": "Remind",
+      "undo": "Undo"
+    },
+    "overdueHeader": "Overdue payments",
+    "overdueTable": {
+      "dueDate": "Due date",
+      "amount": "Amount",
+      "delay": "Delay"
+    },
+    "overdueDelay": "{{n}} days overdue",
+    "historyHeader": "Payment history ({{n}})",
+    "historyTable": {
+      "dueDate": "Due date",
+      "amount": "Amount",
+      "status": "Status",
+      "paidDate": "Paid date"
+    },
+    "historyStatus": {
+      "late": "Paid late",
+      "onTime": "On time"
+    },
+    "noHistory": "No payment history yet.",
+    "pastSection": "Former tenant payments",
+    "pastTable": {
+      "tenant": "Tenant",
+      "apartment": "Apartment",
+      "totalPaid": "Total paid",
+      "records": "Records"
+    },
+    "paymentCount": "{{n}} payments",
+    "empty": {
+      "filtered": "No payments match the filter.",
+      "none": "No payment records yet."
+    },
+    "errorPrefix": "Error: {{msg}}",
+    "toasts": {
+      "emailNotFound": "Tenant email address not found.",
+      "emailSent": "Email sent: {{email}}",
+      "emailFailed": "Email failed: {{msg}}",
+      "emailUnknownError": "Unknown error",
+      "paymentSaved": "Payment recorded.",
+      "paymentReverted": "Payment reverted.",
+      "errorPrefix": "Error: {{msg}}"
+    },
+    "emailSubject": {
+      "reminder": "Rent Reminder",
+      "overdue": "Overdue Payment",
+      "paid": "Payment Confirmed"
+    },
+    "landlordDefault": "Property Owner"
+  },
+  "paymentHistory": {
+    "stats": {
+      "totalCollected": "Total collected",
+      "thisMonth": "This month",
+      "totalCount": "Total payments",
+      "uniqueTenants": "Paying tenants"
+    },
+    "searchPh": "Search tenant or building...",
+    "allMonths": "All months",
+    "table": {
+      "tenant": "Tenant",
+      "apartment": "Apartment",
+      "dueDate": "Due date",
+      "paidDate": "Paid date",
+      "amount": "Amount",
+      "status": "Status"
+    },
+    "status": {
+      "late": "Paid late",
+      "onTime": "On time"
+    },
+    "loading": "Loading...",
+    "errorPrefix": "Error: {{msg}}",
+    "emptyFiltered": "No payments match the filter.",
+    "emptyNone": "No paid payments yet."
+  },
+  "distributionKeys": {
+    "equal": { "label": "Equal share", "short": "Equal" },
+    "area": { "label": "Living area (m²)", "short": "m²" },
+    "persons": { "label": "Number of persons", "short": "Persons" },
+    "units": { "label": "Number of units", "short": "Units" }
+  },
+  "expenses": {
+    "title": "Expense management",
+    "subtitle": "Operating costs & annual settlement",
+    "actions": {
+      "abrechnung": "Annual settlement",
+      "categories": "Categories",
+      "addExpense": "Add expense"
+    },
+    "kpi": {
+      "total": "Total",
+      "totalAll": "All",
+      "thisMonth": "This month",
+      "billable": "Billable",
+      "billableSub": "To tenant",
+      "nonBillable": "Non-billable",
+      "nonBillableSub": "Landlord"
+    },
+    "filters": {
+      "searchPh": "Search...",
+      "allBuildings": "All buildings",
+      "allApartments": "All apartments",
+      "allCategories": "All categories",
+      "allMonths": "All months"
+    },
+    "apartmentLabel": {
+      "withFloor": "Floor {{floor}} · Apt {{unit}}",
+      "noFloor": "Apt {{unit}}"
+    },
+    "list": {
+      "empty": "No expenses recorded yet.",
+      "emptyFiltered": "No results match the selected filters.",
+      "recordCount": "{{n}} records",
+      "aptCount": "{{n}} apartments",
+      "buildingScopeCount": "{{n}} building-wide",
+      "addMonthly": "Monthly expense",
+      "buildingScopeHeader": "Building-wide expenses",
+      "billableShort": "Billable",
+      "nonBillableShort": "Non-billable",
+      "emptyApt": "— vacant —",
+      "footerCounts": "{{records}} records · {{buildings}} buildings",
+      "footerTotal": "Total"
+    },
+    "sidebar": {
+      "title": "Expense breakdown",
+      "subtitle": "By category",
+      "empty": "No data"
+    },
+    "expenseModal": {
+      "titleEdit": "Edit expense",
+      "titleNew": "New expense",
+      "scope": "Scope",
+      "scopeBuilding": "Whole building",
+      "scopeApartment": "Single apartment",
+      "buildingLabel": "Building *",
+      "buildingPlaceholder": "Select building...",
+      "buildingOption": "{{name}} ({{count}} apts)",
+      "apartmentLabel": "Apartment *",
+      "apartmentPlaceholder": "Select apartment...",
+      "categoryLabel": "Category *",
+      "categoryPlaceholder": "Select category...",
+      "billableTag": " (billable)",
+      "distKeyLabel": "Distribution key",
+      "distKeyApartmentNote": "(apartment scope · informational)",
+      "amount": "Amount",
+      "amountPlaceholder": "0.00",
+      "sharePreview": "Will be split across {{count}} apartments by {{keyLabel}}",
+      "date": "Date",
+      "periodMonth": "Period month",
+      "periodYear": "Period year",
+      "billableToggle": "Billable to tenant",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "add": "Add",
+      "toasts": {
+        "required": "Category and amount are required.",
+        "selectBuilding": "Please select a building.",
+        "selectApartment": "Please select an apartment.",
+        "updated": "Expense updated.",
+        "added": "Expense added."
+      }
+    },
+    "categoryModal": {
+      "title": "Expense categories",
+      "tagBillable": "Billable",
+      "tagRecurring": "Monthly",
+      "formTitleEdit": "Edit category",
+      "formTitleNew": "New category",
+      "name": "Name",
+      "namePlaceholder": "e.g. Property tax",
+      "icon": "Icon",
+      "color": "Color",
+      "toggleBillable": "Billable",
+      "toggleRecurring": "Monthly",
+      "cancel": "Cancel",
+      "save": "Save",
+      "add": "Add",
+      "toasts": {
+        "required": "Category name is required.",
+        "updated": "Category updated.",
+        "added": "Category added.",
+        "deleted": "Category deleted."
+      }
+    },
+    "abrechnung": {
+      "title": "Annual expense settlement",
+      "subtitle": "Generate a period expense report",
+      "invoice": "Generate invoice",
+      "scope": "Scope",
+      "scopeBuilding": "Whole building",
+      "scopeApartment": "Single apartment",
+      "apartmentLabel": "Apartment",
+      "buildingLabel": "Building",
+      "selectPlaceholder": "Select...",
+      "aptEmptySuffix": " — Vacant",
+      "buildingOption": "{{name}} ({{count}} apts)",
+      "start": "Start",
+      "end": "End",
+      "info": {
+        "building": "Building",
+        "aptCount": "Apartments",
+        "period": "Period",
+        "periodMonths": "{{n}} months",
+        "apartment": "Apartment",
+        "tenant": "Tenant",
+        "noActiveTenant": "No active tenant"
+      },
+      "distByApt": {
+        "title": "Per-apartment breakdown",
+        "colApt": "Apartment",
+        "colTenant": "Tenant",
+        "colBillable": "Billable",
+        "colAidat": "Prepayments",
+        "colDiff": "Difference",
+        "emptyApt": "— vacant —",
+        "buildingTotal": "Building total"
+      },
+      "billable": {
+        "title": "Billable expenses",
+        "colItem": "Item",
+        "colKey": "Key",
+        "colKeyScope": "Key · Distribution",
+        "colTotal": "Total",
+        "colShare": "Your share",
+        "empty": "No billable expenses in this period",
+        "apartmentScope": "Apartment-specific",
+        "buildingScope": "Building-wide",
+        "totalShare": "Total share",
+        "totalBillable": "Total billable"
+      },
+      "aidat": {
+        "buildingTitle": "Building prepayments total",
+        "monthlyTitle": "Monthly prepayment",
+        "buildingSub": "{{apts}} apartments over {{months}} months",
+        "monthlySub": "{{months}} months × {{amount}}/mo"
+      },
+      "diff": {
+        "payTitle": "Additional payment due",
+        "paySub": "Tenant must pay the difference",
+        "refundTitle": "Refund to tenant",
+        "refundSub": "Tenant should be refunded",
+        "balancedTitle": "Balanced",
+        "balancedSub": "No difference — fully balanced"
+      },
+      "nonBillable": {
+        "title": "Non-billable expenses (reference)",
+        "total": "Total non-billable"
+      },
+      "empty": {
+        "building": "Select a building to generate the report.",
+        "apartment": "Select an apartment to generate the report."
+      },
+      "fallbackCategory": "Other"
+    },
+    "confirmDelete": {
+      "title": "Delete confirmation",
+      "subtitle": "This action cannot be undone",
+      "expenseMsg": "Are you sure you want to delete this expense? This action cannot be undone.",
+      "categoryMsg": "Are you sure you want to delete this category? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Yes, delete",
+      "deleted": "Expense deleted."
+    },
+    "unknownBuilding": "Unknown building"
+  },
+  "buildingExpenseSheet": {
+    "fallbackBuilding": "Building",
+    "subtitle": "Monthly building expense sheet · {{count}} apts",
+    "subtitleUnknownCount": "Monthly building expense sheet · — apts",
+    "period": "Period",
+    "loadingExisting": "Loading existing entries...",
+    "tableHeader": {
+      "category": "Category",
+      "amount": "Amount",
+      "distKey": "Distribution key",
+      "billable": "Billable"
+    },
+    "billableOn": "Billable",
+    "billableOff": "Non-billable",
+    "summary": "Summary",
+    "summaryLine": "{{count}} items · {{total}}",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "saveAll": "Save all",
+    "saveAllCount": "Save all ({{count}})",
+    "toasts": {
+      "saved": "{{saved}} entries saved.",
+      "savedWithDeletes": "{{saved}} entries saved, {{deleted}} deleted.",
+      "saveError": "Error while saving."
+    }
+  },
+  "invoice": {
+    "titlePrefix": "Service Charge",
+    "titleEm": "Statement",
+    "toolbar": {
+      "edit": "Edit",
+      "print": "Print / Save as PDF",
+      "close": "Close"
+    },
+    "top": {
+      "period": "Billing Period",
+      "no": "No.",
+      "invoicePrefix": "SCS"
+    },
+    "parties": {
+      "tenant": "Tenant",
+      "noActiveTenant": "No active tenant",
+      "buildingTenants": "{{apts}} units / {{active}} active tenants"
+    },
+    "propertyApt": {
+      "title": "Rental Property",
+      "area": "Living Area",
+      "persons": "Occupants"
+    },
+    "propertyBld": {
+      "building": "Building",
+      "aptCount": "Number of Units",
+      "duration": "Billing Period",
+      "months": "{{n}} Months"
+    },
+    "apartmentLabel": {
+      "withFloor": "Floor {{floor}} · Unit {{unit}}",
+      "noFloor": "Unit {{unit}}"
+    },
+    "tableApt": {
+      "item": "Item",
+      "key": "Allocation Key",
+      "total": "Total",
+      "share": "Your Share",
+      "empty": "No billable expenses found in this period.",
+      "apartmentScope": "Unit-specific"
+    },
+    "totalsApt": {
+      "totalBillable": "Total Service Charges",
+      "deductPrepay": "Less prepayments made",
+      "resultPay": "Additional Payment Due",
+      "resultRefund": "Credit (in tenant's favour)",
+      "resultBalanced": "Balanced"
+    },
+    "section": {
+      "categoryTotalsPrefix": "Category",
+      "categoryTotalsEm": "Totals",
+      "distByAptPrefix": "Per-Unit",
+      "distByAptEm": "Allocation"
+    },
+    "tableBld": {
+      "item": "Item",
+      "key": "Allocation Key",
+      "total": "Total",
+      "empty": "No billable expenses found in this period.",
+      "apt": "Unit",
+      "tenant": "Tenant",
+      "billable": "Billable",
+      "aidat": "Prepayment",
+      "diff": "Difference",
+      "emptyApt": "— vacant —"
+    },
+    "totalsBld": {
+      "totalBillable": "Building Total Billable",
+      "deductPrepay": "Less prepayments collected",
+      "resultPay": "Outstanding (in landlord's favour)",
+      "resultRefund": "Surplus (in tenants' favour)",
+      "resultBalanced": "Balanced"
+    },
+    "footer": {
+      "explanationLabel": "Note:",
+      "explanation": "This statement has been prepared in accordance with the allocation keys agreed with the tenant. The expenses listed correspond to the operating costs actually incurred during the billing period.",
+      "payNoticePre": "Please remit the ",
+      "payNoticeStrong": "additional payment of {{amount}}",
+      "payNoticePost": " within 30 days of receipt of this statement.",
+      "refundNoticePre": "The credit of ",
+      "refundNoticeStrong": "{{amount}}",
+      "refundNoticePost": " will be refunded to you within 30 days or offset against your next rent payment.",
+      "balancedNotice": "Your prepayments fully cover the service charges.",
+      "objectionNotice": "Any objections to this statement must be submitted in writing within 12 months of receipt. Supporting documents are available for inspection by appointment.",
+      "issueDate": "Issued: {{date}} · KiraciYonet"
+    }
+  }
+}

@@ -1,0 +1,1165 @@
+{
+  "app": {
+    "name": "KiraciYonet",
+    "tagline": "Immobilienverwaltung"
+  },
+  "common": {
+    "save": "Speichern",
+    "saving": "Wird gespeichert...",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "deleting": "Wird gelöscht...",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "search": "Suchen",
+    "filter": "Filter",
+    "all": "Alle",
+    "none": "Keine",
+    "loading": "Wird geladen...",
+    "empty": "Keine Einträge",
+    "yes": "Ja",
+    "no": "Nein",
+    "required": "Erforderlich",
+    "optional": "Optional",
+    "total": "Gesamt",
+    "subtotal": "Zwischensumme",
+    "amount": "Betrag",
+    "date": "Datum",
+    "description": "Beschreibung",
+    "status": "Status",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "actions": "Aktionen",
+    "select": "Auswählen",
+    "selectPlaceholder": "Bitte wählen",
+    "download": "Herunterladen",
+    "print": "Drucken",
+    "export": "Exportieren",
+    "success": "Erfolgreich",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Info",
+    "more": "Mehr",
+    "less": "Weniger",
+    "viewAll": "Alle anzeigen",
+    "reset": "Zurücksetzen",
+    "apply": "Anwenden",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "settings": "Einstellungen",
+    "help": "Hilfe",
+    "support": "Support",
+    "language": "Sprache"
+  },
+  "sidebar": {
+    "sectionGeneral": "ALLGEMEIN",
+    "sectionManagement": "VERWALTUNG",
+    "overview": "Übersicht",
+    "properties": "Immobilien",
+    "tenants": "Mieter",
+    "payments": "Zahlungen",
+    "expenses": "Nebenkosten",
+    "accounting": "Buchhaltung",
+    "documents": "Dokumente",
+    "helpSupport": "Hilfe & Support",
+    "online": "Online",
+    "notLoggedIn": "Nicht angemeldet",
+    "user": "Benutzer",
+    "logoutTitle": "Abmelden",
+    "logoutSuccess": "Erfolgreich abgemeldet.",
+    "logoutError": "Abmeldefehler: {{msg}}"
+  },
+  "languages": {
+    "tr": "Türkisch",
+    "en": "Englisch",
+    "de": "Deutsch",
+    "switcherLabel": "Sprache",
+    "switcherTitle": "Oberflächensprache ändern"
+  },
+  "propertyTypes": {
+    "daire": "Wohnung",
+    "mustakil": "Einfamilienhaus",
+    "villa": "Villa",
+    "dukkan": "Ladenlokal",
+    "ofis": "Büro",
+    "arsa": "Grundstück",
+    "diger": "Sonstiges"
+  },
+  "buildingTypes": {
+    "apartman": "Mehrfamilienhaus",
+    "mustakil": "Einfamilienhaus",
+    "villa": "Villa",
+    "dukkan": "Ladenlokal",
+    "ofis": "Büro",
+    "diger": "Sonstiges"
+  },
+  "properties": {
+    "title": "Meine Immobilien",
+    "searchPlaceholder": "Nach Gebäude / Stadt / Bezirk / Adresse suchen...",
+    "addProperty": "Immobilie hinzufügen",
+    "addApartment": "Einheit hinzufügen",
+    "stats": {
+      "totalBuildings": "Gebäude gesamt",
+      "totalUnits": "Einheiten gesamt",
+      "occupied": "Vermietet",
+      "vacant": "Frei",
+      "monthlyIncome": "Monatseinnahmen"
+    },
+    "table": {
+      "building": "Gebäude",
+      "address": "Adresse",
+      "units": "Einheiten",
+      "occupied": "Vermietet",
+      "vacant": "Frei",
+      "monthlyIncome": "Monatseinnahmen",
+      "singleUnit": "1 Einheit",
+      "yearsOld": "{{n}} Jahre alt"
+    },
+    "empty": {
+      "none": "Noch keine Gebäude. Legen Sie mit \"+ Immobilie hinzufügen\" los.",
+      "search": "Keine Gebäude zu Ihrer Suche gefunden."
+    },
+    "errorPrefix": "Fehler",
+    "toasts": {
+      "sessionExpired": "Ihre Sitzung ist abgelaufen.",
+      "buildingRequired": "Bitte Gebäude auswählen.",
+      "apartmentBuildingsRequired": "Kein Mehrfamilienhaus angelegt. Bitte zuerst eins erstellen.",
+      "unitError": "Gebäude angelegt, aber Einheit konnte nicht gespeichert werden: {{msg}}",
+      "errorPrefix": "Fehler: {{msg}}",
+      "buildingAdded": "Gebäude wurde angelegt.",
+      "propertyAdded": "Immobilie wurde angelegt.",
+      "apartmentAdded": "Einheit wurde angelegt."
+    },
+    "modal": {
+      "addBuildingTitle": "Neue Immobilie anlegen",
+      "addApartmentTitle": "Neue Einheit anlegen",
+      "typeLabel": "Immobilientyp *",
+      "buildingNameMulti": "Gebäudename *",
+      "buildingNameSingle": "Objektname *",
+      "buildingNameMultiPh": "Cömertkent Anlage Block H1",
+      "buildingNameSinglePh": "Villa mit Meerblick",
+      "city": "Stadt",
+      "cityPh": "Istanbul",
+      "district": "Bezirk",
+      "districtPh": "Kadıköy",
+      "address": "Adresse",
+      "addressPh": "Viertel, Straße, Nr.",
+      "buildingAge": "Baujahr-Alter",
+      "constructionYear": "Baujahr",
+      "notes": "Notizen",
+      "optional": "Optional",
+      "unitInfo": "Einheitendetails",
+      "roomCount": "Zimmer",
+      "floor": "Etage",
+      "deposit": "Kaution",
+      "grossArea": "Brutto m²",
+      "netArea": "Netto m²",
+      "furnished": "Möbliert",
+      "building": "Gebäude *",
+      "unitNo": "Einheit-Nr. *",
+      "propertyType": "Immobilientyp",
+      "notesPh": "Optionale Notizen...",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert..."
+    }
+  },
+  "buildingDetail": {
+    "backToProperties": "Immobilien",
+    "editBuilding": "Bearbeiten",
+    "deleteBuilding": "Löschen",
+    "addressNotSet": "Keine Adresse hinterlegt",
+    "stats": {
+      "unit": "Einheit",
+      "apartment": "Einheiten",
+      "occupied": "Vermietet",
+      "vacant": "Frei",
+      "monthly": "Monatlich"
+    },
+    "addApartment": "Einheit hinzufügen",
+    "table": {
+      "unit": "Einheit",
+      "apartment": "Einheit",
+      "tenant": "Mieter",
+      "nextPayment": "Nächste Zahlung",
+      "leaseEnd": "Mietende",
+      "occupied": "Vermietet",
+      "vacant": "Frei",
+      "noPaymentRecord": "Keine Zahlungen erfasst",
+      "addLease": "Mietvertrag hinzufügen",
+      "addTenant": "Mieter hinzufügen"
+    },
+    "empty": {
+      "single": "Für diese Immobilie ist keine Einheit hinterlegt.",
+      "multi": "Noch keine Einheiten in diesem Gebäude. Mit \"+ Einheit hinzufügen\" anlegen."
+    },
+    "bldModal": {
+      "title": "Gebäude bearbeiten",
+      "name": "Gebäudename *",
+      "namePh": "Cömertkent Anlage Block H1",
+      "city": "Stadt",
+      "cityPh": "Istanbul",
+      "district": "Bezirk",
+      "districtPh": "Kadıköy",
+      "address": "Adresse",
+      "addressPh": "Viertel, Straße, Nr.",
+      "buildingAge": "Baujahr-Alter",
+      "notes": "Notizen",
+      "notesPh": "Optional"
+    },
+    "aptModal": {
+      "titleAdd": "Neue Einheit anlegen",
+      "titleEdit": "Einheit bearbeiten",
+      "building": "Gebäude *",
+      "unitNo": "Einheit-Nr. *",
+      "propertyType": "Immobilientyp",
+      "roomCount": "Zimmer",
+      "floor": "Etage",
+      "deposit": "Kaution",
+      "grossArea": "Brutto m²",
+      "netArea": "Netto m²",
+      "furnished": "Möbliert",
+      "notes": "Notizen",
+      "notesPh": "Optionale Notizen..."
+    },
+    "tenantModal": {
+      "title": "Mieter hinzufügen",
+      "modeNew": "Neuer Mieter",
+      "modeExisting": "Inaktiven Mieter zuordnen",
+      "noInactiveTitle": "Keine inaktiven Mieter",
+      "noInactiveSub": "Über den Tab \"Neuer Mieter\" anlegen.",
+      "createNewCta": "Neuen Mieter anlegen",
+      "selectInactive": "Inaktiven Mieter wählen *",
+      "selectInactivePh": "Inaktiven Mieter wählen...",
+      "fullName": "Vor- und Nachname *",
+      "fullNamePh": "Ahmet Yılmaz",
+      "tcNo": "Ausweisnr.",
+      "tcNoPh": "12345678901",
+      "phone": "Telefon",
+      "phonePh": "0532 xxx xx xx",
+      "email": "E-Mail",
+      "emailPh": "name@email.com",
+      "leaseStart": "Mietbeginn",
+      "leaseEnd": "Mietende",
+      "monthlyRent": "Monatsmiete",
+      "deposit": "Kaution",
+      "submitNew": "Mieter hinzufügen",
+      "submitAssign": "Zuordnen"
+    },
+    "confirm": {
+      "deleteMulti": "Dieses Gebäude und seine {{n}} Einheiten (inkl. Mieter und Zahlungen) werden gelöscht. Fortfahren?",
+      "deleteSingle": "Gebäude löschen?",
+      "deleteApartment": "{{name}} löschen?"
+    },
+    "toasts": {
+      "buildingNotFound": "Gebäude nicht gefunden.",
+      "buildingUpdated": "Gebäude aktualisiert.",
+      "buildingDeleted": "Gebäude gelöscht.",
+      "apartmentNotFound": "Einheit nicht gefunden.",
+      "apartmentUpdated": "Einheit aktualisiert.",
+      "apartmentAdded": "Einheit angelegt.",
+      "apartmentDeleted": "Einheit gelöscht.",
+      "selectInactiveRequired": "Bitte inaktiven Mieter wählen.",
+      "tenantAssigned": "Mieter zugeordnet.",
+      "tenantAdded": "Mieter angelegt.",
+      "sessionExpired": "Ihre Sitzung ist abgelaufen.",
+      "buildingRequired": "Bitte Gebäude auswählen.",
+      "errorPrefix": "Fehler: {{msg}}"
+    }
+  },
+  "propertyDetail": {
+    "back": "Zurück zu Immobilien",
+    "tabs": {
+      "details": "Objektdetails",
+      "payments": "Zahlungsverlauf",
+      "lease": "Mietvertrag",
+      "documents": "Dokumente",
+      "notes": "Notizen"
+    },
+    "summary": {
+      "title": "Objektübersicht",
+      "edit": "Bearbeiten",
+      "delete": "Objekt löschen"
+    },
+    "fields": {
+      "building": "Gebäude",
+      "apartment": "Einheit",
+      "location": "Lage",
+      "propertyType": "Objektart",
+      "roomCount": "Zimmer",
+      "furnished": "Möbliert",
+      "m2Net": "m² (netto)",
+      "m2Gross": "m² (brutto)",
+      "buildingAge": "Baujahr (Alter)",
+      "address": "Adresse",
+      "floor": "Geschoss",
+      "deposit": "Kaution"
+    },
+    "basics": "Grunddaten",
+    "edit": {
+      "buildingLabel": "Gebäude *",
+      "buildingPh": "Gebäude wählen",
+      "unitNo": "Einheitsnummer",
+      "propertyType": "Objektart",
+      "roomCount": "Zimmer",
+      "floor": "Geschoss",
+      "grossArea": "Brutto m²",
+      "netArea": "Netto m²",
+      "deposit": "Kaution (₺)",
+      "furnished": "Möbliert",
+      "buildingScopeNote": "Gebäudedaten (Stadt, Bezirk, Adresse, Alter) werden auf Gebäudeebene gepflegt."
+    },
+    "tenantInfo": {
+      "fullName": "Name",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "tcNo": "Ausweisnummer",
+      "leaseStart": "Mietbeginn",
+      "leaseEnd": "Mietende",
+      "monthlyRent": "Monatsmiete",
+      "deposit": "Kaution"
+    },
+    "payments": {
+      "empty": "Keine Zahlungseinträge gefunden.",
+      "unknownTenant": "Unbekannt",
+      "currentTenant": "Aktueller Mieter",
+      "pastTenant": "Ehemaliger Mieter",
+      "paymentCount": "{{n}} Zahlungen",
+      "thDueDate": "Fälligkeit",
+      "thAmount": "Betrag",
+      "thStatus": "Status",
+      "thPaidDate": "Bezahlt am",
+      "paid": "Bezahlt",
+      "overdue": "Überfällig",
+      "pending": "Offen"
+    },
+    "lease": {
+      "currentTitle": "Aktueller Mieter",
+      "activeTenant": "Aktiver Mieter",
+      "endLease": "Mietverhältnis beenden",
+      "viewDetail": "Details ansehen",
+      "noCurrent": "Für dieses Objekt ist kein aktueller Mieter hinterlegt.",
+      "pastTitle": "Ehemalige Mieter",
+      "noPast": "Keine ehemaligen Mieter gefunden.",
+      "formerTenant": "Ehemaliger Mieter",
+      "rentSuffix": "Mon."
+    },
+    "documents": {
+      "title": "Dokumente",
+      "uploading": "Wird hochgeladen...",
+      "upload": "Dokument hochladen",
+      "empty": "Noch keine Dokumente hochgeladen.",
+      "emptyHint": "Sie können PDF-, Word- oder Bilddateien hochladen.",
+      "thName": "Dateiname",
+      "thSize": "Größe",
+      "thDate": "Datum"
+    },
+    "notes": {
+      "propertyNote": "Objektnotiz",
+      "tenantNote": "Mieternotiz — {{name}}",
+      "edit": "Bearbeiten",
+      "add": "Notiz hinzufügen",
+      "propertyPh": "Notiz zum Objekt verfassen...",
+      "tenantPh": "Notiz zum Mieter verfassen...",
+      "empty": "Noch keine Notiz vorhanden."
+    },
+    "endLeaseModal": {
+      "title": "Mietverhältnis beenden",
+      "body": "{{name}} wird aus dieser Einheit ausgetragen und in die Liste der ehemaligen Mieter verschoben. Möchten Sie den Vorgang bestätigen?",
+      "cancel": "Abbrechen",
+      "processing": "Wird verarbeitet...",
+      "confirm": "Ja, beenden"
+    },
+    "deletePropertyModal": {
+      "title": "Objekt löschen",
+      "body": "{{label}} wird endgültig gelöscht. Alle zugehörigen Daten (Zahlungen, Dokumente) werden ebenfalls entfernt. Möchten Sie den Vorgang bestätigen?",
+      "cancel": "Abbrechen",
+      "deleting": "Wird gelöscht...",
+      "confirm": "Ja, löschen"
+    },
+    "toasts": {
+      "propertyNotFound": "Objekt nicht gefunden.",
+      "buildingRequired": "Bitte Gebäude auswählen.",
+      "propertyUpdated": "Objektdaten aktualisiert.",
+      "propertyDeleted": "Objekt gelöscht.",
+      "noteSaved": "Notiz gespeichert.",
+      "leaseEnded": "Mietverhältnis von {{name}} beendet.",
+      "documentUploaded": "Dokument hochgeladen.",
+      "documentDeleted": "Dokument gelöscht.",
+      "uploadError": "Upload-Fehler: {{msg}}",
+      "errorPrefix": "Fehler: {{msg}}",
+      "confirmDeleteDoc": "{{name}} löschen?"
+    }
+  },
+  "dashboard": {
+    "greet": {
+      "night": "Gute Nacht",
+      "morning": "Guten Morgen",
+      "day": "Guten Tag",
+      "evening": "Guten Abend"
+    },
+    "addTenant": "Mieter hinzufügen",
+    "addProperty": "Immobilie hinzufügen",
+    "addPayment": "Zahlung erfassen",
+    "kpi": {
+      "thisMonth": "Diesen Monat",
+      "collectedTitle": "Eingegangene Zahlungen",
+      "overdueTitle": "Überfällige Zahlungen",
+      "upcomingTitle": "Kommende Zahlungen",
+      "noPayment": "Keine Zahlungen",
+      "noOverdue": "Keine Rückstände",
+      "noUpcoming": "Nichts offen",
+      "fromProperties": "aus {{count}} Immobilie",
+      "fromProperties_plural": "aus {{count}} Immobilien"
+    },
+    "overdueList": {
+      "title": "Überfällige Mieten",
+      "all": "Alle anzeigen",
+      "empty": "Keine überfälligen Zahlungen.",
+      "daysLate": "{{count}} Tag überfällig",
+      "daysLate_plural": "{{count}} Tage überfällig"
+    },
+    "trend": {
+      "title": "Einnahmenverlauf",
+      "period": "12 Monate"
+    },
+    "recent": {
+      "title": "Neueste Aktivität",
+      "empty": "Noch keine Zahlungen.",
+      "all": "Alle anzeigen"
+    },
+    "status": {
+      "title": "Immobilienstatus",
+      "occupied": "Vermietet",
+      "vacant": "Frei",
+      "summary": "{{b}} Gebäude · {{a}} Einheit",
+      "summary_plural": "{{b}} Gebäude · {{a}} Einheiten",
+      "occupancy": "{{pct}}% Belegung"
+    },
+    "time": {
+      "justNow": "Gerade eben",
+      "minutes": "{{n}} Min.",
+      "hours": "{{n}} Std.",
+      "yesterday": "Gestern",
+      "days": "{{n}} T."
+    }
+  },
+  "auth": {
+    "loginTitle": "Willkommen zurück",
+    "loginSubtitle": "Melden Sie sich in Ihrem Konto an",
+    "registerTitle": "Konto erstellen",
+    "registerSubtitle": "Jetzt loslegen",
+    "forgotTitle": "Passwort zurücksetzen",
+    "forgotSubtitle": "Wir senden Ihnen einen Zurücksetzungslink per E-Mail",
+    "email": "E-Mail",
+    "emailPlaceholder": "name@email.com",
+    "password": "Passwort",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "Mindestens 6 Zeichen",
+    "passwordRepeat": "Passwort wiederholen",
+    "passwordRepeatPlaceholder": "Passwort erneut eingeben",
+    "forgotLink": "Passwort vergessen?",
+    "loginButton": "Anmelden",
+    "loginLoading": "Anmeldung läuft...",
+    "registerButton": "Registrieren",
+    "registerLoading": "Konto wird erstellt...",
+    "forgotButton": "Zurücksetzungslink senden",
+    "forgotLoading": "Wird gesendet...",
+    "backToLogin": "← Zurück zur Anmeldung",
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Haben Sie bereits ein Konto?",
+    "signUpAction": "Registrieren",
+    "signInAction": "Anmelden",
+    "loginSuccess": "Erfolgreich angemeldet!",
+    "registerSuccess": "Konto erstellt. Willkommen!",
+    "registerVerify": "Konto erstellt. Bitte bestätigen Sie Ihre E-Mail-Adresse.",
+    "resetSent": "Ein Zurücksetzungslink wurde an Ihre E-Mail gesendet.",
+    "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+    "error": {
+      "invalidCredentials": "E-Mail oder Passwort falsch.",
+      "emailNotConfirmed": "Ihre E-Mail-Adresse ist noch nicht bestätigt.",
+      "userExists": "Diese E-Mail-Adresse ist bereits registriert.",
+      "passwordShort": "Das Passwort muss mindestens 6 Zeichen lang sein.",
+      "rateLimited": "Aus Sicherheitsgründen können Sie dies nur alle 60 Sekunden anfordern."
+    },
+    "marketing": {
+      "line1": "Der smarteste Weg",
+      "line2": "Ihre Immobilien",
+      "line3": "zu verwalten.",
+      "description": "Mietverfolgung, Kostenverwaltung und Finanzberichte — alles an einem Ort.",
+      "statPropertiesLabel": "1.200+ Immobilien",
+      "statPropertiesSub": "Verwaltet",
+      "statCollectionLabel": "98% Einzugsrate",
+      "statCollectionSub": "Quote",
+      "statVolumeLabel": "2,4 Mio. €+",
+      "statVolumeSub": "Monatlich erfasst",
+      "copyright": "© 2026 KiraciYonet. Alle Rechte vorbehalten."
+    }
+  },
+  "tenantsList": {
+    "heading": "Mieter",
+    "addTenant": "Mieter hinzufügen",
+    "stats": {
+      "total": "Mieter gesamt",
+      "active": "Aktive Mieter",
+      "inactive": "Inaktive Mieter",
+      "former": "Ehemalige Mieter",
+      "expiring": "Auslaufend (30 Tage)"
+    },
+    "tabs": {
+      "active": "Aktive Mieter",
+      "inactive": "Inaktive Mieter",
+      "former": "Ehemalige Mieter"
+    },
+    "searchPh": "Mieter suchen...",
+    "table": {
+      "tenant": "Mieter",
+      "phone": "Telefon",
+      "apartment": "Wohnung",
+      "leaseEnd": "Mietende",
+      "rent": "Miete",
+      "email": "E-Mail",
+      "referenceRent": "Referenzmiete",
+      "lastApartment": "Letzte Wohnung",
+      "lastRent": "Letzte Miete"
+    },
+    "lease": {
+      "daysLate": "{{n}} Tage überfällig",
+      "endsToday": "Endet heute",
+      "daysLeft": "Noch {{n}} Tage",
+      "monthsLeft": "Noch ~{{n}} Monate"
+    },
+    "empty": {
+      "search": "Keine Treffer gefunden.",
+      "active": "Keine aktiven Mieter.",
+      "inactive": "Keine inaktiven Mieter.",
+      "former": "Keine ehemaligen Mieter.",
+      "error": "Fehler: {{msg}}"
+    },
+    "actions": {
+      "edit": "Bearbeiten",
+      "changeApartment": "Wohnung wechseln",
+      "moveToPast": "Zu ehemaligen Mietern verschieben",
+      "assignApartment": "Wohnung zuweisen",
+      "delete": "Löschen"
+    },
+    "modal": {
+      "titleAdd": "Neuen Mieter anlegen",
+      "titleEdit": "Mieter bearbeiten",
+      "fullName": "Vollständiger Name *",
+      "fullNamePh": "Max Mustermann",
+      "email": "E-Mail",
+      "emailPh": "beispiel@mail.de",
+      "phone": "Telefon",
+      "phonePh": "+49 170 1234567",
+      "tcNo": "Ausweisnummer",
+      "tcNoPh": "Optional",
+      "apartment": "Wohnung",
+      "apartmentPh": "Wohnung wählen...",
+      "leaseStart": "Mietbeginn",
+      "leaseEnd": "Mietende",
+      "monthlyRent": "Monatsmiete",
+      "deposit": "Kaution",
+      "emergencyTitle": "Notfallkontakt",
+      "contactName": "Vollständiger Name",
+      "contactNamePh": "Name der Kontaktperson",
+      "contactPhone": "Telefon",
+      "contactPhonePh": "+49 170 0000000",
+      "financialTitle": "Finanzdaten",
+      "iban": "IBAN",
+      "ibanPh": "DE00 0000 0000 0000 0000 00",
+      "nebenkosten": "Nebenkostenvorauszahlung",
+      "nebenkostenPh": "0,00",
+      "householdTitle": "Haushalt",
+      "spouse": "Ehepartner",
+      "children": "Kinder",
+      "roommate": "Mitbewohner",
+      "notes": "Notizen",
+      "notesPh": "Optionale Notizen..."
+    },
+    "assign": {
+      "titleMove": "Wohnung wechseln",
+      "titleAssign": "Wohnung zuweisen",
+      "subtitleMove": "{{name}} · Aktuell: {{apt}}",
+      "subtitleAssign": "Wählen Sie eine freie Wohnung für {{name}}",
+      "noVacantTitle": "Keine freien Wohnungen",
+      "noVacantBody": "Legen Sie zuerst eine Wohnung an oder verschieben Sie einen bestehenden Mieter zu ehemaligen Mietern.",
+      "close": "Schließen",
+      "moveWarning": "Ausstehende Mietzahlungen der alten Wohnung werden gelöscht. Bezahlte Einträge bleiben im Verlauf erhalten.",
+      "newApartment": "Neue Wohnung *",
+      "apartment": "Wohnung *",
+      "currentSuffix": "(aktuell)",
+      "rentHint": "Ab dem Mietbeginn werden bis zu 120 Monate ausstehender Mietzahlungen automatisch erzeugt.",
+      "moveBtn": "Verschieben",
+      "assignBtn": "Zuweisen"
+    },
+    "toasts": {
+      "notFound": "Mieter nicht gefunden.",
+      "sessionExpired": "Sitzung abgelaufen.",
+      "errorPrefix": "Fehler: {{msg}}",
+      "deleteError": "Löschfehler: {{msg}}",
+      "tenantAdded": "Mieter hinzugefügt.",
+      "tenantUpdated": "Mieter aktualisiert.",
+      "tenantDeleted": "Mieter gelöscht.",
+      "confirmDelete": "{{name}} löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirmMoveToPast": "{{name}} zu ehemaligen Mietern verschieben?",
+      "movedToPast": "Mieter zu ehemaligen Mietern verschoben.",
+      "selectApartment": "Bitte Wohnung wählen.",
+      "sameApartment": "Die neue Wohnung entspricht der aktuellen.",
+      "deleteOldPaymentsError": "Alte Zahlungen konnten nicht gelöscht werden: {{msg}}",
+      "updateError": "Fehler beim Aktualisieren: {{msg}}",
+      "movedToNew": "Mieter in die neue Wohnung verschoben.",
+      "assigned": "Wohnung dem Mieter zugewiesen."
+    }
+  },
+  "tenantDetail": {
+    "notFound": "Mieter nicht gefunden.",
+    "activeTenant": "Aktiver Mieter",
+    "formerTenant": "Ehemaliger Mieter",
+    "contractPdf": "Vertrag als PDF",
+    "notSpecified": "Nicht angegeben",
+    "sections": {
+      "personal": "Persönliche Daten",
+      "emergency": "Notfallkontakt",
+      "household": "Haushalt",
+      "notes": "Notizen",
+      "financial": "Finanzdaten",
+      "lease": "Miete & Vertrag",
+      "pastLease": "Früherer Vertrag",
+      "rentCalc": "Mieterhöhung berechnen",
+      "paymentSummary": "Zahlungsübersicht",
+      "paymentHistory": "Zahlungsverlauf"
+    },
+    "fields": {
+      "fullName": "Vollständiger Name",
+      "tcNo": "Ausweisnummer",
+      "phone": "Telefon",
+      "email": "E-Mail",
+      "monthlyRent": "Monatsmiete",
+      "deposit": "Kaution",
+      "iban": "IBAN",
+      "ibanPh": "DE...",
+      "nebenkosten": "Nebenkostenvorauszahlung",
+      "nebenkostenPh": "0,00",
+      "leaseStart": "Beginn",
+      "leaseEnd": "Ende",
+      "spouse": "Ehepartner",
+      "children": "Kinder",
+      "roommate": "Mitbewohner"
+    },
+    "financial": {
+      "monthlyRent": "Monatsmiete",
+      "nebenkosten": "Nebenkosten",
+      "total": "Gesamt (Miete + Nebenkosten)",
+      "deposit": "Kaution",
+      "iban": "IBAN",
+      "ibanNotSet": "IBAN nicht hinterlegt"
+    },
+    "lease": {
+      "lastApartment": "Letzte Wohnung: {{apt}}",
+      "daysLate": "{{n}} Tage überfällig",
+      "endsToday": "Endet heute",
+      "daysLeft": "Noch {{n}} Tage",
+      "monthsLeft": "Noch ~{{n}} Monate"
+    },
+    "notesEmpty": "Noch keine Notiz",
+    "rentCalc": {
+      "tufeLabel": "VPI-Rate (%)",
+      "tufePh": "z. B. 44,38",
+      "currentRent": "Aktuelle Miete",
+      "increaseAmount": "Erhöhung ({{pct}} %)",
+      "newRent": "Neue Miete"
+    },
+    "paymentStats": {
+      "paid": "Bezahlt",
+      "overdue": "Überfällig",
+      "success": "Quote",
+      "paymentCount": "{{n}} Zahlungen",
+      "successRate": "Zahlungsquote"
+    },
+    "paymentHistory": {
+      "last12": "(Letzte 12 Monate)",
+      "loading": "Wird geladen...",
+      "empty": "Noch keine Zahlungseinträge",
+      "thDueDate": "Fälligkeit",
+      "thPaidDate": "Zahlungsdatum",
+      "thAmount": "Betrag",
+      "thStatus": "Status",
+      "paid": "Bezahlt",
+      "overdue": "Überfällig",
+      "pending": "Ausstehend"
+    },
+    "toasts": {
+      "updated": "Mieterdaten aktualisiert.",
+      "errorPrefix": "Fehler: {{msg}}",
+      "pdfDownloaded": "Vertrag als PDF heruntergeladen."
+    },
+    "contract": {
+      "brand": "KiraciYonet",
+      "title": "Mietvertrag",
+      "subtitle": "Wohnraummietvertrag",
+      "contractNo": "Vertragsnr.",
+      "issued": "Erstellt am: {{date}}",
+      "parties": "Vertragsparteien",
+      "landlord": "Vermieter (Eigentümer)",
+      "landlordName": "Eigentümer",
+      "propertyLabel": "Objekt: {{apt}}",
+      "tenantLabel": "Mieter",
+      "tcLabel": "Ausweis: {{no}}",
+      "telLabel": "Tel.: {{no}}",
+      "emailLabel": "E-Mail: {{email}}",
+      "propertySection": "Mietobjekt",
+      "residentialUse": "Zu Wohnzwecken",
+      "duration": "Mietdauer",
+      "start": "Beginn",
+      "end": "Ende",
+      "financial": "Finanzielle Bedingungen",
+      "monthlyRent": "Monatsmiete",
+      "monthlyDues": "Nebenkostenvorauszahlung",
+      "totalMonthly": "Gesamte Monatszahlung",
+      "deposit": "Kaution",
+      "ibanRowLabel": "Mieter-IBAN",
+      "householdSection": "Im Haushalt lebende Personen",
+      "spouseCount": "Ehepartner: {{n}}",
+      "childrenCount": "Kinder: {{n}}",
+      "roommateCount": "Mitbewohner: {{n}}",
+      "signatureLandlord": "Vermieter",
+      "signatureTenant": "Mieter",
+      "nameSignature": "Name / Unterschrift",
+      "dateLine": "Datum: ___/___/______",
+      "footer": "Erstellt durch das KiraciYonet-System.",
+      "fileName": "Mietvertrag"
+    }
+  },
+  "rentPayments": {
+    "titleRent": "Mietzahlungen",
+    "titleAidat": "Nebenkosten-Zahlungen",
+    "subtitle": "Zahlungs- und Inkassoverwaltung",
+    "tabs": {
+      "rent": "Miete",
+      "aidat": "Nebenkosten"
+    },
+    "kpi": {
+      "collected": "Eingang",
+      "thisMonth": "Dieser Monat",
+      "pending": "Offen",
+      "overdue": "Überfällig",
+      "overdueUnit": "Zahlungen",
+      "totalCollected": "Gesamteingang"
+    },
+    "searchPh": "Mieter oder Wohnung suchen...",
+    "filters": {
+      "all": "Alle",
+      "pending": "Offen",
+      "overdue": "Überfällig",
+      "paid": "Bezahlt"
+    },
+    "table": {
+      "tenant": "Mieter",
+      "apartment": "Wohnung",
+      "amount": "Betrag",
+      "status": "Status",
+      "remaining": "Frist",
+      "action": "Aktion"
+    },
+    "status": {
+      "overdue": "Überfällig",
+      "pending": "Offen",
+      "paid": "Bezahlt"
+    },
+    "dayLabel": {
+      "overdue": "{{n}} Tage überfällig",
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "daysLeft": "Noch {{n}} Tage"
+    },
+    "actions": {
+      "markPaid": "Bezahlt",
+      "reminderTitle": "Erinnerungs-E-Mail senden",
+      "remind": "Erinnern",
+      "undo": "Rückgängig"
+    },
+    "overdueHeader": "Überfällige Zahlungen",
+    "overdueTable": {
+      "dueDate": "Fällig am",
+      "amount": "Betrag",
+      "delay": "Verzug"
+    },
+    "overdueDelay": "{{n}} Tage überfällig",
+    "historyHeader": "Zahlungshistorie ({{n}})",
+    "historyTable": {
+      "dueDate": "Fällig am",
+      "amount": "Betrag",
+      "status": "Status",
+      "paidDate": "Bezahlt am"
+    },
+    "historyStatus": {
+      "late": "Verspätet bezahlt",
+      "onTime": "Pünktlich"
+    },
+    "noHistory": "Noch keine Zahlungshistorie.",
+    "pastSection": "Zahlungen ehemaliger Mieter",
+    "pastTable": {
+      "tenant": "Mieter",
+      "apartment": "Wohnung",
+      "totalPaid": "Gesamt bezahlt",
+      "records": "Einträge"
+    },
+    "paymentCount": "{{n}} Zahlungen",
+    "empty": {
+      "filtered": "Keine Zahlungen entsprechen dem Filter.",
+      "none": "Noch keine Zahlungsdaten."
+    },
+    "errorPrefix": "Fehler: {{msg}}",
+    "toasts": {
+      "emailNotFound": "E-Mail-Adresse des Mieters nicht gefunden.",
+      "emailSent": "E-Mail gesendet: {{email}}",
+      "emailFailed": "E-Mail-Versand fehlgeschlagen: {{msg}}",
+      "emailUnknownError": "Unbekannter Fehler",
+      "paymentSaved": "Zahlung gespeichert.",
+      "paymentReverted": "Zahlung zurückgesetzt.",
+      "errorPrefix": "Fehler: {{msg}}"
+    },
+    "emailSubject": {
+      "reminder": "Mieterinnerung",
+      "overdue": "Überfällige Zahlung",
+      "paid": "Zahlungsbestätigung"
+    },
+    "landlordDefault": "Eigentümer"
+  },
+  "paymentHistory": {
+    "stats": {
+      "totalCollected": "Gesamteingang",
+      "thisMonth": "Dieser Monat",
+      "totalCount": "Zahlungen gesamt",
+      "uniqueTenants": "Zahlende Mieter"
+    },
+    "searchPh": "Mieter oder Gebäude suchen...",
+    "allMonths": "Alle Monate",
+    "table": {
+      "tenant": "Mieter",
+      "apartment": "Wohnung",
+      "dueDate": "Fällig am",
+      "paidDate": "Bezahlt am",
+      "amount": "Betrag",
+      "status": "Status"
+    },
+    "status": {
+      "late": "Verspätet bezahlt",
+      "onTime": "Pünktlich"
+    },
+    "loading": "Wird geladen...",
+    "errorPrefix": "Fehler: {{msg}}",
+    "emptyFiltered": "Keine Zahlungen entsprechen dem Filter.",
+    "emptyNone": "Noch keine bezahlten Zahlungen."
+  },
+  "distributionKeys": {
+    "equal": { "label": "Gleichmäßige Verteilung", "short": "Gleich" },
+    "area": { "label": "Wohnfläche (m²)", "short": "m²" },
+    "persons": { "label": "Personenzahl", "short": "Personen" },
+    "units": { "label": "Wohneinheiten", "short": "WE" }
+  },
+  "expenses": {
+    "title": "Kostenverwaltung",
+    "subtitle": "Betriebskosten & Nebenkostenabrechnung",
+    "actions": {
+      "abrechnung": "Nebenkostenabrechnung",
+      "categories": "Kategorien",
+      "addExpense": "Kosten hinzufügen"
+    },
+    "kpi": {
+      "total": "Gesamt",
+      "totalAll": "Alle",
+      "thisMonth": "Dieser Monat",
+      "billable": "Umlegbar",
+      "billableSub": "Auf Mieter",
+      "nonBillable": "Nicht umlegbar",
+      "nonBillableSub": "Eigentümer"
+    },
+    "filters": {
+      "searchPh": "Suchen...",
+      "allBuildings": "Alle Gebäude",
+      "allApartments": "Alle Wohnungen",
+      "allCategories": "Alle Kategorien",
+      "allMonths": "Alle Monate"
+    },
+    "apartmentLabel": {
+      "withFloor": "{{floor}}. OG · Whg {{unit}}",
+      "noFloor": "Whg {{unit}}"
+    },
+    "list": {
+      "empty": "Noch keine Kosten erfasst.",
+      "emptyFiltered": "Keine Ergebnisse für die gewählten Filter.",
+      "recordCount": "{{n}} Einträge",
+      "aptCount": "{{n}} Wohnungen",
+      "buildingScopeCount": "{{n}} gebäudeweit",
+      "addMonthly": "Monatskosten",
+      "buildingScopeHeader": "Gebäudeweite Kosten",
+      "billableShort": "Umlegbar",
+      "nonBillableShort": "Nicht umlegbar",
+      "emptyApt": "— leer —",
+      "footerCounts": "{{records}} Einträge · {{buildings}} Gebäude",
+      "footerTotal": "Gesamt"
+    },
+    "sidebar": {
+      "title": "Kostenverteilung",
+      "subtitle": "Nach Kategorie",
+      "empty": "Keine Daten"
+    },
+    "expenseModal": {
+      "titleEdit": "Kosten bearbeiten",
+      "titleNew": "Neue Kosten",
+      "scope": "Umfang",
+      "scopeBuilding": "Gesamtes Gebäude",
+      "scopeApartment": "Einzelne Wohnung",
+      "buildingLabel": "Gebäude *",
+      "buildingPlaceholder": "Gebäude wählen...",
+      "buildingOption": "{{name}} ({{count}} Whg)",
+      "apartmentLabel": "Wohnung *",
+      "apartmentPlaceholder": "Wohnung wählen...",
+      "categoryLabel": "Kategorie *",
+      "categoryPlaceholder": "Kategorie wählen...",
+      "billableTag": " (umlegbar)",
+      "distKeyLabel": "Verteilschlüssel",
+      "distKeyApartmentNote": "(Wohnungsumfang · informativ)",
+      "amount": "Betrag",
+      "amountPlaceholder": "0,00",
+      "sharePreview": "Wird auf {{count}} Wohnungen nach {{keyLabel}} verteilt",
+      "date": "Datum",
+      "periodMonth": "Abrechnungsmonat",
+      "periodYear": "Abrechnungsjahr",
+      "billableToggle": "Auf Mieter umlegbar",
+      "notes": "Notizen",
+      "notesPlaceholder": "Optionale Notizen...",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "add": "Hinzufügen",
+      "toasts": {
+        "required": "Kategorie und Betrag sind erforderlich.",
+        "selectBuilding": "Bitte Gebäude wählen.",
+        "selectApartment": "Bitte Wohnung wählen.",
+        "updated": "Kosten aktualisiert.",
+        "added": "Kosten hinzugefügt."
+      }
+    },
+    "categoryModal": {
+      "title": "Kostenkategorien",
+      "tagBillable": "Umlegbar",
+      "tagRecurring": "Monatlich",
+      "formTitleEdit": "Kategorie bearbeiten",
+      "formTitleNew": "Neue Kategorie",
+      "name": "Name",
+      "namePlaceholder": "z. B. Grundsteuer",
+      "icon": "Symbol",
+      "color": "Farbe",
+      "toggleBillable": "Umlegbar",
+      "toggleRecurring": "Monatlich",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "add": "Hinzufügen",
+      "toasts": {
+        "required": "Name der Kategorie ist erforderlich.",
+        "updated": "Kategorie aktualisiert.",
+        "added": "Kategorie hinzugefügt.",
+        "deleted": "Kategorie gelöscht."
+      }
+    },
+    "abrechnung": {
+      "title": "Nebenkostenabrechnung",
+      "subtitle": "Kostenbericht für den Zeitraum erstellen",
+      "invoice": "Rechnung erstellen",
+      "scope": "Umfang",
+      "scopeBuilding": "Gesamtes Gebäude",
+      "scopeApartment": "Einzelne Wohnung",
+      "apartmentLabel": "Wohnung",
+      "buildingLabel": "Gebäude",
+      "selectPlaceholder": "Auswählen...",
+      "aptEmptySuffix": " — Leer",
+      "buildingOption": "{{name}} ({{count}} Whg)",
+      "start": "Von",
+      "end": "Bis",
+      "info": {
+        "building": "Gebäude",
+        "aptCount": "Wohnungen",
+        "period": "Zeitraum",
+        "periodMonths": "{{n}} Monate",
+        "apartment": "Wohnung",
+        "tenant": "Mieter",
+        "noActiveTenant": "Kein aktiver Mieter"
+      },
+      "distByApt": {
+        "title": "Verteilung pro Wohnung",
+        "colApt": "Wohnung",
+        "colTenant": "Mieter",
+        "colBillable": "Umlegbar",
+        "colAidat": "Vorauszahlung",
+        "colDiff": "Differenz",
+        "emptyApt": "— leer —",
+        "buildingTotal": "Gebäudesumme"
+      },
+      "billable": {
+        "title": "Umlegbare Kosten",
+        "colItem": "Posten",
+        "colKey": "Schlüssel",
+        "colKeyScope": "Schlüssel · Verteilung",
+        "colTotal": "Gesamt",
+        "colShare": "Ihr Anteil",
+        "empty": "Keine umlegbaren Kosten im Zeitraum",
+        "apartmentScope": "Wohnungsspezifisch",
+        "buildingScope": "Gebäudeweit",
+        "totalShare": "Gesamtanteil",
+        "totalBillable": "Umlegbar gesamt"
+      },
+      "aidat": {
+        "buildingTitle": "Vorauszahlungen gesamt",
+        "monthlyTitle": "Monatliche Vorauszahlung",
+        "buildingSub": "{{apts}} Wohnungen über {{months}} Monate",
+        "monthlySub": "{{months}} Monate × {{amount}}/Monat"
+      },
+      "diff": {
+        "payTitle": "Nachzahlung fällig",
+        "paySub": "Mieter muss nachzahlen",
+        "refundTitle": "Guthaben für Mieter",
+        "refundSub": "Mieter erhält Rückzahlung",
+        "balancedTitle": "Ausgeglichen",
+        "balancedSub": "Keine Differenz — vollständig ausgeglichen"
+      },
+      "nonBillable": {
+        "title": "Nicht umlegbare Kosten (Referenz)",
+        "total": "Nicht umlegbar gesamt"
+      },
+      "empty": {
+        "building": "Gebäude wählen, um den Bericht zu erstellen.",
+        "apartment": "Wohnung wählen, um den Bericht zu erstellen."
+      },
+      "fallbackCategory": "Sonstige"
+    },
+    "confirmDelete": {
+      "title": "Löschen bestätigen",
+      "subtitle": "Diese Aktion kann nicht rückgängig gemacht werden",
+      "expenseMsg": "Möchten Sie diese Kosten wirklich löschen? Die Aktion kann nicht rückgängig gemacht werden.",
+      "categoryMsg": "Möchten Sie diese Kategorie wirklich löschen? Die Aktion kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "Ja, löschen",
+      "deleted": "Kosten gelöscht."
+    },
+    "unknownBuilding": "Unbekanntes Gebäude"
+  },
+  "buildingExpenseSheet": {
+    "fallbackBuilding": "Gebäude",
+    "subtitle": "Monatliche Kostentabelle · {{count}} Whg",
+    "subtitleUnknownCount": "Monatliche Kostentabelle · — Whg",
+    "period": "Zeitraum",
+    "loadingExisting": "Bestehende Einträge werden geladen...",
+    "tableHeader": {
+      "category": "Kategorie",
+      "amount": "Betrag",
+      "distKey": "Verteilschlüssel",
+      "billable": "Umlegbar"
+    },
+    "billableOn": "Umlegbar",
+    "billableOff": "Nicht umlegbar",
+    "summary": "Übersicht",
+    "summaryLine": "{{count}} Posten · {{total}}",
+    "cancel": "Abbrechen",
+    "saving": "Wird gespeichert...",
+    "saveAll": "Alle speichern",
+    "saveAllCount": "Alle speichern ({{count}})",
+    "toasts": {
+      "saved": "{{saved}} Einträge gespeichert.",
+      "savedWithDeletes": "{{saved}} Einträge gespeichert, {{deleted}} gelöscht.",
+      "saveError": "Fehler beim Speichern."
+    }
+  },
+  "invoice": {
+    "titlePrefix": "Nebenkosten-",
+    "titleEm": "abrechnung",
+    "toolbar": {
+      "edit": "Bearbeiten",
+      "print": "Drucken / als PDF speichern",
+      "close": "Schließen"
+    },
+    "top": {
+      "period": "Abrechnungszeitraum",
+      "no": "Nr.",
+      "invoicePrefix": "NKA"
+    },
+    "parties": {
+      "tenant": "Mieter",
+      "noActiveTenant": "Kein aktiver Mieter",
+      "buildingTenants": "{{apts}} Wohnungen / {{active}} aktive Mieter"
+    },
+    "propertyApt": {
+      "title": "Mietobjekt",
+      "area": "Wohnfläche",
+      "persons": "Bewohnerzahl"
+    },
+    "propertyBld": {
+      "building": "Gebäude",
+      "aptCount": "Anzahl Wohnungen",
+      "duration": "Abrechnungszeitraum",
+      "months": "{{n}} Monate"
+    },
+    "apartmentLabel": {
+      "withFloor": "Etage {{floor}} · Wohnung {{unit}}",
+      "noFloor": "Wohnung {{unit}}"
+    },
+    "tableApt": {
+      "item": "Position",
+      "key": "Verteilerschlüssel",
+      "total": "Gesamt",
+      "share": "Ihr Anteil",
+      "empty": "In diesem Zeitraum sind keine umlagefähigen Kosten angefallen.",
+      "apartmentScope": "Wohnungsspezifisch"
+    },
+    "totalsApt": {
+      "totalBillable": "Gesamte Nebenkosten",
+      "deductPrepay": "Geleistete Vorauszahlungen abzgl.",
+      "resultPay": "Nachzahlung",
+      "resultRefund": "Guthaben (zugunsten des Mieters)",
+      "resultBalanced": "Ausgeglichen"
+    },
+    "section": {
+      "categoryTotalsPrefix": "Kategorie-",
+      "categoryTotalsEm": "summen",
+      "distByAptPrefix": "Verteilung nach",
+      "distByAptEm": "Wohnungen"
+    },
+    "tableBld": {
+      "item": "Position",
+      "key": "Verteilerschlüssel",
+      "total": "Gesamt",
+      "empty": "In diesem Zeitraum sind keine umlagefähigen Kosten angefallen.",
+      "apt": "Wohnung",
+      "tenant": "Mieter",
+      "billable": "Umlagefähig",
+      "aidat": "Vorauszahlung",
+      "diff": "Differenz",
+      "emptyApt": "— leer —"
+    },
+    "totalsBld": {
+      "totalBillable": "Gebäude umlagefähig gesamt",
+      "deductPrepay": "Eingegangene Vorauszahlungen abzgl.",
+      "resultPay": "Offen (zugunsten des Vermieters)",
+      "resultRefund": "Überschuss (zugunsten der Mieter)",
+      "resultBalanced": "Ausgeglichen"
+    },
+    "footer": {
+      "explanationLabel": "Hinweis:",
+      "explanation": "Diese Abrechnung wurde nach den mit dem Mieter vereinbarten Verteilerschlüsseln erstellt. Die ausgewiesenen Kosten entsprechen den im Abrechnungszeitraum tatsächlich angefallenen Betriebskosten.",
+      "payNoticePre": "Bitte überweisen Sie den ",
+      "payNoticeStrong": "Nachzahlungsbetrag von {{amount}}",
+      "payNoticePost": " innerhalb von 30 Tagen nach Erhalt dieser Abrechnung.",
+      "refundNoticePre": "Das Guthaben in Höhe von ",
+      "refundNoticeStrong": "{{amount}}",
+      "refundNoticePost": " wird Ihnen innerhalb von 30 Tagen erstattet oder mit der nächsten Mietzahlung verrechnet.",
+      "balancedNotice": "Ihre Vorauszahlungen decken die Nebenkosten vollständig ab.",
+      "objectionNotice": "Einwendungen gegen diese Abrechnung sind innerhalb von 12 Monaten nach Zugang schriftlich mitzuteilen. Belege können nach Vereinbarung eingesehen werden.",
+      "issueDate": "Ausgestellt am: {{date}} · KiraciYonet"
+    }
+  }
+}

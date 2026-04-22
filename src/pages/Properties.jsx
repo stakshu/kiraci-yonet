@@ -2,15 +2,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { formatMoney } from '../i18n/formatters'
 import {
   Building2, Plus, Search, X, Check, ChevronRight, AlertCircle, Home
 } from 'lucide-react'
 import { BUILDING_TYPES, BUILDING_TYPE_ORDER, isMultiUnit, getBuildingType } from '@/lib/buildingTypes'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
 
 const EMPTY_BLD_FORM = {
   name: '', city: '', district: '', address: '',
@@ -29,10 +30,7 @@ const EMPTY_APT_FORM = {
   deposit: '', notes: ''
 }
 
-const PROPERTY_TYPES = {
-  daire: 'Daire', mustakil: 'Mustakil Ev', villa: 'Villa',
-  dukkan: 'Dukkan', ofis: 'Ofis', arsa: 'Arsa', diger: 'Diger'
-}
+const PROPERTY_TYPE_KEYS = ['daire', 'mustakil', 'villa', 'dukkan', 'ofis', 'arsa', 'diger']
 
 const container = {
   hidden: {},
@@ -51,6 +49,7 @@ const C = {
 }
 
 export default function Properties() {
+  const { t } = useTranslation()
   const { showToast } = useToast()
   const navigate = useNavigate()
 
@@ -126,7 +125,7 @@ export default function Properties() {
   const handleBldSave = async (e) => {
     e.preventDefault(); setSavingBld(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingBld(false); return }
+    if (!session) { showToast(t('properties.toasts.sessionExpired'), 'error'); setSavingBld(false); return }
     const multi = isMultiUnit(bldForm.building_type)
     const record = {
       user_id: session.user.id,
@@ -139,7 +138,7 @@ export default function Properties() {
       building_type: bldForm.building_type
     }
     const { data, error: err } = await supabase.from('buildings').insert(record).select()
-    if (err) { setSavingBld(false); showToast('Hata: ' + err.message, 'error'); return }
+    if (err) { setSavingBld(false); showToast(t('properties.toasts.errorPrefix', { msg: err.message }), 'error'); return }
     const newBuildingId = data?.[0]?.id
 
     /* Non-apartman: tek apartment kaydini otomatik olustur */
@@ -161,7 +160,7 @@ export default function Properties() {
       const { error: aptErr } = await supabase.from('apartments').insert(aptRecord)
       if (aptErr) {
         setSavingBld(false)
-        showToast('Bina eklendi ama birim kaydinda hata: ' + aptErr.message, 'error')
+        showToast(t('properties.toasts.unitError', { msg: aptErr.message }), 'error')
         setShowBldPopup(false)
         await loadData()
         if (newBuildingId) navigate(`/properties/building/${newBuildingId}`)
@@ -170,7 +169,7 @@ export default function Properties() {
     }
 
     setSavingBld(false)
-    showToast(multi ? 'Bina eklendi.' : 'Mulk eklendi.', 'success')
+    showToast(multi ? t('properties.toasts.buildingAdded') : t('properties.toasts.propertyAdded'), 'success')
     setShowBldPopup(false)
     await loadData()
     if (newBuildingId) navigate(`/properties/building/${newBuildingId}`)
@@ -184,7 +183,7 @@ export default function Properties() {
 
   const openAptAdd = () => {
     if (apartmanBuildings.length === 0) {
-      showToast('Apartman tipinde bina yok. Once bir apartman ekleyiniz.', 'error')
+      showToast(t('properties.toasts.apartmentBuildingsRequired'), 'error')
       return
     }
     setAptForm({ ...EMPTY_APT_FORM, building_id: apartmanBuildings[0].id })
@@ -193,10 +192,10 @@ export default function Properties() {
 
   const handleAptSave = async (e) => {
     e.preventDefault()
-    if (!aptForm.building_id) { showToast('Bina seciniz.', 'error'); return }
+    if (!aptForm.building_id) { showToast(t('properties.toasts.buildingRequired'), 'error'); return }
     setSavingApt(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSavingApt(false); return }
+    if (!session) { showToast(t('properties.toasts.sessionExpired'), 'error'); setSavingApt(false); return }
     const record = {
       user_id: session.user.id,
       building_id: aptForm.building_id,
@@ -212,8 +211,8 @@ export default function Properties() {
     }
     const { error: err } = await supabase.from('apartments').insert(record)
     setSavingApt(false)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Daire eklendi.', 'success')
+    if (err) { showToast(t('properties.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('properties.toasts.apartmentAdded'), 'success')
     setShowAptPopup(false)
     navigate(`/properties/building/${aptForm.building_id}`)
   }
@@ -258,7 +257,7 @@ export default function Properties() {
           fontSize: 22, fontWeight: 800, color: C.text,
           letterSpacing: '-0.02em', margin: 0
         }}>
-          Mulklerim
+          {t('properties.title')}
           <span style={{ fontSize: 16, fontWeight: 600, color: C.textFaint, marginLeft: 8 }}>
             ({filteredBuildings.length})
           </span>
@@ -272,7 +271,7 @@ export default function Properties() {
               background: 'white', color: C.teal, border: `1.5px solid ${C.teal}`,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <Building2 style={{ width: 15, height: 15 }} /> Mulk Ekle
+            <Building2 style={{ width: 15, height: 15 }} /> {t('properties.addProperty')}
           </motion.button>
           {apartmanBuildings.length > 0 && (
             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -284,7 +283,7 @@ export default function Properties() {
                 fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
                 boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
               }}>
-              <Plus style={{ width: 15, height: 15 }} /> Daire Ekle
+              <Plus style={{ width: 15, height: 15 }} /> {t('properties.addApartment')}
             </motion.button>
           )}
         </div>
@@ -293,11 +292,11 @@ export default function Properties() {
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         {[
-          { label: 'Toplam Bina', value: totals.bld, color: C.teal, borderColor: '#CCE4E8' },
-          { label: 'Toplam Daire', value: totals.apt, color: C.teal, borderColor: '#CCE4E8' },
-          { label: 'Kirada', value: totals.occ, color: '#059669', borderColor: '#D1FAE5' },
-          { label: 'Bosta', value: vacant, color: '#DC2626', borderColor: '#FECACA' },
-          { label: 'Aylik Gelir', value: `${money(totals.income)} ₺`, color: C.teal, borderColor: '#CCE4E8' }
+          { label: t('properties.stats.totalBuildings'), value: totals.bld, color: C.teal, borderColor: '#CCE4E8' },
+          { label: t('properties.stats.totalUnits'), value: totals.apt, color: C.teal, borderColor: '#CCE4E8' },
+          { label: t('properties.stats.occupied'), value: totals.occ, color: '#059669', borderColor: '#D1FAE5' },
+          { label: t('properties.stats.vacant'), value: vacant, color: '#DC2626', borderColor: '#FECACA' },
+          { label: t('properties.stats.monthlyIncome'), value: formatMoney(totals.income), color: C.teal, borderColor: '#CCE4E8' }
         ].map((s, i) => (
           <motion.div key={i} variants={item}
             whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
@@ -330,7 +329,7 @@ export default function Properties() {
         }}>
         <Search style={{ width: 16, height: 16, color: C.textFaint }} />
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Bina / sehir / ilce / adres ara..."
+          placeholder={t('properties.searchPlaceholder')}
           style={{
             border: 'none', outline: 'none', flex: 1, background: 'transparent',
             fontFamily: font, fontSize: 13, color: C.text
@@ -354,7 +353,7 @@ export default function Properties() {
           padding: '14px 24px', borderBottom: `1px solid ${C.borderLight}`,
           background: '#FAFBFC'
         }}>
-          {['Bina', 'Adres', 'Daire', 'Kirada', 'Bosta', 'Aylik Gelir', ''].map((h, i) => (
+          {[t('properties.table.building'), t('properties.table.address'), t('properties.table.units'), t('properties.table.occupied'), t('properties.table.vacant'), t('properties.table.monthlyIncome'), ''].map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
               textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -371,13 +370,13 @@ export default function Properties() {
         ) : error ? (
           <div style={{ textAlign: 'center', padding: 60, color: C.red, fontSize: 14 }}>
             <AlertCircle style={{ width: 20, height: 20, marginBottom: 8 }} />
-            <div>Hata: {error}</div>
+            <div>{t('properties.errorPrefix')}: {error}</div>
           </div>
         ) : filteredBuildings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: C.textFaint, fontSize: 14 }}>
             {buildings.length === 0
-              ? 'Henuz bina eklenmemis. "+ Bina Ekle" ile baslayin.'
-              : 'Aramayla eslesen bina bulunamadi.'}
+              ? t('properties.empty.none')
+              : t('properties.empty.search')}
           </div>
         ) : (
           filteredBuildings.map((b, i) => {
@@ -423,11 +422,11 @@ export default function Properties() {
                         background: bt.chipBg, color: bt.chipFg,
                         letterSpacing: '0.02em',
                         flexShrink: 0
-                      }}>{bt.label}</span>
+                      }}>{t(`buildingTypes.${b.building_type || 'apartman'}`)}</span>
                     </div>
                     {b.building_age ? (
                       <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>
-                        {b.building_age} yasinda
+                        {t('properties.table.yearsOld', { n: b.building_age })}
                       </div>
                     ) : null}
                   </div>
@@ -440,7 +439,7 @@ export default function Properties() {
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right' }}>
                   {multi ? s.total : (
-                    <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>1 Birim</span>
+                    <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{t('properties.table.singleUnit')}</span>
                   )}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#059669', textAlign: 'right' }}>
@@ -453,7 +452,7 @@ export default function Properties() {
                   {vacantRow}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right' }}>
-                  {money(s.income)} ₺
+                  {formatMoney(s.income)}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', color: C.textFaint }}>
                   <ChevronRight style={{ width: 18, height: 18 }} />
@@ -498,7 +497,7 @@ export default function Properties() {
                     <Building2 style={{ width: 18, height: 18 }} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    Yeni Mulk Ekle
+                    {t('properties.modal.addBuildingTitle')}
                   </h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -517,13 +516,13 @@ export default function Properties() {
 
                   {/* Tip seçici */}
                   <div>
-                    <label style={labelStyle}>Mulk Tipi *</label>
+                    <label style={labelStyle}>{t('properties.modal.typeLabel')}</label>
                     <div style={{
                       display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10
                     }}>
                       {BUILDING_TYPE_ORDER.map(k => {
-                        const t = BUILDING_TYPES[k]
-                        const TIcon = t.Icon
+                        const bt = BUILDING_TYPES[k]
+                        const TIcon = bt.Icon
                         const active = bldForm.building_type === k
                         return (
                           <motion.button
@@ -540,7 +539,7 @@ export default function Properties() {
                               transition: 'all 0.15s'
                             }}>
                             <TIcon style={{ width: 20, height: 20 }} />
-                            <span style={{ fontSize: 13, fontWeight: 700 }}>{t.label}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700 }}>{t(`buildingTypes.${k}`)}</span>
                           </motion.button>
                         )
                       })}
@@ -550,40 +549,40 @@ export default function Properties() {
                   {/* Bina bilgileri */}
                   <div>
                     <label style={labelStyle}>
-                      {isMultiUnit(bldForm.building_type) ? 'Bina Adi *' : 'Mulk Adi *'}
+                      {isMultiUnit(bldForm.building_type) ? t('properties.modal.buildingNameMulti') : t('properties.modal.buildingNameSingle')}
                     </label>
                     <input style={inputStyle} type="text" required
-                      placeholder={isMultiUnit(bldForm.building_type) ? 'Cömertkent Sitesi H1 Blok' : 'Deniz Manzarali Villa'}
+                      placeholder={isMultiUnit(bldForm.building_type) ? t('properties.modal.buildingNameMultiPh') : t('properties.modal.buildingNameSinglePh')}
                       value={bldForm.name} onChange={e => updateBldForm('name', e.target.value)} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Sehir</label>
-                      <input style={inputStyle} type="text" placeholder="Istanbul"
+                      <label style={labelStyle}>{t('properties.modal.city')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('properties.modal.cityPh')}
                         value={bldForm.city} onChange={e => updateBldForm('city', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Ilce</label>
-                      <input style={inputStyle} type="text" placeholder="Kadikoy"
+                      <label style={labelStyle}>{t('properties.modal.district')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('properties.modal.districtPh')}
                         value={bldForm.district} onChange={e => updateBldForm('district', e.target.value)} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Adres</label>
-                    <input style={inputStyle} type="text" placeholder="Mahalle, Sokak, No"
+                    <label style={labelStyle}>{t('properties.modal.address')}</label>
+                    <input style={inputStyle} type="text" placeholder={t('properties.modal.addressPh')}
                       value={bldForm.address} onChange={e => updateBldForm('address', e.target.value)} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
                     <div>
                       <label style={labelStyle}>
-                        {isMultiUnit(bldForm.building_type) ? 'Bina Yasi' : 'Yapim Yili'}
+                        {isMultiUnit(bldForm.building_type) ? t('properties.modal.buildingAge') : t('properties.modal.constructionYear')}
                       </label>
                       <input style={inputStyle} type="number" min="0" placeholder="5"
                         value={bldForm.building_age} onChange={e => updateBldForm('building_age', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Notlar</label>
-                      <input style={inputStyle} type="text" placeholder="Opsiyonel"
+                      <label style={labelStyle}>{t('properties.modal.notes')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('properties.modal.optional')}
                         value={bldForm.notes} onChange={e => updateBldForm('notes', e.target.value)} />
                     </div>
                   </div>
@@ -602,31 +601,31 @@ export default function Properties() {
                         letterSpacing: '0.02em', textTransform: 'uppercase'
                       }}>
                         <Home style={{ width: 14, height: 14 }} />
-                        Birim Bilgileri
+                        {t('properties.modal.unitInfo')}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Oda Sayisi</label>
+                          <label style={labelStyle}>{t('properties.modal.roomCount')}</label>
                           <input style={inputStyle} type="text" placeholder="3+1"
                             value={bldForm.room_count} onChange={e => updateBldForm('room_count', e.target.value)} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Kat</label>
+                          <label style={labelStyle}>{t('properties.modal.floor')}</label>
                           <input style={inputStyle} type="text" placeholder="—"
                             value={bldForm.floor_no} onChange={e => updateBldForm('floor_no', e.target.value)} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Depozito (₺)</label>
+                          <label style={labelStyle}>{t('properties.modal.deposit')}</label>
                           <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                             value={bldForm.deposit} onChange={e => updateBldForm('deposit', e.target.value)} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Brut m²</label>
+                          <label style={labelStyle}>{t('properties.modal.grossArea')}</label>
                           <input style={inputStyle} type="number" min="0" step="0.01" placeholder="120"
                             value={bldForm.m2_gross} onChange={e => updateBldForm('m2_gross', e.target.value)} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Net m²</label>
+                          <label style={labelStyle}>{t('properties.modal.netArea')}</label>
                           <input style={inputStyle} type="number" min="0" step="0.01" placeholder="100"
                             value={bldForm.m2_net} onChange={e => updateBldForm('m2_net', e.target.value)} />
                         </div>
@@ -635,7 +634,7 @@ export default function Properties() {
                             <input type="checkbox" checked={bldForm.furnished}
                               onChange={e => updateBldForm('furnished', e.target.checked)}
                               style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Esyali</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t('properties.modal.furnished')}</span>
                           </label>
                         </div>
                       </div>
@@ -654,7 +653,7 @@ export default function Properties() {
                       background: '#F1F5F9', color: C.textMuted, border: 'none',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    Iptal
+                    {t('properties.modal.cancel')}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     type="submit" disabled={savingBld}
@@ -667,7 +666,7 @@ export default function Properties() {
                       boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {savingBld ? 'Kaydediliyor...' : 'Kaydet'}
+                    {savingBld ? t('properties.modal.saving') : t('properties.modal.save')}
                   </motion.button>
                 </div>
               </form>
@@ -710,7 +709,7 @@ export default function Properties() {
                     <Home style={{ width: 18, height: 18 }} />
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                    Yeni Daire Ekle
+                    {t('properties.modal.addApartmentTitle')}
                   </h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -727,7 +726,7 @@ export default function Properties() {
               <form onSubmit={handleAptSave}>
                 <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
                   <div>
-                    <label style={labelStyle}>Bina *</label>
+                    <label style={labelStyle}>{t('properties.modal.building')}</label>
                     <select required value={aptForm.building_id}
                       onChange={e => updateAptForm('building_id', e.target.value)}
                       style={selectStyle}>
@@ -738,41 +737,41 @@ export default function Properties() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Daire No *</label>
+                      <label style={labelStyle}>{t('properties.modal.unitNo')}</label>
                       <input style={inputStyle} type="text" required placeholder="20"
                         value={aptForm.unit_no} onChange={e => updateAptForm('unit_no', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Mulk Tipi</label>
+                      <label style={labelStyle}>{t('properties.modal.propertyType')}</label>
                       <select style={{ ...inputStyle, cursor: 'pointer' }}
                         value={aptForm.property_type} onChange={e => updateAptForm('property_type', e.target.value)}>
-                        {Object.entries(PROPERTY_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {PROPERTY_TYPE_KEYS.map(k => <option key={k} value={k}>{t(`propertyTypes.${k}`)}</option>)}
                       </select>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Oda Sayisi</label>
+                      <label style={labelStyle}>{t('properties.modal.roomCount')}</label>
                       <input style={inputStyle} type="text" placeholder="2+1"
                         value={aptForm.room_count} onChange={e => updateAptForm('room_count', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Kat</label>
+                      <label style={labelStyle}>{t('properties.modal.floor')}</label>
                       <input style={inputStyle} type="text" placeholder="2"
                         value={aptForm.floor_no} onChange={e => updateAptForm('floor_no', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Depozito (₺)</label>
+                      <label style={labelStyle}>{t('properties.modal.deposit')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                         value={aptForm.deposit} onChange={e => updateAptForm('deposit', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Brut m²</label>
+                      <label style={labelStyle}>{t('properties.modal.grossArea')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="120"
                         value={aptForm.m2_gross} onChange={e => updateAptForm('m2_gross', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Net m²</label>
+                      <label style={labelStyle}>{t('properties.modal.netArea')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="100"
                         value={aptForm.m2_net} onChange={e => updateAptForm('m2_net', e.target.value)} />
                     </div>
@@ -781,14 +780,14 @@ export default function Properties() {
                         <input type="checkbox" checked={aptForm.furnished}
                           onChange={e => updateAptForm('furnished', e.target.checked)}
                           style={{ width: 18, height: 18, accentColor: C.teal, cursor: 'pointer' }} />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Esyali</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t('properties.modal.furnished')}</span>
                       </label>
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Notlar</label>
+                    <label style={labelStyle}>{t('properties.modal.notes')}</label>
                     <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
-                      placeholder="Opsiyonel notlar..."
+                      placeholder={t('properties.modal.notesPh')}
                       value={aptForm.notes} onChange={e => updateAptForm('notes', e.target.value)} />
                   </div>
                 </div>
@@ -804,7 +803,7 @@ export default function Properties() {
                       background: '#F1F5F9', color: C.textMuted, border: 'none',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                     }}>
-                    Iptal
+                    {t('properties.modal.cancel')}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     type="submit" disabled={savingApt}
@@ -817,7 +816,7 @@ export default function Properties() {
                       boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {savingApt ? 'Kaydediliyor...' : 'Kaydet'}
+                    {savingApt ? t('properties.modal.saving') : t('properties.modal.save')}
                   </motion.button>
                 </div>
               </form>

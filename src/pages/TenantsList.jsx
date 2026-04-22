@@ -1,9 +1,11 @@
 /* ── KiraciYonet — Kiracilar — Complete Redesign ── */
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { apartmentLabel, buildingLabel } from '../lib/apartmentLabel'
+import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Plus, Pencil, Trash2, X, Check, Save,
@@ -12,26 +14,18 @@ import {
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
-
-function leaseRemaining(dateStr) {
+function leaseRemaining(dateStr, t) {
   if (!dateStr) return null
   const today = new Date(); today.setHours(0,0,0,0)
   const end = new Date(dateStr); end.setHours(0,0,0,0)
   const diff = Math.ceil((end - today) / 864e5)
-  if (diff < 0) return { text: `${Math.abs(diff)} gun gecti`, color: '#DC2626', urgent: true }
-  if (diff === 0) return { text: 'Bugun bitiyor', color: '#DC2626', urgent: true }
-  if (diff <= 30) return { text: `${diff} gun kaldi`, color: '#D97706', urgent: true }
-  if (diff <= 90) return { text: `${diff} gun kaldi`, color: '#64748B', urgent: false }
+  if (diff < 0) return { text: t('tenantsList.lease.daysLate', { n: Math.abs(diff) }), color: '#DC2626', urgent: true }
+  if (diff === 0) return { text: t('tenantsList.lease.endsToday'), color: '#DC2626', urgent: true }
+  if (diff <= 30) return { text: t('tenantsList.lease.daysLeft', { n: diff }), color: '#D97706', urgent: true }
+  if (diff <= 90) return { text: t('tenantsList.lease.daysLeft', { n: diff }), color: '#64748B', urgent: false }
   const months = Math.floor(diff / 30)
-  return { text: `~${months} ay kaldi`, color: '#64748B', urgent: false }
+  return { text: t('tenantsList.lease.monthsLeft', { n: months }), color: '#64748B', urgent: false }
 }
 
 const C = {
@@ -66,6 +60,7 @@ const EMPTY_FORM = {
 }
 
 export default function TenantsList() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [tenants, setTenants] = useState([])
@@ -107,30 +102,30 @@ export default function TenantsList() {
   const vacantApartments = apartments.filter(a => !a.tenants?.[0])
 
   /* Split into active/inactive/former (status kolonu ile) */
-  const activeTenants   = tenants.filter(t => t.status === 'active')
-  const inactiveTenants = tenants.filter(t => t.status === 'inactive')
-  const formerTenants   = tenants.filter(t => t.status === 'former')
+  const activeTenants   = tenants.filter(ten => ten.status === 'active')
+  const inactiveTenants = tenants.filter(ten => ten.status === 'inactive')
+  const formerTenants   = tenants.filter(ten => ten.status === 'former')
 
-  const expiringCount = activeTenants.filter(t => {
-    if (!t.lease_end) return false
-    const diff = (new Date(t.lease_end) - new Date()) / 864e5
+  const expiringCount = activeTenants.filter(ten => {
+    if (!ten.lease_end) return false
+    const diff = (new Date(ten.lease_end) - new Date()) / 864e5
     return diff >= 0 && diff <= 30
   }).length
 
   /* Filter by search */
   const currentList = tab === 'active' ? activeTenants : tab === 'inactive' ? inactiveTenants : formerTenants
-  const filtered = currentList.filter(t => {
+  const filtered = currentList.filter(ten => {
     if (!search) return true
     const q = search.toLowerCase()
-    return t.full_name.toLowerCase().includes(q) || (t.phone || '').includes(q) ||
-      buildingLabel(t.apartments).toLowerCase().includes(q)
+    return ten.full_name.toLowerCase().includes(q) || (ten.phone || '').includes(q) ||
+      buildingLabel(ten.apartments).toLowerCase().includes(q)
   })
 
   const openAdd = () => { setEditId(null); setForm(EMPTY_FORM); setShowPopup(true) }
 
   const openEdit = async (id) => {
     const { data, error: err } = await supabase.from('tenants').select('*').eq('id', id).single()
-    if (err || !data) { showToast('Kiraci bulunamadi.', 'error'); return }
+    if (err || !data) { showToast(t('tenantsList.toasts.notFound'), 'error'); return }
     setEditId(id)
     setForm({
       full_name: data.full_name || '', email: data.email || '',
@@ -152,7 +147,7 @@ export default function TenantsList() {
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setSaving(false); return }
+    if (!session) { showToast(t('tenantsList.toasts.sessionExpired'), 'error'); setSaving(false); return }
     const hasApt = !!form.apartment_id
     const record = {
       user_id: session.user.id, full_name: form.full_name.trim(),
@@ -175,7 +170,7 @@ export default function TenantsList() {
     let result
     if (editId) result = await supabase.from('tenants').update(record).eq('id', editId).select()
     else result = await supabase.from('tenants').insert(record).select()
-    if (result.error) { showToast('Hata: ' + result.error.message, 'error'); setSaving(false); return }
+    if (result.error) { showToast(t('tenantsList.toasts.errorPrefix', { msg: result.error.message }), 'error'); setSaving(false); return }
     if (!editId && record.apartment_id && result.data?.[0]) {
       const tenantId = result.data[0].id
       const rentAmount = Number(record.rent) || 0
@@ -198,22 +193,22 @@ export default function TenantsList() {
       }
     }
     setSaving(false)
-    showToast(editId ? 'Kiraci guncellendi.' : 'Kiraci eklendi.', 'success')
+    showToast(editId ? t('tenantsList.toasts.tenantUpdated') : t('tenantsList.toasts.tenantAdded'), 'success')
     setShowPopup(false); loadTenants(); loadApartments()
   }
 
   const handleDelete = async (id, name) => {
-    if (!confirm(name + ' silinsin mi? Bu islem geri alinamaz.')) return
+    if (!confirm(t('tenantsList.toasts.confirmDelete', { name }))) return
     const { error: err } = await supabase.from('tenants').delete().eq('id', id)
-    if (err) { showToast('Silme hatasi: ' + err.message, 'error'); return }
-    showToast('Kiraci silindi.', 'success'); loadTenants(); loadApartments()
+    if (err) { showToast(t('tenantsList.toasts.deleteError', { msg: err.message }), 'error'); return }
+    showToast(t('tenantsList.toasts.tenantDeleted'), 'success'); loadTenants(); loadApartments()
   }
 
   const moveToPast = async (id, name) => {
-    if (!confirm(`${name} eski kiracilara tasinsin mi?`)) return
+    if (!confirm(t('tenantsList.toasts.confirmMoveToPast', { name }))) return
     const { error } = await supabase.from('tenants').update({ apartment_id: null, status: 'former' }).eq('id', id)
-    if (error) { showToast('Hata: ' + error.message, 'error'); return }
-    showToast('Kiraci eski kiracilara tasindi.', 'success'); loadTenants(); loadApartments()
+    if (error) { showToast(t('tenantsList.toasts.errorPrefix', { msg: error.message }), 'error'); return }
+    showToast(t('tenantsList.toasts.movedToPast'), 'success'); loadTenants(); loadApartments()
   }
 
   const openAssign = (tenant, mode) => {
@@ -231,13 +226,13 @@ export default function TenantsList() {
   const handleAssignSave = async (e) => {
     e.preventDefault()
     if (!assignTenant) return
-    if (!assignForm.apartment_id) { showToast('Daire secin.', 'error'); return }
+    if (!assignForm.apartment_id) { showToast(t('tenantsList.toasts.selectApartment'), 'error'); return }
     if (assignMode === 'move' && assignForm.apartment_id === assignTenant.apartment_id) {
-      showToast('Yeni daire mevcut daireyle ayni.', 'error'); return
+      showToast(t('tenantsList.toasts.sameApartment'), 'error'); return
     }
     setAssignSaving(true)
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { showToast('Oturum suresi dolmus.', 'error'); setAssignSaving(false); return }
+    if (!session) { showToast(t('tenantsList.toasts.sessionExpired'), 'error'); setAssignSaving(false); return }
 
     const oldApartmentId = assignTenant.apartment_id
     const newApartmentId = assignForm.apartment_id
@@ -251,7 +246,7 @@ export default function TenantsList() {
         .eq('tenant_id', assignTenant.id)
         .eq('apartment_id', oldApartmentId)
         .eq('status', 'pending')
-      if (delErr) { showToast('Eski odemeler silinemedi: ' + delErr.message, 'error'); setAssignSaving(false); return }
+      if (delErr) { showToast(t('tenantsList.toasts.deleteOldPaymentsError', { msg: delErr.message }), 'error'); setAssignSaving(false); return }
       await supabase.from('apartments').update({ status: 'empty' }).eq('id', oldApartmentId)
     }
 
@@ -266,7 +261,7 @@ export default function TenantsList() {
         status: 'active'
       })
       .eq('id', assignTenant.id)
-    if (updErr) { showToast('Guncelleme hatasi: ' + updErr.message, 'error'); setAssignSaving(false); return }
+    if (updErr) { showToast(t('tenantsList.toasts.updateError', { msg: updErr.message }), 'error'); setAssignSaving(false); return }
 
     // 3) Yeni daireyi dolu isaretle
     await supabase.from('apartments').update({ status: 'occupied' }).eq('id', newApartmentId)
@@ -295,7 +290,7 @@ export default function TenantsList() {
     }
 
     setAssignSaving(false)
-    showToast(assignMode === 'move' ? 'Kiraci yeni daireye tasindi.' : 'Daire kiraciya atandi.', 'success')
+    showToast(assignMode === 'move' ? t('tenantsList.toasts.movedToNew') : t('tenantsList.toasts.assigned'), 'success')
     setAssignOpen(false)
     loadTenants()
     loadApartments()
@@ -311,7 +306,7 @@ export default function TenantsList() {
       {/* ═══ HEADER ═══ */}
       <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
-          Kiracilar
+          {t('tenantsList.heading')}
           <span style={{ fontSize: 16, fontWeight: 600, color: C.textFaint, marginLeft: 8 }}>
             ({tenants.length})
           </span>
@@ -325,18 +320,18 @@ export default function TenantsList() {
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
             boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
           }}>
-          <Plus style={{ width: 15, height: 15 }} /> Kiraci Ekle
+          <Plus style={{ width: 15, height: 15 }} /> {t('tenantsList.addTenant')}
         </motion.button>
       </motion.div>
 
       {/* ═══ STAT CARDS ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         {[
-          { label: 'Toplam Kiraci', value: tenants.length, color: C.teal, borderColor: '#CCE4E8' },
-          { label: 'Aktif Kiraci', value: activeTenants.length, color: '#059669', borderColor: '#D1FAE5' },
-          { label: 'Inaktif Kiraci', value: inactiveTenants.length, color: '#7C3AED', borderColor: '#E9D5FF' },
-          { label: 'Eski Kiraci', value: formerTenants.length, color: C.textMuted, borderColor: '#E2E8F0' },
-          { label: 'Suresi Dolan (30 gun)', value: expiringCount, color: expiringCount > 0 ? '#D97706' : C.text, borderColor: expiringCount > 0 ? '#FDE68A' : '#E2E8F0' }
+          { label: t('tenantsList.stats.total'), value: tenants.length, color: C.teal, borderColor: '#CCE4E8' },
+          { label: t('tenantsList.stats.active'), value: activeTenants.length, color: '#059669', borderColor: '#D1FAE5' },
+          { label: t('tenantsList.stats.inactive'), value: inactiveTenants.length, color: '#7C3AED', borderColor: '#E9D5FF' },
+          { label: t('tenantsList.stats.former'), value: formerTenants.length, color: C.textMuted, borderColor: '#E2E8F0' },
+          { label: t('tenantsList.stats.expiring'), value: expiringCount, color: expiringCount > 0 ? '#D97706' : C.text, borderColor: expiringCount > 0 ? '#FDE68A' : '#E2E8F0' }
         ].map((s, i) => (
           <motion.div key={i} variants={item}
             whileHover={{ y: -3, boxShadow: '0 0 0 1px rgba(2,88,100,0.1), 0 12px 32px rgba(15,23,42,0.1)' }}
@@ -359,14 +354,14 @@ export default function TenantsList() {
       <motion.div variants={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${C.borderLight}` }}>
           {[
-            { key: 'active',   label: 'Aktif Kiracilar',   icon: UserCheck,  count: activeTenants.length },
-            { key: 'inactive', label: 'Inaktif Kiracilar', icon: UserMinus,  count: inactiveTenants.length },
-            { key: 'former',   label: 'Eski Kiracilar',    icon: UserX,      count: formerTenants.length }
-          ].map(t => {
-            const Icon = t.icon
-            const isActive = tab === t.key
+            { key: 'active',   label: t('tenantsList.tabs.active'),   icon: UserCheck,  count: activeTenants.length },
+            { key: 'inactive', label: t('tenantsList.tabs.inactive'), icon: UserMinus,  count: inactiveTenants.length },
+            { key: 'former',   label: t('tenantsList.tabs.former'),   icon: UserX,      count: formerTenants.length }
+          ].map(tb => {
+            const Icon = tb.icon
+            const isActive = tab === tb.key
             return (
-              <button key={t.key} onClick={() => setTab(t.key)}
+              <button key={tb.key} onClick={() => setTab(tb.key)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '10px 20px', fontSize: 13, fontWeight: isActive ? 700 : 500,
@@ -377,13 +372,13 @@ export default function TenantsList() {
                   marginBottom: -2, transition: 'color 0.2s, border-color 0.2s'
                 }}>
                 <Icon style={{ width: 15, height: 15 }} />
-                {t.label}
+                {tb.label}
                 <span style={{
                   fontSize: 11, fontWeight: 700, marginLeft: 2,
                   background: isActive ? '#F0FDFA' : '#F1F5F9',
                   color: isActive ? C.teal : C.textFaint,
                   padding: '2px 7px', borderRadius: 6
-                }}>{t.count}</span>
+                }}>{tb.count}</span>
               </button>
             )
           })}
@@ -396,7 +391,7 @@ export default function TenantsList() {
           border: `1.5px solid ${C.border}`, background: 'white', width: 220
         }}>
           <Search style={{ width: 14, height: 14, color: C.textFaint, flexShrink: 0 }} />
-          <input type="text" placeholder="Kiraci ara..." value={search}
+          <input type="text" placeholder={t('tenantsList.searchPh')} value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
               border: 'none', outline: 'none', fontSize: 13, fontFamily: font,
@@ -417,10 +412,10 @@ export default function TenantsList() {
           borderBottom: `1px solid ${C.borderLight}`
         }}>
           {(tab === 'active'
-            ? ['Kiraci', 'Telefon', 'Daire', 'Sozlesme Bitis', 'Kira', '']
+            ? [t('tenantsList.table.tenant'), t('tenantsList.table.phone'), t('tenantsList.table.apartment'), t('tenantsList.table.leaseEnd'), t('tenantsList.table.rent'), '']
             : tab === 'inactive'
-              ? ['Kiraci', 'Telefon', 'E-posta', 'Referans Kira', '']
-              : ['Kiraci', 'Telefon', 'Son Daire', 'Son Kira', '']
+              ? [t('tenantsList.table.tenant'), t('tenantsList.table.phone'), t('tenantsList.table.email'), t('tenantsList.table.referenceRent'), '']
+              : [t('tenantsList.table.tenant'), t('tenantsList.table.phone'), t('tenantsList.table.lastApartment'), t('tenantsList.table.lastRent'), '']
           ).map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
@@ -436,27 +431,27 @@ export default function TenantsList() {
               style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${C.teal}`, borderTopColor: 'transparent' }} />
           </div>
         ) : error ? (
-          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>Hata: {error}</div>
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>{t('tenantsList.empty.error', { msg: error })}</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
             {search
-              ? 'Arama sonucu bulunamadi.'
-              : tab === 'active' ? 'Aktif kiraci bulunmuyor.'
-              : tab === 'inactive' ? 'Inaktif kiraci bulunmuyor.'
-              : 'Eski kiraci bulunmuyor.'}
+              ? t('tenantsList.empty.search')
+              : tab === 'active' ? t('tenantsList.empty.active')
+              : tab === 'inactive' ? t('tenantsList.empty.inactive')
+              : t('tenantsList.empty.former')}
           </div>
-        ) : filtered.map((t, i) => {
-          const apt = apartmentLabel(t.apartments)
-          const rentVal = t.rent ? money(t.rent) + ' ₺' : '—'
-          const remaining = leaseRemaining(t.lease_end)
-          const initials = t.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+        ) : filtered.map((ten, i) => {
+          const apt = apartmentLabel(ten.apartments)
+          const rentVal = ten.rent ? formatMoney(ten.rent) : '—'
+          const remaining = leaseRemaining(ten.lease_end, t)
+          const initials = ten.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
           return (
-            <motion.div key={t.id}
+            <motion.div key={ten.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03, duration: 0.3 }}
-              onClick={() => navigate(`/tenants/list/${t.id}`)}
+              onClick={() => navigate(`/tenants/list/${ten.id}`)}
               style={{
                 display: 'grid',
                 gridTemplateColumns: tab === 'active'
@@ -478,16 +473,16 @@ export default function TenantsList() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 800
                 }}>{initials}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.full_name}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{ten.full_name}</div>
               </div>
 
               {/* Telefon */}
-              <div style={{ fontSize: 13, color: C.textMuted }}>{t.phone || '—'}</div>
+              <div style={{ fontSize: 13, color: C.textMuted }}>{ten.phone || '—'}</div>
 
               {/* 3. sutun: Daire (active/former) veya E-posta (inactive) */}
               {tab === 'inactive' ? (
                 <div style={{ fontSize: 13, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t.email || '—'}
+                  {ten.email || '—'}
                 </div>
               ) : (
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{apt}</div>
@@ -497,7 +492,7 @@ export default function TenantsList() {
                 <>
                   {/* Sozlesme Bitis */}
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{formatDate(t.lease_end)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{fmtDate(ten.lease_end)}</div>
                     {remaining && (
                       <div style={{
                         fontSize: 11, fontWeight: 600, color: remaining.color, marginTop: 2,
@@ -522,8 +517,8 @@ export default function TenantsList() {
               {/* Actions */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'flex-end' }}>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  onClick={(e) => { e.stopPropagation(); openEdit(t.id) }}
-                  title="Duzenle"
+                  onClick={(e) => { e.stopPropagation(); openEdit(ten.id) }}
+                  title={t('tenantsList.actions.edit')}
                   style={{
                     width: 30, height: 30, borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -534,8 +529,8 @@ export default function TenantsList() {
                 {tab === 'active' && (
                   <>
                     <motion.button whileHover={{ scale: 1.1, color: C.teal }} whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); openAssign(t, 'move') }}
-                      title="Daire degistir"
+                      onClick={(e) => { e.stopPropagation(); openAssign(ten, 'move') }}
+                      title={t('tenantsList.actions.changeApartment')}
                       style={{
                         width: 30, height: 30, borderRadius: 8,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -544,8 +539,8 @@ export default function TenantsList() {
                       <ArrowRightLeft style={{ width: 13, height: 13 }} />
                     </motion.button>
                     <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); moveToPast(t.id, t.full_name) }}
-                      title="Eski kiracilara tasi"
+                      onClick={(e) => { e.stopPropagation(); moveToPast(ten.id, ten.full_name) }}
+                      title={t('tenantsList.actions.moveToPast')}
                       style={{
                         width: 30, height: 30, borderRadius: 8,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -557,8 +552,8 @@ export default function TenantsList() {
                 )}
                 {(tab === 'inactive' || tab === 'former') && (
                   <motion.button whileHover={{ scale: 1.1, color: C.green }} whileTap={{ scale: 0.9 }}
-                    onClick={(e) => { e.stopPropagation(); openAssign(t, 'assign') }}
-                    title="Daire ata"
+                    onClick={(e) => { e.stopPropagation(); openAssign(ten, 'assign') }}
+                    title={t('tenantsList.actions.assignApartment')}
                     style={{
                       width: 30, height: 30, borderRadius: 8,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -568,8 +563,8 @@ export default function TenantsList() {
                   </motion.button>
                 )}
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                  onClick={(e) => { e.stopPropagation(); handleDelete(t.id, t.full_name) }}
-                  title="Sil"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(ten.id, ten.full_name) }}
+                  title={t('tenantsList.actions.delete')}
                   style={{
                     width: 30, height: 30, borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -612,7 +607,7 @@ export default function TenantsList() {
                 padding: '20px 28px', borderBottom: `1px solid ${C.borderLight}`
               }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0, fontFamily: font }}>
-                  {editId ? 'Kiraci Duzenle' : 'Yeni Kiraci Ekle'}
+                  {editId ? t('tenantsList.modal.titleEdit') : t('tenantsList.modal.titleAdd')}
                 </h3>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                   onClick={() => setShowPopup(false)}
@@ -630,33 +625,33 @@ export default function TenantsList() {
                 <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Ad Soyad *</label>
-                      <input style={inputStyle} type="text" placeholder="Ahmet Yilmaz" required
+                      <label style={labelStyle}>{t('tenantsList.modal.fullName')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.fullNamePh')} required
                         value={form.full_name} onChange={e => UF('full_name', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>E-posta</label>
-                      <input style={inputStyle} type="email" placeholder="ornek@mail.com"
+                      <label style={labelStyle}>{t('tenantsList.modal.email')}</label>
+                      <input style={inputStyle} type="email" placeholder={t('tenantsList.modal.emailPh')}
                         value={form.email} onChange={e => UF('email', e.target.value)} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Telefon</label>
-                      <input style={inputStyle} type="text" placeholder="0532 123 4567"
+                      <label style={labelStyle}>{t('tenantsList.modal.phone')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.phonePh')}
                         value={form.phone} onChange={e => UF('phone', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>TC Kimlik</label>
-                      <input style={inputStyle} type="text" placeholder="Opsiyonel" maxLength={11}
+                      <label style={labelStyle}>{t('tenantsList.modal.tcNo')}</label>
+                      <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.tcNoPh')} maxLength={11}
                         value={form.tc_no} onChange={e => UF('tc_no', e.target.value)} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Daire</label>
+                    <label style={labelStyle}>{t('tenantsList.modal.apartment')}</label>
                     <select style={{ ...inputStyle, cursor: 'pointer' }}
                       value={form.apartment_id} onChange={e => UF('apartment_id', e.target.value)}>
-                      <option value="">Daire secin...</option>
+                      <option value="">{t('tenantsList.modal.apartmentPh')}</option>
                       {(editId ? apartments.filter(a => !a.tenants?.[0] || a.id === form.apartment_id) : vacantApartments).map(a => (
                         <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
                       ))}
@@ -664,22 +659,22 @@ export default function TenantsList() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Sozlesme Baslangic</label>
+                      <label style={labelStyle}>{t('tenantsList.modal.leaseStart')}</label>
                       <input style={inputStyle} type="date" value={form.lease_start} onChange={e => UF('lease_start', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Sozlesme Bitis</label>
+                      <label style={labelStyle}>{t('tenantsList.modal.leaseEnd')}</label>
                       <input style={inputStyle} type="date" value={form.lease_end} onChange={e => UF('lease_end', e.target.value)} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
-                      <label style={labelStyle}>Aylik Kira (₺)</label>
+                      <label style={labelStyle}>{t('tenantsList.modal.monthlyRent')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                         value={form.rent} onChange={e => UF('rent', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Depozito (₺)</label>
+                      <label style={labelStyle}>{t('tenantsList.modal.deposit')}</label>
                       <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                         value={form.deposit} onChange={e => UF('deposit', e.target.value)} />
                     </div>
@@ -687,17 +682,17 @@ export default function TenantsList() {
                   {/* ── Acil Durum Kişisi ── */}
                   <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Shield style={{ width: 13, height: 13 }} /> Acil Durum Kişisi
+                      <Shield style={{ width: 13, height: 13 }} /> {t('tenantsList.modal.emergencyTitle')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
-                        <label style={labelStyle}>Ad Soyad</label>
-                        <input style={inputStyle} type="text" placeholder="Kişi adı"
+                        <label style={labelStyle}>{t('tenantsList.modal.contactName')}</label>
+                        <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.contactNamePh')}
                           value={form.emergency_contact_name} onChange={e => UF('emergency_contact_name', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Telefon</label>
-                        <input style={inputStyle} type="text" placeholder="0532 000 0000"
+                        <label style={labelStyle}>{t('tenantsList.modal.contactPhone')}</label>
+                        <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.contactPhonePh')}
                           value={form.emergency_contact_phone} onChange={e => UF('emergency_contact_phone', e.target.value)} />
                       </div>
                     </div>
@@ -706,17 +701,17 @@ export default function TenantsList() {
                   {/* ── IBAN ── */}
                   <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <CreditCard style={{ width: 13, height: 13 }} /> Finansal Bilgiler
+                      <CreditCard style={{ width: 13, height: 13 }} /> {t('tenantsList.modal.financialTitle')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div>
-                        <label style={labelStyle}>IBAN</label>
-                        <input style={inputStyle} type="text" placeholder="DE00 0000 0000 0000 0000 00"
+                        <label style={labelStyle}>{t('tenantsList.modal.iban')}</label>
+                        <input style={inputStyle} type="text" placeholder={t('tenantsList.modal.ibanPh')}
                           value={form.iban} onChange={e => UF('iban', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Aylık Aidat (₺/ay)</label>
-                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0,00"
+                        <label style={labelStyle}>{t('tenantsList.modal.nebenkosten')}</label>
+                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder={t('tenantsList.modal.nebenkostenPh')}
                           value={form.nebenkosten_vorauszahlung} onChange={e => UF('nebenkosten_vorauszahlung', e.target.value)} />
                       </div>
                     </div>
@@ -725,21 +720,21 @@ export default function TenantsList() {
                   {/* ── Hane Bilgisi ── */}
                   <div style={{ borderTop: `1px solid ${C.borderLight}`, paddingTop: 16, marginTop: 4 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <HomeIcon style={{ width: 13, height: 13 }} /> Hane Bilgisi
+                      <HomeIcon style={{ width: 13, height: 13 }} /> {t('tenantsList.modal.householdTitle')}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                       <div>
-                        <label style={labelStyle}>Eş</label>
+                        <label style={labelStyle}>{t('tenantsList.modal.spouse')}</label>
                         <input style={inputStyle} type="number" min="0" placeholder="0"
                           value={form.household_spouse} onChange={e => UF('household_spouse', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Çocuk</label>
+                        <label style={labelStyle}>{t('tenantsList.modal.children')}</label>
                         <input style={inputStyle} type="number" min="0" placeholder="0"
                           value={form.household_children} onChange={e => UF('household_children', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Oda Arkadaşı</label>
+                        <label style={labelStyle}>{t('tenantsList.modal.roommate')}</label>
                         <input style={inputStyle} type="number" min="0" placeholder="0"
                           value={form.household_roommate} onChange={e => UF('household_roommate', e.target.value)} />
                       </div>
@@ -747,9 +742,9 @@ export default function TenantsList() {
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Notlar</label>
+                    <label style={labelStyle}>{t('tenantsList.modal.notes')}</label>
                     <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} rows={2}
-                      placeholder="Opsiyonel notlar..."
+                      placeholder={t('tenantsList.modal.notesPh')}
                       value={form.notes} onChange={e => UF('notes', e.target.value)} />
                   </div>
                 </div>
@@ -761,7 +756,7 @@ export default function TenantsList() {
                 }}>
                   <button type="button" onClick={() => setShowPopup(false)}
                     style={{ padding: '10px 20px', borderRadius: 10, background: '#F1F5F9', color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>
-                    Iptal
+                    {t('common.cancel')}
                   </button>
                   <button type="submit" disabled={saving}
                     style={{
@@ -772,7 +767,7 @@ export default function TenantsList() {
                       opacity: saving ? 0.7 : 1, boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                    {saving ? t('common.saving') : t('common.save')}
                   </button>
                 </div>
               </form>
@@ -795,10 +790,10 @@ export default function TenantsList() {
             ? apartments.find(a => a.id === assignTenant.apartment_id)
             : null
           const Icon = assignMode === 'move' ? ArrowRightLeft : HomeIcon
-          const title = assignMode === 'move' ? 'Daire Degistir' : 'Daire Ata'
+          const title = assignMode === 'move' ? t('tenantsList.assign.titleMove') : t('tenantsList.assign.titleAssign')
           const subtitle = assignMode === 'move'
-            ? `${assignTenant.full_name} · Mevcut: ${apartmentLabel(currentApt)}`
-            : `${assignTenant.full_name} icin bos bir daire secin`
+            ? t('tenantsList.assign.subtitleMove', { name: assignTenant.full_name, apt: apartmentLabel(currentApt) })
+            : t('tenantsList.assign.subtitleAssign', { name: assignTenant.full_name })
           const accent = assignMode === 'move' ? C.teal : C.green
           return (
             <motion.div
@@ -863,10 +858,10 @@ export default function TenantsList() {
                       <AlertTriangle style={{ width: 24, height: 24 }} />
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                      Uygun bos daire yok
+                      {t('tenantsList.assign.noVacantTitle')}
                     </div>
                     <div style={{ fontSize: 13, color: C.textMuted, maxWidth: 340, margin: '0 auto' }}>
-                      Once bir daire ekleyin veya mevcut bir kiraciyi eski kiracilara tasiyin.
+                      {t('tenantsList.assign.noVacantBody')}
                     </div>
                     <button type="button" onClick={() => setAssignOpen(false)}
                       style={{
@@ -874,7 +869,7 @@ export default function TenantsList() {
                         background: '#F1F5F9', color: C.textMuted, border: 'none',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
                       }}>
-                      Kapat
+                      {t('tenantsList.assign.close')}
                     </button>
                   </div>
                 ) : (
@@ -888,44 +883,44 @@ export default function TenantsList() {
                         }}>
                           <AlertTriangle style={{ width: 14, height: 14, color: '#D97706', flexShrink: 0, marginTop: 2 }} />
                           <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
-                            Eski daireye ait <strong>bekleyen</strong> kira kayitlari silinir. Odenmis kayitlar tarihcede kalir.
+                            {t('tenantsList.assign.moveWarning')}
                           </div>
                         </div>
                       )}
                       <div>
                         <label style={labelStyle}>
-                          {assignMode === 'move' ? 'Yeni Daire *' : 'Daire *'}
+                          {assignMode === 'move' ? t('tenantsList.assign.newApartment') : t('tenantsList.assign.apartment')}
                         </label>
                         <select style={{ ...inputStyle, cursor: 'pointer' }}
                           value={assignForm.apartment_id} onChange={e => UA('apartment_id', e.target.value)}
                           required>
-                          <option value="">Daire secin...</option>
+                          <option value="">{t('tenantsList.modal.apartmentPh')}</option>
                           {pool.map(a => (
                             <option key={a.id} value={a.id}>
                               {apartmentLabel(a)}
-                              {assignMode === 'move' && a.id === assignTenant.apartment_id ? ' (mevcut)' : ''}
+                              {assignMode === 'move' && a.id === assignTenant.apartment_id ? ` ${t('tenantsList.assign.currentSuffix')}` : ''}
                             </option>
                           ))}
                         </select>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
-                          <label style={labelStyle}>Sozlesme Baslangic</label>
+                          <label style={labelStyle}>{t('tenantsList.modal.leaseStart')}</label>
                           <input style={inputStyle} type="date"
                             value={assignForm.lease_start} onChange={e => UA('lease_start', e.target.value)} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Sozlesme Bitis</label>
+                          <label style={labelStyle}>{t('tenantsList.modal.leaseEnd')}</label>
                           <input style={inputStyle} type="date"
                             value={assignForm.lease_end} onChange={e => UA('lease_end', e.target.value)} />
                         </div>
                       </div>
                       <div>
-                        <label style={labelStyle}>Aylik Kira (₺)</label>
+                        <label style={labelStyle}>{t('tenantsList.modal.monthlyRent')}</label>
                         <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
                           value={assignForm.rent} onChange={e => UA('rent', e.target.value)} />
                         <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>
-                          Sozlesme baslangicindan itibaren 120 aya kadar bekleyen kira kayitlari otomatik olusturulur.
+                          {t('tenantsList.assign.rentHint')}
                         </div>
                       </div>
                     </div>
@@ -940,7 +935,7 @@ export default function TenantsList() {
                           color: C.textMuted, border: 'none', fontSize: 13, fontWeight: 600,
                           cursor: 'pointer', fontFamily: font
                         }}>
-                        Iptal
+                        {t('common.cancel')}
                       </button>
                       <button type="submit" disabled={assignSaving}
                         style={{
@@ -954,7 +949,7 @@ export default function TenantsList() {
                             : '0 4px 14px rgba(2,88,100,0.25)'
                         }}>
                         <Check style={{ width: 15, height: 15 }} />
-                        {assignSaving ? 'Kaydediliyor...' : (assignMode === 'move' ? 'Tasi' : 'Ata')}
+                        {assignSaving ? t('common.saving') : (assignMode === 'move' ? t('tenantsList.assign.moveBtn') : t('tenantsList.assign.assignBtn'))}
                       </button>
                     </div>
                   </form>

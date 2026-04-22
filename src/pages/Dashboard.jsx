@@ -2,38 +2,19 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { apartmentLabel } from '../lib/apartmentLabel'
+import { formatMoney, getLocaleConfig } from '../i18n/formatters'
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { ArrowRight, Plus, AlertTriangle, Mail, UserPlus, Building2, TrendingUp, Clock, CalendarCheck } from 'lucide-react'
-
-const MO = ['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara']
-const MO_FULL = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik']
-
-const ago = d => {
-  const ms = Date.now() - new Date(d)
-  const m = Math.floor(ms / 60000)
-  if (m < 1) return 'Az once'
-  if (m < 60) return `${m} dk`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h} sa`
-  const dy = Math.floor(h / 24)
-  return dy === 1 ? 'Dun' : `${dy} gun`
-}
-
-const greet = () => {
-  const h = new Date().getHours()
-  return h < 6 ? 'Iyi geceler' : h < 12 ? 'Gunaydin' : h < 18 ? 'Iyi gunler' : 'Iyi aksamlar'
-}
 
 const dDiff = d => {
   const a = new Date(); a.setHours(0,0,0,0)
   const b = new Date(d); b.setHours(0,0,0,0)
   return Math.ceil((b - a) / 864e5)
 }
-
-const money = n => Number(n).toLocaleString('tr-TR')
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
 
@@ -66,7 +47,7 @@ const CTip = ({ active, payload, label }) => {
     <div style={{ fontFamily: font, background: '#0F172A', borderRadius: 8, padding: '8px 14px' }}>
       <div style={{ color: '#94A3B8', fontSize: 11 }}>{label}</div>
       <div style={{ color: 'white', fontWeight: 700, fontSize: 14, marginTop: 2 }}>
-        {money(payload[0].value)} ₺
+        {formatMoney(payload[0].value)}
       </div>
     </div>
   )
@@ -74,7 +55,33 @@ const CTip = ({ active, payload, label }) => {
 
 export default function Dashboard() {
   const nav = useNavigate()
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
+
+  const locale = getLocaleConfig(i18n.language).locale
+
+  const greet = () => {
+    const h = new Date().getHours()
+    if (h < 6)  return t('dashboard.greet.night')
+    if (h < 12) return t('dashboard.greet.morning')
+    if (h < 18) return t('dashboard.greet.day')
+    return t('dashboard.greet.evening')
+  }
+
+  const ago = d => {
+    const ms = Date.now() - new Date(d)
+    const m = Math.floor(ms / 60000)
+    if (m < 1) return t('dashboard.time.justNow')
+    if (m < 60) return t('dashboard.time.minutes', { n: m })
+    const h = Math.floor(m / 60)
+    if (h < 24) return t('dashboard.time.hours', { n: h })
+    const dy = Math.floor(h / 24)
+    if (dy === 1) return t('dashboard.time.yesterday')
+    return t('dashboard.time.days', { n: dy })
+  }
+
+  const monthShort = (i) => new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(2024, i, 1))
+
   const [apts, setApts] = useState([])
   const [pays, setPays] = useState([])
   const [tens, setTens] = useState([])
@@ -88,10 +95,10 @@ export default function Dashboard() {
         supabase.from('rent_payments').select('*, tenants(full_name, email), apartments(unit_no, floor_no, buildings(name))').order('due_date', { ascending: false }),
         supabase.from('tenants').select('id, full_name, apartment_id, lease_end').order('created_at', { ascending: false }),
         supabase.from('buildings').select('id, name').order('created_at', { ascending: false })
-      ]).then(([a, p, t, b]) => {
+      ]).then(([a, p, tns, b]) => {
         setApts(a.data || [])
         setPays(p.data || [])
-        setTens(t.data || [])
+        setTens(tns.data || [])
         setBlds(b.data || [])
         setReady(true)
       })
@@ -112,17 +119,17 @@ export default function Dashboard() {
     const now = new Date()
     const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
     const newPayments = []
-    for (const t of tenants) {
-      const rentAmount = Number(t.rent) || 0
+    for (const ten of tenants) {
+      const rentAmount = Number(ten.rent) || 0
       if (rentAmount <= 0) continue
-      const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
+      const startDate = ten.lease_start ? new Date(ten.lease_start) : new Date()
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
         if (dueDate > endOfNextMonth) break
-        const key = `${t.id}_${dueDate.toISOString().slice(0, 7)}`
+        const key = `${ten.id}_${dueDate.toISOString().slice(0, 7)}`
         if (existingKeys.has(key)) continue
         newPayments.push({
-          user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+          user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
           due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
         })
       }
@@ -132,7 +139,7 @@ export default function Dashboard() {
 
   const now = new Date()
   const cm = now.getMonth(), cy = now.getFullYear()
-  const name = user?.email?.split('@')[0] || 'Kullanici'
+  const name = user?.email?.split('@')[0] || t('sidebar.user')
 
   const monthPays = pays.filter(p => { const d = new Date(p.due_date); return d.getMonth() === cm && d.getFullYear() === cy })
   const paidThisMonth = monthPays.filter(p => p.status === 'paid')
@@ -184,12 +191,12 @@ export default function Dashboard() {
     for (let i = 11; i >= 0; i--) {
       const m = (cm - i + 12) % 12
       const y = cm - i < 0 ? cy - 1 : cy
-      const t = pays.filter(p => { const dt = new Date(p.due_date); return dt.getMonth() === m && dt.getFullYear() === y && p.status === 'paid' })
+      const sum = pays.filter(p => { const dt = new Date(p.due_date); return dt.getMonth() === m && dt.getFullYear() === y && p.status === 'paid' })
         .reduce((s, p) => s + Number(p.amount), 0)
-      d.push({ m: MO[m], v: t || null })
+      d.push({ m: monthShort(m), v: sum || null })
     }
     return d
-  }, [pays, cm, cy])
+  }, [pays, cm, cy, locale])
 
   if (!ready) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, fontFamily: font }}>
@@ -209,7 +216,7 @@ export default function Dashboard() {
             {greet()}, {name}
           </h1>
           <p style={{ fontSize: 13, color: '#94A3B8', marginTop: 3 }}>
-            {now.getDate()} {MO_FULL[cm]} {cy}
+            {new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(now)}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -220,7 +227,7 @@ export default function Dashboard() {
               borderRadius: 12, background: '#F0FDFA', color: S.teal, border: `1.5px solid #CCE4E8`,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <UserPlus style={{ width: 14, height: 14 }} /> Kiraci Ekle
+            <UserPlus style={{ width: 14, height: 14 }} /> {t('dashboard.addTenant')}
           </motion.button>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => nav('/properties')}
@@ -229,7 +236,7 @@ export default function Dashboard() {
               borderRadius: 12, background: '#F8FAFC', color: '#475569', border: `1.5px solid #E2E8F0`,
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font
             }}>
-            <Building2 style={{ width: 14, height: 14 }} /> Mulk Ekle
+            <Building2 style={{ width: 14, height: 14 }} /> {t('dashboard.addProperty')}
           </motion.button>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => nav('/payments/rent')}
@@ -239,7 +246,7 @@ export default function Dashboard() {
               fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: font,
               boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
             }}>
-            <Plus style={{ width: 14, height: 14 }} /> Tahsilat Ekle
+            <Plus style={{ width: 14, height: 14 }} /> {t('dashboard.addPayment')}
           </motion.button>
         </div>
       </motion.div>
@@ -266,13 +273,13 @@ export default function Dashboard() {
           }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>
-              Gerceklesen Odemeler
+              {t('dashboard.kpi.collectedTitle')}
             </div>
             <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Bu Ay
+              {t('dashboard.kpi.thisMonth')}
             </div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
-              {money(collectedSum)} ₺
+              {formatMoney(collectedSum)}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10, position: 'relative', zIndex: 1 }}>
@@ -290,7 +297,7 @@ export default function Dashboard() {
               borderRadius: 8, padding: '4px 12px',
               whiteSpace: 'nowrap'
             }}>
-              {paidAptCount > 0 ? `${paidAptCount} Mulk'ten` : 'Odeme yok'}
+              {paidAptCount > 0 ? t('dashboard.kpi.fromProperties', { count: paidAptCount }) : t('dashboard.kpi.noPayment')}
             </div>
           </div>
         </motion.div>
@@ -306,16 +313,16 @@ export default function Dashboard() {
           }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B', letterSpacing: '0.01em' }}>
-              Geciken Odemeler
+              {t('dashboard.kpi.overdueTitle')}
             </div>
             <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Bu Ay
+              {t('dashboard.kpi.thisMonth')}
             </div>
             <div style={{
               fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10,
               color: overdueThisMonth.length > 0 ? '#DC2626' : '#0F172A'
             }}>
-              {money(overdueMonthSum)} ₺
+              {formatMoney(overdueMonthSum)}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
@@ -334,7 +341,7 @@ export default function Dashboard() {
               borderRadius: 8, padding: '4px 12px',
               whiteSpace: 'nowrap'
             }}>
-              {overdueMonthAptCount > 0 ? `${overdueMonthAptCount} Mulk'ten` : 'Geciken yok'}
+              {overdueMonthAptCount > 0 ? t('dashboard.kpi.fromProperties', { count: overdueMonthAptCount }) : t('dashboard.kpi.noOverdue')}
             </div>
           </div>
         </motion.div>
@@ -350,13 +357,13 @@ export default function Dashboard() {
           }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B', letterSpacing: '0.01em' }}>
-              Gelecek Odemeler
+              {t('dashboard.kpi.upcomingTitle')}
             </div>
             <div style={{ fontSize: 11, fontWeight: 500, color: '#94A3B8', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Bu Ay
+              {t('dashboard.kpi.thisMonth')}
             </div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#B45309', letterSpacing: '-0.02em', lineHeight: 1, marginTop: 10 }}>
-              {money(upcomingMonthSum)} ₺
+              {formatMoney(upcomingMonthSum)}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
@@ -374,7 +381,7 @@ export default function Dashboard() {
               borderRadius: 8, padding: '4px 12px',
               whiteSpace: 'nowrap'
             }}>
-              {upcomingMonthAptCount > 0 ? `${upcomingMonthAptCount} Mulk'ten` : 'Bekleyen yok'}
+              {upcomingMonthAptCount > 0 ? t('dashboard.kpi.fromProperties', { count: upcomingMonthAptCount }) : t('dashboard.kpi.noUpcoming')}
             </div>
           </div>
         </motion.div>
@@ -391,7 +398,7 @@ export default function Dashboard() {
             padding: '18px 22px', borderBottom: '1px solid #F1F5F9'
           }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-              Geciken Kiralar
+              {t('dashboard.overdueList.title')}
             </div>
             <motion.button whileHover={{ x: 3 }}
               onClick={() => nav('/payments/rent')}
@@ -400,17 +407,17 @@ export default function Dashboard() {
                 fontSize: 12, fontWeight: 600, color: S.teal, background: 'none',
                 border: 'none', cursor: 'pointer', fontFamily: font
               }}>
-              Tumu <ArrowRight style={{ width: 13, height: 13 }} />
+              {t('dashboard.overdueList.all')} <ArrowRight style={{ width: 13, height: 13 }} />
             </motion.button>
           </div>
 
           {unpaidTenants.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', fontSize: 13, color: '#94A3B8' }}>
-              Geciken odeme yok.
+              {t('dashboard.overdueList.empty')}
             </div>
           ) : (
             <div>
-              {unpaidTenants.slice(0, 6).map((t, i) => (
+              {unpaidTenants.slice(0, 6).map((row, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -430,17 +437,17 @@ export default function Dashboard() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
-                      {t.name}
+                      {row.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
-                      {t.apt} · {t.daysLate} gun gecikme
+                      {row.apt} · {t('dashboard.overdueList.daysLate', { count: row.daysLate })}
                     </div>
                   </div>
                   <div style={{
                     fontSize: 14, fontWeight: 700, color: '#DC2626',
                     fontVariantNumeric: 'tabular-nums', flexShrink: 0
                   }}>
-                    {money(t.amount)} ₺
+                    {formatMoney(row.amount)}
                   </div>
                 </motion.div>
               ))}
@@ -451,8 +458,8 @@ export default function Dashboard() {
         {/* Tahsilat Trendi */}
         <motion.div variants={item} style={{ ...S.card, padding: '22px 22px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Tahsilat Trendi</div>
-            <span style={{ fontSize: 11, color: '#94A3B8' }}>12 ay</span>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{t('dashboard.trend.title')}</div>
+            <span style={{ fontSize: 11, color: '#94A3B8' }}>{t('dashboard.trend.period')}</span>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={trendData}>
@@ -482,7 +489,7 @@ export default function Dashboard() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '18px 22px', borderBottom: '1px solid #F1F5F9'
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Son Hareketler</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{t('dashboard.recent.title')}</div>
             <motion.button whileHover={{ x: 3 }}
               onClick={() => nav('/payments/rent')}
               style={{
@@ -490,7 +497,7 @@ export default function Dashboard() {
                 fontSize: 12, fontWeight: 600, color: S.teal, background: 'none',
                 border: 'none', cursor: 'pointer', fontFamily: font
               }}>
-              Tumu <ArrowRight style={{ width: 13, height: 13 }} />
+              {t('dashboard.recent.all')} <ArrowRight style={{ width: 13, height: 13 }} />
             </motion.button>
           </div>
 
@@ -499,7 +506,7 @@ export default function Dashboard() {
               .sort((a, b) => new Date(b.paid_date) - new Date(a.paid_date)).slice(0, 5)
             return recent.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', fontSize: 13, color: '#94A3B8' }}>
-                Henuz odeme yok.
+                {t('dashboard.recent.empty')}
               </div>
             ) : recent.map((p, i) => (
               <motion.div key={p.id}
@@ -529,7 +536,7 @@ export default function Dashboard() {
                   fontSize: 14, fontWeight: 700, color: '#059669',
                   fontVariantNumeric: 'tabular-nums', flexShrink: 0
                 }}>
-                  +{money(p.amount)} ₺
+                  +{formatMoney(p.amount)}
                 </div>
               </motion.div>
             ))
@@ -539,7 +546,7 @@ export default function Dashboard() {
         {/* Mülk Durumu — Simple */}
         <motion.div variants={item} style={{ ...S.card, padding: '22px' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 20 }}>
-            Mulk Durumu
+            {t('dashboard.status.title')}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -553,7 +560,7 @@ export default function Dashboard() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: S.teal }} />
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>Dolu</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#0F172A' }}>{t('dashboard.status.occupied')}</span>
               </div>
               <span style={{ fontSize: 22, fontWeight: 800, color: S.teal }}>{aptOcc}</span>
             </div>
@@ -567,7 +574,7 @@ export default function Dashboard() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#CBD5E1', border: '2px solid #94A3B8' }} />
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B' }}>Bos</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#64748B' }}>{t('dashboard.status.vacant')}</span>
               </div>
               <span style={{ fontSize: 22, fontWeight: 800, color: '#64748B' }}>{aptVac}</span>
             </div>
@@ -591,8 +598,8 @@ export default function Dashboard() {
             display: 'flex', justifyContent: 'space-between',
             marginTop: 8, fontSize: 11, color: '#94A3B8'
           }}>
-            <span>{blds.length} bina · {aptTotal} daire</span>
-            <span>%{aptTotal > 0 ? Math.round((aptOcc / aptTotal) * 100) : 0} doluluk</span>
+            <span>{t('dashboard.status.summary', { b: blds.length, a: aptTotal, count: aptTotal })}</span>
+            <span>{t('dashboard.status.occupancy', { pct: aptTotal > 0 ? Math.round((aptOcc / aptTotal) * 100) : 0 })}</span>
           </div>
         </motion.div>
       </div>

@@ -1,24 +1,18 @@
 /* ── KiraciYonet — Kira Ödemeleri — Redesigned ── */
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
+import { formatMoney, formatDate as fmtDate, formatMonthYear } from '../i18n/formatters'
 import {
-  DollarSign, Clock, XCircle, CreditCard, Search,
-  ChevronDown, Check, Mail, TrendingUp, Building2,
-  User, UserMinus, CalendarDays, AlertTriangle, Undo2, Filter
+  Clock, CreditCard, Search,
+  ChevronDown, Check, Mail, TrendingUp,
+  UserMinus, AlertTriangle, Undo2
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
 
 function daysDiff(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
@@ -54,6 +48,7 @@ const cardBox = {
 }
 
 export default function RentPayments() {
+  const { t } = useTranslation()
   const { showToast } = useToast()
   const [allPayments, setAllPayments] = useState([])
   const [payments, setPayments] = useState([])
@@ -96,11 +91,11 @@ export default function RentPayments() {
     const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
     const newPayments = []
 
-    for (const t of tenants) {
-      if (!t.apartment_id) continue
-      const startDate = t.lease_start ? new Date(t.lease_start) : new Date()
-      const rentAmount = Number(t.rent) || 0
-      const aidatAmount = Number(t.nebenkosten_vorauszahlung) || 0
+    for (const ten of tenants) {
+      if (!ten.apartment_id) continue
+      const startDate = ten.lease_start ? new Date(ten.lease_start) : new Date()
+      const rentAmount = Number(ten.rent) || 0
+      const aidatAmount = Number(ten.nebenkosten_vorauszahlung) || 0
 
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
@@ -109,20 +104,20 @@ export default function RentPayments() {
         const dueDateStr = dueDate.toISOString().split('T')[0]
 
         if (rentAmount > 0) {
-          const rentKey = `${t.id}_${month}_rent`
+          const rentKey = `${ten.id}_${month}_rent`
           if (!existingKeys.has(rentKey)) {
             newPayments.push({
-              user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+              user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
               due_date: dueDateStr, amount: rentAmount, status: 'pending', type: 'rent'
             })
           }
         }
 
         if (aidatAmount > 0) {
-          const aidatKey = `${t.id}_${month}_aidat`
+          const aidatKey = `${ten.id}_${month}_aidat`
           if (!existingKeys.has(aidatKey)) {
             newPayments.push({
-              user_id: session.user.id, tenant_id: t.id, apartment_id: t.apartment_id,
+              user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
               due_date: dueDateStr, amount: aidatAmount, status: 'pending', type: 'aidat'
             })
           }
@@ -224,17 +219,17 @@ export default function RentPayments() {
 
   const sendEmail = async (payment, type) => {
     const tenantEmail = payment.tenants?.email
-    if (!tenantEmail) { showToast('Kiracının e-posta adresi bulunamadı.', 'error'); return false }
+    if (!tenantEmail) { showToast(t('rentPayments.toasts.emailNotFound'), 'error'); return false }
     const { data: { session } } = await supabase.auth.getSession()
-    const landlordName = session?.user?.email?.split('@')[0] || 'Mülk Sahibi'
+    const landlordName = session?.user?.email?.split('@')[0] || t('rentPayments.landlordDefault')
     const diff = daysDiff(payment.due_date)
     try {
       const res = await fetch('/api/send-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type, tenantName: payment.tenants?.full_name, tenantEmail,
-          amount: payment.amount, dueDate: formatDate(payment.due_date),
-          paidDate: formatDate(new Date().toISOString()),
+          amount: payment.amount, dueDate: fmtDate(payment.due_date),
+          paidDate: fmtDate(new Date().toISOString()),
           daysLate: Math.abs(diff), landlordName
         })
       })
@@ -242,12 +237,14 @@ export default function RentPayments() {
       await supabase.from('email_logs').insert({
         user_id: session.user.id, tenant_id: payment.tenant_id,
         payment_id: payment.id, email_type: type, recipient: tenantEmail,
-        subject: type === 'reminder' ? 'Kira Hatırlatması' : type === 'overdue' ? 'Geciken Ödeme' : 'Ödeme Onay',
+        subject: type === 'reminder' ? t('rentPayments.emailSubject.reminder')
+               : type === 'overdue' ? t('rentPayments.emailSubject.overdue')
+               : t('rentPayments.emailSubject.paid'),
         status: result.success ? 'sent' : 'failed', error_message: result.error || null
       })
-      if (result.success) { showToast(`Mail gönderildi: ${tenantEmail}`, 'success'); return true }
-      showToast('Mail gönderilemedi: ' + (result.error || 'Bilinmeyen hata'), 'error'); return false
-    } catch (err) { showToast('Mail gönderilemedi: ' + err.message, 'error'); return false }
+      if (result.success) { showToast(t('rentPayments.toasts.emailSent', { email: tenantEmail }), 'success'); return true }
+      showToast(t('rentPayments.toasts.emailFailed', { msg: result.error || t('rentPayments.toasts.emailUnknownError') }), 'error'); return false
+    } catch (err) { showToast(t('rentPayments.toasts.emailFailed', { msg: err.message }), 'error'); return false }
   }
 
   const sendReminder = async (payment) => {
@@ -258,8 +255,8 @@ export default function RentPayments() {
     e.stopPropagation()
     const today = new Date().toISOString().split('T')[0]
     const { error: err } = await supabase.from('rent_payments').update({ status: 'paid', paid_date: today }).eq('id', id)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Ödeme kaydedildi.', 'success')
+    if (err) { showToast(t('rentPayments.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('rentPayments.toasts.paymentSaved'), 'success')
     const payment = payments.find(p => p.id === id)
     if (payment?.tenants?.email) sendEmail(payment, 'payment_received')
     loadPayments()
@@ -268,8 +265,8 @@ export default function RentPayments() {
   const markAsUnpaid = async (e, id) => {
     e.stopPropagation()
     const { error: err } = await supabase.from('rent_payments').update({ status: 'pending', paid_date: null }).eq('id', id)
-    if (err) { showToast('Hata: ' + err.message, 'error'); return }
-    showToast('Ödeme geri alındı.', 'success'); loadPayments()
+    if (err) { showToast(t('rentPayments.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    showToast(t('rentPayments.toasts.paymentReverted'), 'success'); loadPayments()
   }
 
   const toggleExpand = (tenantId) => setExpandedTenant(prev => prev === tenantId ? null : tenantId)
@@ -287,8 +284,7 @@ export default function RentPayments() {
     </div>
   )
 
-  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
-  const monthLabel = months[currentMonth] + ' ' + currentYear
+  const monthLabel = formatMonthYear(currentMonth + 1, currentYear)
 
   return (
     <motion.div variants={container} initial="hidden" animate="show"
@@ -298,18 +294,18 @@ export default function RentPayments() {
       <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
-            {activeTab === 'rent' ? 'Kira Ödemeleri' : 'Aidat Ödemeleri'}
+            {activeTab === 'rent' ? t('rentPayments.titleRent') : t('rentPayments.titleAidat')}
           </h1>
           <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
-            {monthLabel} — Ödeme takibi ve tahsilat yönetimi
+            {monthLabel} — {t('rentPayments.subtitle')}
           </p>
         </div>
 
         {/* Tab buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F1F5F9', borderRadius: 12, padding: 4 }}>
           {[
-            { key: 'rent', label: 'Kira' },
-            { key: 'aidat', label: 'Aidat' }
+            { key: 'rent', label: t('rentPayments.tabs.rent') },
+            { key: 'aidat', label: t('rentPayments.tabs.aidat') }
           ].map(tab => (
             <motion.button key={tab.key} whileTap={{ scale: 0.96 }}
               onClick={() => setActiveTab(tab.key)}
@@ -348,10 +344,10 @@ export default function RentPayments() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.01em' }}>
-                  Tahsilat
+                  {t('rentPayments.kpi.collected')}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Bu Ay
+                  {t('rentPayments.kpi.thisMonth')}
                 </div>
               </div>
               <div style={{
@@ -363,7 +359,7 @@ export default function RentPayments() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {money(totalCollected)} ₺
+              {formatMoney(totalCollected)}
             </div>
           </div>
         </motion.div>
@@ -380,7 +376,7 @@ export default function RentPayments() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Bekleyen
+                {t('rentPayments.kpi.pending')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -391,7 +387,7 @@ export default function RentPayments() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {money(totalPending)} ₺
+              {formatMoney(totalPending)}
             </div>
           </div>
         </motion.div>
@@ -408,7 +404,7 @@ export default function RentPayments() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Geciken
+                {t('rentPayments.kpi.overdue')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -421,7 +417,7 @@ export default function RentPayments() {
             <div style={{ fontSize: 26, fontWeight: 800, color: overdueCount > 0 ? C.red : C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
               {overdueCount}
             </div>
-            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 4 }}>ödeme</div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 4 }}>{t('rentPayments.kpi.overdueUnit')}</div>
           </div>
         </motion.div>
 
@@ -437,7 +433,7 @@ export default function RentPayments() {
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Toplam Tahsilat
+                {t('rentPayments.kpi.totalCollected')}
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
@@ -448,7 +444,7 @@ export default function RentPayments() {
               </div>
             </div>
             <div style={{ fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {money(totalAll)} ₺
+              {formatMoney(totalAll)}
             </div>
           </div>
         </motion.div>
@@ -467,7 +463,7 @@ export default function RentPayments() {
         }}>
           <Search style={{ width: 16, height: 16, color: C.textFaint, flexShrink: 0 }} />
           <input
-            type="text" placeholder="Kiracı veya daire ara..."
+            type="text" placeholder={t('rentPayments.searchPh')}
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             style={{
               border: 'none', outline: 'none', background: 'transparent',
@@ -480,10 +476,10 @@ export default function RentPayments() {
         {/* Filter pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {[
-            { key: '', label: 'Tümü' },
-            { key: 'pending', label: 'Bekleyen' },
-            { key: 'overdue', label: 'Geciken' },
-            { key: 'paid', label: 'Ödenen' }
+            { key: '', label: t('rentPayments.filters.all') },
+            { key: 'pending', label: t('rentPayments.filters.pending') },
+            { key: 'overdue', label: t('rentPayments.filters.overdue') },
+            { key: 'paid', label: t('rentPayments.filters.paid') }
           ].map(f => (
             <motion.button key={f.key} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               onClick={() => setFilter(f.key)}
@@ -510,7 +506,15 @@ export default function RentPayments() {
           padding: '14px 24px', background: '#FAFBFC',
           borderBottom: `1px solid ${C.borderLight}`
         }}>
-          {['Kiracı', 'Daire', 'Tutar', 'Durum', 'Kalan', 'Aksiyon', ''].map((h, i) => (
+          {[
+            t('rentPayments.table.tenant'),
+            t('rentPayments.table.apartment'),
+            t('rentPayments.table.amount'),
+            t('rentPayments.table.status'),
+            t('rentPayments.table.remaining'),
+            t('rentPayments.table.action'),
+            ''
+          ].map((h, i) => (
             <div key={i} style={{
               fontSize: 11, fontWeight: 700, color: C.textFaint,
               textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -520,10 +524,10 @@ export default function RentPayments() {
 
         {/* Rows */}
         {error ? (
-          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>Hata: {error}</div>
+          <div style={{ textAlign: 'center', padding: '32px 24px', color: C.red, fontSize: 14 }}>{t('rentPayments.errorPrefix', { msg: error })}</div>
         ) : sorted.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 24px', color: C.textFaint, fontSize: 14 }}>
-            {searchQuery || filter ? 'Bu filtreye uygun ödeme bulunamadı.' : 'Henüz ödeme kaydı yok.'}
+            {searchQuery || filter ? t('rentPayments.empty.filtered') : t('rentPayments.empty.none')}
           </div>
         ) : sorted.map((group, idx) => {
           const mainPayment = getMainPayment(group)
@@ -536,16 +540,18 @@ export default function RentPayments() {
 
           let dayLabel = ''
           if (!mainPayment) dayLabel = '—'
-          else if (st === 'overdue') dayLabel = Math.abs(diff) + ' gün gecikti'
-          else if (diff === 0) dayLabel = 'Bugün'
-          else if (diff === 1) dayLabel = 'Yarın'
-          else dayLabel = diff + ' gün kaldı'
+          else if (st === 'overdue') dayLabel = t('rentPayments.dayLabel.overdue', { n: Math.abs(diff) })
+          else if (diff === 0) dayLabel = t('rentPayments.dayLabel.today')
+          else if (diff === 1) dayLabel = t('rentPayments.dayLabel.tomorrow')
+          else dayLabel = t('rentPayments.dayLabel.daysLeft', { n: diff })
 
           const initials = group.tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 
           const statusColor = st === 'overdue' ? C.red : st === 'pending' ? C.amber : C.green
           const statusBg = st === 'overdue' ? '#FEF2F2' : st === 'pending' ? '#FFFBEB' : '#F0FDF4'
-          const statusLabel = st === 'overdue' ? 'Gecikti' : st === 'pending' ? 'Bekliyor' : 'Ödendi'
+          const statusLabel = st === 'overdue' ? t('rentPayments.status.overdue')
+            : st === 'pending' ? t('rentPayments.status.pending')
+            : t('rentPayments.status.paid')
 
           return (
             <React.Fragment key={group.tenantId}>
@@ -587,7 +593,7 @@ export default function RentPayments() {
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: C.textFaint, marginTop: 1 }}>
-                      {mainPayment ? formatDate(mainPayment.due_date) : ''}
+                      {mainPayment ? fmtDate(mainPayment.due_date) : ''}
                     </div>
                   </div>
                 </div>
@@ -597,7 +603,7 @@ export default function RentPayments() {
 
                 {/* Tutar */}
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                  {mainPayment ? money(mainPayment.amount) + ' ₺' : '— ₺'}
+                  {mainPayment ? formatMoney(mainPayment.amount) : '—'}
                 </div>
 
                 {/* Durum */}
@@ -633,11 +639,11 @@ export default function RentPayments() {
                           background: C.teal, color: '#FFFFFF',
                           fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
                         }}>
-                        <Check style={{ width: 13, height: 13 }} /> Ödendi
+                        <Check style={{ width: 13, height: 13 }} /> {t('rentPayments.actions.markPaid')}
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         onClick={(e) => { e.stopPropagation(); sendReminder(mainPayment) }}
-                        title="Hatırlatma maili gönder"
+                        title={t('rentPayments.actions.reminderTitle')}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           padding: '6px 10px', borderRadius: 8,
@@ -689,7 +695,7 @@ export default function RentPayments() {
                             marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
                           }}>
                             <AlertTriangle style={{ width: 13, height: 13 }} />
-                            Geciken Ödemeler
+                            {t('rentPayments.overdueHeader')}
                           </div>
                           {/* Overdue header */}
                           <div style={{
@@ -698,9 +704,9 @@ export default function RentPayments() {
                             fontSize: 10, fontWeight: 600, color: C.textFaint,
                             textTransform: 'uppercase', letterSpacing: '0.06em'
                           }}>
-                            <span>Vade Tarihi</span>
-                            <span>Tutar</span>
-                            <span>Gecikme</span>
+                            <span>{t('rentPayments.overdueTable.dueDate')}</span>
+                            <span>{t('rentPayments.overdueTable.amount')}</span>
+                            <span>{t('rentPayments.overdueTable.delay')}</span>
                             <span style={{ minWidth: 140 }}></span>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -714,13 +720,13 @@ export default function RentPayments() {
                                   background: '#FFFFFF', borderBottom: `1px solid ${C.borderLight}`
                                 }}>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
-                                    {formatDate(p.due_date)}
+                                    {fmtDate(p.due_date)}
                                   </span>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                                    {money(p.amount)} ₺
+                                    {formatMoney(p.amount)}
                                   </span>
                                   <span style={{ fontSize: 12, fontWeight: 600, color: C.red }}>
-                                    {Math.abs(d)} gün gecikti
+                                    {t('rentPayments.overdueDelay', { n: Math.abs(d) })}
                                   </span>
                                   <div style={{ display: 'flex', gap: 6, minWidth: 140, justifyContent: 'flex-end' }}>
                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -730,7 +736,7 @@ export default function RentPayments() {
                                         background: C.teal, color: '#FFFFFF',
                                         fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: font
                                       }}>
-                                      Ödendi
+                                      {t('rentPayments.actions.markPaid')}
                                     </motion.button>
                                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                       onClick={(e) => { e.stopPropagation(); sendReminder(p) }}
@@ -740,7 +746,7 @@ export default function RentPayments() {
                                         color: C.textMuted, fontSize: 11, fontWeight: 600,
                                         cursor: 'pointer', fontFamily: font
                                       }}>
-                                      Hatırla
+                                      {t('rentPayments.actions.remind')}
                                     </motion.button>
                                   </div>
                                 </div>
@@ -759,7 +765,7 @@ export default function RentPayments() {
                             marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
                           }}>
                             <Check style={{ width: 13, height: 13 }} />
-                            Ödeme Geçmişi ({group.paidPayments.length})
+                            {t('rentPayments.historyHeader', { n: group.paidPayments.length })}
                           </div>
 
                           {/* Column headers */}
@@ -769,10 +775,10 @@ export default function RentPayments() {
                             fontSize: 10, fontWeight: 600, color: C.textFaint,
                             textTransform: 'uppercase', letterSpacing: '0.06em'
                           }}>
-                            <span>Vade Tarihi</span>
-                            <span>Tutar</span>
-                            <span>Durum</span>
-                            <span>Ödeme Tarihi</span>
+                            <span>{t('rentPayments.historyTable.dueDate')}</span>
+                            <span>{t('rentPayments.historyTable.amount')}</span>
+                            <span>{t('rentPayments.historyTable.status')}</span>
+                            <span>{t('rentPayments.historyTable.paidDate')}</span>
                             <span style={{ minWidth: 70 }}></span>
                           </div>
 
@@ -788,10 +794,10 @@ export default function RentPayments() {
                                   borderBottom: `1px solid ${C.borderLight}`
                                 }}>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
-                                    {formatDate(p.due_date)}
+                                    {fmtDate(p.due_date)}
                                   </span>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                                    {money(p.amount)} ₺
+                                    {formatMoney(p.amount)}
                                   </span>
                                   <span style={{
                                     display: 'inline-flex', alignItems: 'center', width: 'fit-content',
@@ -801,10 +807,10 @@ export default function RentPayments() {
                                     color: paidLate ? C.amber : '#059669',
                                     border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
                                   }}>
-                                    {paidLate ? 'Geç Ödendi' : 'Zamanında'}
+                                    {paidLate ? t('rentPayments.historyStatus.late') : t('rentPayments.historyStatus.onTime')}
                                   </span>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
-                                    {p.paid_date ? formatDate(p.paid_date) : ''}
+                                    {p.paid_date ? fmtDate(p.paid_date) : ''}
                                   </span>
                                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                     onClick={(e) => markAsUnpaid(e, p.id)}
@@ -815,7 +821,7 @@ export default function RentPayments() {
                                       cursor: 'pointer', fontFamily: font,
                                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4
                                     }}>
-                                    <Undo2 style={{ width: 12, height: 12 }} /> Geri Al
+                                    <Undo2 style={{ width: 12, height: 12 }} /> {t('rentPayments.actions.undo')}
                                   </motion.button>
                                 </div>
                               )
@@ -830,7 +836,7 @@ export default function RentPayments() {
                           fontSize: 13, color: C.textFaint, background: '#FFFFFF',
                           borderRadius: 8
                         }}>
-                          Henüz ödeme geçmişi yok.
+                          {t('rentPayments.noHistory')}
                         </div>
                       )}
                     </div>
@@ -850,7 +856,7 @@ export default function RentPayments() {
             marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8
           }}>
             <UserMinus style={{ width: 16, height: 16 }} />
-            Eski Kiracı Ödemeleri
+            {t('rentPayments.pastSection')}
           </div>
 
           <div style={cardBox}>
@@ -861,7 +867,13 @@ export default function RentPayments() {
               padding: '12px 24px', background: '#FAFBFC',
               borderBottom: `1px solid ${C.borderLight}`
             }}>
-              {['Kiracı', 'Daire', 'Toplam Ödeme', 'Kayıt', ''].map((h, i) => (
+              {[
+                t('rentPayments.pastTable.tenant'),
+                t('rentPayments.pastTable.apartment'),
+                t('rentPayments.pastTable.totalPaid'),
+                t('rentPayments.pastTable.records'),
+                ''
+              ].map((h, i) => (
                 <div key={i} style={{
                   fontSize: 11, fontWeight: 700, color: C.textFaint,
                   textTransform: 'uppercase', letterSpacing: '0.06em'
@@ -900,9 +912,9 @@ export default function RentPayments() {
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>{group.aptName}</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                      {money(totalPaid)} ₺
+                      {formatMoney(totalPaid)}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textFaint }}>{group.paidPayments.length} ödeme</div>
+                    <div style={{ fontSize: 12, color: C.textFaint }}>{t('rentPayments.paymentCount', { n: group.paidPayments.length })}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }} style={{ color: C.textFaint }}>
                         <ChevronDown style={{ width: 16, height: 16 }} />
@@ -928,10 +940,10 @@ export default function RentPayments() {
                             fontSize: 10, fontWeight: 600, color: C.textFaint,
                             textTransform: 'uppercase', letterSpacing: '0.06em'
                           }}>
-                            <span>Vade Tarihi</span>
-                            <span>Tutar</span>
-                            <span>Durum</span>
-                            <span>Ödeme Tarihi</span>
+                            <span>{t('rentPayments.historyTable.dueDate')}</span>
+                            <span>{t('rentPayments.historyTable.amount')}</span>
+                            <span>{t('rentPayments.historyTable.status')}</span>
+                            <span>{t('rentPayments.historyTable.paidDate')}</span>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {group.paidPayments.map(p => {
@@ -944,10 +956,10 @@ export default function RentPayments() {
                                   background: '#FFFFFF', borderBottom: `1px solid ${C.borderLight}`
                                 }}>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>
-                                    {formatDate(p.due_date)}
+                                    {fmtDate(p.due_date)}
                                   </span>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                                    {money(p.amount)} ₺
+                                    {formatMoney(p.amount)}
                                   </span>
                                   <span style={{
                                     display: 'inline-flex', alignItems: 'center', width: 'fit-content',
@@ -957,10 +969,10 @@ export default function RentPayments() {
                                     color: paidLate ? C.amber : '#059669',
                                     border: `1px solid ${paidLate ? '#FDE68A' : '#A7F3D0'}`
                                   }}>
-                                    {paidLate ? 'Geç Ödendi' : 'Zamanında'}
+                                    {paidLate ? t('rentPayments.historyStatus.late') : t('rentPayments.historyStatus.onTime')}
                                   </span>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
-                                    {p.paid_date ? formatDate(p.paid_date) : '—'}
+                                    {p.paid_date ? fmtDate(p.paid_date) : '—'}
                                   </span>
                                 </div>
                               )

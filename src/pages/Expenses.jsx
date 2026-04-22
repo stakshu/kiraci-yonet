@@ -1,6 +1,7 @@
 /* ── KiraciYonet — Gider Yönetimi (Betriebskosten / Nebenkostenabrechnung) ── */
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
@@ -9,6 +10,7 @@ import BuildingExpenseSheet from '../components/BuildingExpenseSheet'
 import InvoicePreview from '../components/InvoicePreview'
 import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
 import { computeApartmentRollup, computeBuildingRollup } from '../lib/abrechnungCalc'
+import { formatMoney, formatDate as fmtDate, formatMonthYear } from '../i18n/formatters'
 import {
   Receipt, Plus, Pencil, Trash2, X, Check, Search,
   Settings2, ChevronDown, ChevronRight, Building2,
@@ -22,18 +24,6 @@ import {
 
 /* ── Design Tokens ── */
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
-const money = n => Number(n).toLocaleString('tr-TR')
-const money2 = n => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
-  const d = new Date(dateStr)
-  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
-}
-
-const MONTH_NAMES = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
-const MONTH_SHORT = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
 
 const C = {
   teal: '#025864', green: '#00D47E', darkTeal: '#03363D',
@@ -123,6 +113,17 @@ const EMPTY_CATEGORY = {
 export default function Expenses() {
   const { user } = useAuth()
   const { showToast } = useToast()
+  const { t, i18n } = useTranslation()
+
+  /* ── Localized month names (long + short) — re-derive when language changes ── */
+  const monthNames = useMemo(() => {
+    const y = new Date().getFullYear()
+    return Array.from({ length: 12 }, (_, i) => formatMonthYear(i + 1, y).split(' ')[0])
+  }, [i18n.language])
+  const monthShort = useMemo(() =>
+    monthNames.map(m => m.length > 3 ? m.slice(0, 3) : m),
+    [monthNames]
+  )
 
   /* ── State ── */
   const [expenses, setExpenses] = useState([])
@@ -284,7 +285,7 @@ export default function Expenses() {
 
   const handleSaveExpense = async () => {
     if (!expenseForm.category_id || !expenseForm.amount) {
-      showToast('Kategori ve tutar zorunludur.', 'error'); return
+      showToast(t('expenses.expenseModal.toasts.required'), 'error'); return
     }
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
@@ -304,10 +305,10 @@ export default function Expenses() {
     const isBuilding = expenseForm.scope === 'building'
 
     if (isBuilding && !expenseForm.building_id) {
-      showToast('Bina seçin.', 'error'); return
+      showToast(t('expenses.expenseModal.toasts.selectBuilding'), 'error'); return
     }
     if (!isBuilding && !expenseForm.apartment_id) {
-      showToast('Mülk seçin.', 'error'); return
+      showToast(t('expenses.expenseModal.toasts.selectApartment'), 'error'); return
     }
 
     const record = isBuilding
@@ -317,7 +318,7 @@ export default function Expenses() {
     if (editingExpense) {
       const { error } = await supabase.from('property_expenses').update(record).eq('id', editingExpense.id)
       if (error) { showToast(error.message, 'error'); return }
-      showToast('Gider güncellendi.', 'success')
+      showToast(t('expenses.expenseModal.toasts.updated'), 'success')
       setShowExpenseModal(false)
       loadExpenses()
       return
@@ -325,18 +326,18 @@ export default function Expenses() {
 
     const { error } = await supabase.from('property_expenses').insert(record)
     if (error) { showToast(error.message, 'error'); return }
-    showToast('Gider eklendi.', 'success')
+    showToast(t('expenses.expenseModal.toasts.added'), 'success')
     setShowExpenseModal(false)
     loadExpenses()
   }
 
   const handleDeleteExpense = (id) => {
     setConfirmDelete({
-      message: 'Bu gideri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      message: t('expenses.confirmDelete.expenseMsg'),
       onConfirm: async () => {
         const { error } = await supabase.from('property_expenses').delete().eq('id', id)
         if (error) { showToast(error.message, 'error'); return }
-        showToast('Gider silindi.', 'success')
+        showToast(t('expenses.confirmDelete.deleted'), 'success')
         loadExpenses()
         setConfirmDelete(null)
       }
@@ -359,7 +360,7 @@ export default function Expenses() {
   }
 
   const handleSaveCategory = async () => {
-    if (!categoryForm.name.trim()) { showToast('Kategori adı zorunludur.', 'error'); return }
+    if (!categoryForm.name.trim()) { showToast(t('expenses.categoryModal.toasts.required'), 'error'); return }
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
@@ -383,7 +384,7 @@ export default function Expenses() {
       err = res.error
     }
     if (err) { showToast(err.message, 'error'); return }
-    showToast(editingCategory ? 'Kategori güncellendi.' : 'Kategori eklendi.', 'success')
+    showToast(editingCategory ? t('expenses.categoryModal.toasts.updated') : t('expenses.categoryModal.toasts.added'), 'success')
     setEditingCategory(null)
     setCategoryForm(EMPTY_CATEGORY)
     loadCategories()
@@ -391,11 +392,11 @@ export default function Expenses() {
 
   const handleDeleteCategory = (id) => {
     setConfirmDelete({
-      message: 'Bu kategoriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      message: t('expenses.confirmDelete.categoryMsg'),
       onConfirm: async () => {
         const { error } = await supabase.from('expense_categories').delete().eq('id', id)
         if (error) { showToast(error.message, 'error'); return }
-        showToast('Kategori silindi.', 'success')
+        showToast(t('expenses.categoryModal.toasts.deleted'), 'success')
         loadCategories()
         setConfirmDelete(null)
       }
@@ -422,8 +423,8 @@ export default function Expenses() {
 
   const expenseBuildingName = (e) =>
     e.apartment_id == null
-      ? (e.buildings?.name || 'Bilinmeyen Bina')
-      : (e.apartments?.buildings?.name || 'Bilinmeyen Bina')
+      ? (e.buildings?.name || t('expenses.unknownBuilding'))
+      : (e.apartments?.buildings?.name || t('expenses.unknownBuilding'))
 
   /* ── Tenant lookup ── */
   const tenantsByApt = useMemo(() => {
@@ -454,7 +455,7 @@ export default function Expenses() {
         const q = searchQuery.toLowerCase()
         const catName = e.expense_categories?.name?.toLowerCase() || ''
         const aptName = e.apartment_id == null
-          ? (expenseBuildingName(e) + ' bina geneli').toLowerCase()
+          ? (expenseBuildingName(e) + ' ' + t('expenses.list.buildingScopeHeader')).toLowerCase()
           : apartmentLabel(e.apartments).toLowerCase()
         const notes = (e.notes || '').toLowerCase()
         if (!catName.includes(q) && !aptName.includes(q) && !notes.includes(q)) return false
@@ -572,7 +573,7 @@ export default function Expenses() {
       if (!dist[catId]) {
         dist[catId] = {
           id: catId,
-          name: e.expense_categories?.name || 'Diğer',
+          name: e.expense_categories?.name || t('expenses.abrechnung.fallbackCategory'),
           color: e.expense_categories?.color || '#94A3B8',
           icon: e.expense_categories?.icon || 'Receipt',
           total: 0
@@ -645,10 +646,10 @@ export default function Expenses() {
       <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: '-0.5px', margin: 0, lineHeight: 1.2 }}>
-            Gider Yönetimi
+            {t('expenses.title')}
           </h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: '4px 0 0', fontWeight: 500 }}>
-            Yan gider takibi & hesap kesimi
+            {t('expenses.subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -663,7 +664,7 @@ export default function Expenses() {
               display: 'flex', alignItems: 'center', gap: 8
             }}
           >
-            <FileText size={16} /> Hesap Kesimi
+            <FileText size={16} /> {t('expenses.actions.abrechnung')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -675,7 +676,7 @@ export default function Expenses() {
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
             }}
           >
-            <Settings2 size={16} /> Kategoriler
+            <Settings2 size={16} /> {t('expenses.actions.categories')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -687,7 +688,7 @@ export default function Expenses() {
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
             }}
           >
-            <Plus size={16} strokeWidth={2.5} /> Gider Ekle
+            <Plus size={16} strokeWidth={2.5} /> {t('expenses.actions.addExpense')}
           </motion.button>
         </div>
       </motion.div>
@@ -696,23 +697,23 @@ export default function Expenses() {
       <motion.div variants={fadeItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
           {
-            label: 'Toplam', sub: filterYear ? String(filterYear) : 'Tümü',
-            value: money(totalAll), icon: TrendingUp,
+            label: t('expenses.kpi.total'), sub: filterYear ? String(filterYear) : t('expenses.kpi.totalAll'),
+            value: formatMoney(totalAll), icon: TrendingUp,
             gradient: 'linear-gradient(135deg, #025864 0%, #03363D 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Bu Ay', sub: MONTH_SHORT[currentMonth - 1],
-            value: money(totalThisMonth), icon: Calendar,
+            label: t('expenses.kpi.thisMonth'), sub: monthShort[currentMonth - 1],
+            value: formatMoney(totalThisMonth), icon: Calendar,
             gradient: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Yansıtılabilir', sub: 'Kiracıya',
-            value: money(totalBillableThisMonth), icon: Receipt,
+            label: t('expenses.kpi.billable'), sub: t('expenses.kpi.billableSub'),
+            value: formatMoney(totalBillableThisMonth), icon: Receipt,
             gradient: 'linear-gradient(135deg, #059669 0%, #047857 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
           {
-            label: 'Yansıtılamaz', sub: 'Ev Sahibi',
-            value: money(totalNonBillableThisMonth), icon: Wrench,
+            label: t('expenses.kpi.nonBillable'), sub: t('expenses.kpi.nonBillableSub'),
+            value: formatMoney(totalNonBillableThisMonth), icon: Wrench,
             gradient: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)', iconBg: 'rgba(255,255,255,0.15)'
           },
         ].map((kpi, i) => (
@@ -729,7 +730,7 @@ export default function Expenses() {
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.85, marginBottom: 2 }}>{kpi.label}</div>
             <div style={{ fontSize: 11, fontWeight: 500, opacity: 0.6, marginBottom: 10 }}>{kpi.sub}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>₺{kpi.value}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>{kpi.value}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -739,7 +740,7 @@ export default function Expenses() {
         <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 280 }}>
           <Search size={16} color={C.textFaint} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input
-            placeholder="Ara..."
+            placeholder={t('expenses.filters.searchPh')}
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             style={{ ...inputStyle, paddingLeft: 36 }}
           />
@@ -749,7 +750,7 @@ export default function Expenses() {
           onChange={e => { setFilterBuilding(e.target.value); setFilterApartment('') }}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Tüm Binalar</option>
+          <option value="">{t('expenses.filters.allBuildings')}</option>
           {buildings.map(b => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
@@ -758,19 +759,22 @@ export default function Expenses() {
           value={filterApartment} onChange={e => setFilterApartment(e.target.value)}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Tüm Daireler</option>
+          <option value="">{t('expenses.filters.allApartments')}</option>
           {apartments
             .filter(a => !filterBuilding || a.building_id === filterBuilding)
-            .map(a => {
-              const floor = a.floor_no ? `Kat ${a.floor_no} ` : ''
-              return <option key={a.id} value={a.id}>{floor}Daire {a.unit_no || '—'}</option>
-            })}
+            .map(a => (
+              <option key={a.id} value={a.id}>
+                {a.floor_no
+                  ? t('expenses.apartmentLabel.withFloor', { floor: a.floor_no, unit: a.unit_no || '—' })
+                  : t('expenses.apartmentLabel.noFloor', { unit: a.unit_no || '—' })}
+              </option>
+            ))}
         </select>
         <select
           value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
           style={{ ...inputStyle, width: 180, cursor: 'pointer' }}
         >
-          <option value="">Tüm Kategoriler</option>
+          <option value="">{t('expenses.filters.allCategories')}</option>
           {categories.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -787,8 +791,8 @@ export default function Expenses() {
           value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
           style={{ ...inputStyle, width: 140, cursor: 'pointer' }}
         >
-          <option value="">Tüm Aylar</option>
-          {MONTH_NAMES.map((m, i) => (
+          <option value="">{t('expenses.filters.allMonths')}</option>
+          {monthNames.map((m, i) => (
             <option key={i} value={i + 1}>{m}</option>
           ))}
         </select>
@@ -801,7 +805,7 @@ export default function Expenses() {
         <motion.div variants={fadeItem} style={cardBox}>
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: C.textFaint, fontSize: 14 }}>
-              {expenses.length === 0 ? 'Henüz gider kaydı yok.' : 'Seçili filtrelere uygun sonuç bulunamadı.'}
+              {expenses.length === 0 ? t('expenses.list.empty') : t('expenses.list.emptyFiltered')}
             </div>
           ) : (
             <div>
@@ -844,15 +848,15 @@ export default function Expenses() {
                           {group.building.name}
                         </div>
                         <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600, marginTop: 2 }}>
-                          {group.count} kayıt · {aptCount} daire
-                          {group.buildingScope.length > 0 && ` · ${group.buildingScope.length} bina geneli`}
+                          {t('expenses.list.recordCount', { n: group.count })} · {t('expenses.list.aptCount', { n: aptCount })}
+                          {group.buildingScope.length > 0 && ` · ${t('expenses.list.buildingScopeCount', { n: group.buildingScope.length })}`}
                         </div>
                       </div>
                       <div style={{
                         fontSize: 14, fontWeight: 800, color: C.teal,
                         fontVariantNumeric: 'tabular-nums'
                       }}>
-                        ₺{money(group.total)}
+                        {formatMoney(group.total)}
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -867,7 +871,7 @@ export default function Expenses() {
                         }}
                       >
                         <Plus size={13} />
-                        Ay Gideri
+                        {t('expenses.list.addMonthly')}
                       </motion.button>
                     </div>
 
@@ -896,15 +900,16 @@ export default function Expenses() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <Layers size={13} color={C.teal} />
                                   <span style={{ fontSize: 11, fontWeight: 800, color: C.teal, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    Bina Geneli Giderler
+                                    {t('expenses.list.buildingScopeHeader')}
                                   </span>
                                 </div>
                                 <span style={{ fontSize: 13, fontWeight: 700, color: C.teal, fontVariantNumeric: 'tabular-nums' }}>
-                                  ₺{money(buildingScopeTotal)}
+                                  {formatMoney(buildingScopeTotal)}
                                 </span>
                               </div>
                               {group.buildingScope.map((exp, idx) => {
-                                const dk = getDistributionKey(exp.distribution_key || 'equal')
+                                const dkKey = exp.distribution_key || 'equal'
+                                const dk = getDistributionKey(dkKey)
                                 const DKIcon = dk.Icon
                                 return (
                                   <motion.div
@@ -923,7 +928,7 @@ export default function Expenses() {
                                     }}
                                   >
                                     <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
-                                      {formatDate(exp.expense_date)}
+                                      {fmtDate(exp.expense_date)}
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                                       <div style={{
@@ -943,17 +948,17 @@ export default function Expenses() {
                                       display: 'flex', alignItems: 'center', gap: 4,
                                     }}>
                                       <DKIcon size={10} />
-                                      {dk.short}
+                                      {t(`distributionKeys.${dkKey}.short`)}
                                     </span>
                                     <span style={{
                                       fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10,
                                       background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
                                       color: exp.is_tenant_billed ? '#059669' : '#DC2626',
                                     }}>
-                                      {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
+                                      {exp.is_tenant_billed ? t('expenses.list.billableShort') : t('expenses.list.nonBillableShort')}
                                     </span>
                                     <span style={{ textAlign: 'right', fontWeight: 800, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                                      ₺{money(exp.amount)}
+                                      {formatMoney(exp.amount)}
                                     </span>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                                       <motion.button
@@ -981,8 +986,9 @@ export default function Expenses() {
                           {group.apartmentGroups.map((aptGroup) => {
                             const aptId = aptGroup.apt.id
                             const aptOpen = expandedApartments.has(aptId)
-                            const floor = aptGroup.apt?.floor_no ? `Kat ${aptGroup.apt.floor_no} · ` : ''
-                            const unitLabel = `${floor}Daire ${aptGroup.apt?.unit_no || '—'}`
+                            const unitLabel = aptGroup.apt?.floor_no
+                              ? t('expenses.apartmentLabel.withFloor', { floor: aptGroup.apt.floor_no, unit: aptGroup.apt?.unit_no || '—' })
+                              : t('expenses.apartmentLabel.noFloor', { unit: aptGroup.apt?.unit_no || '—' })
                             return (
                               <div key={aptId} style={{ borderTop: `1px solid ${C.borderLight}` }}>
                                 <div
@@ -1007,7 +1013,7 @@ export default function Expenses() {
                                     {unitLabel}
                                   </span>
                                   <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 500, flex: 1 }}>
-                                    {aptGroup.tenant?.full_name || <span style={{ color: C.textFaint, fontStyle: 'italic' }}>— boş —</span>}
+                                    {aptGroup.tenant?.full_name || <span style={{ color: C.textFaint, fontStyle: 'italic' }}>{t('expenses.list.emptyApt')}</span>}
                                   </span>
                                   <span style={{
                                     fontSize: 11, fontWeight: 700, color: C.textMuted,
@@ -1019,7 +1025,7 @@ export default function Expenses() {
                                     fontSize: 13, fontWeight: 800, color: C.text,
                                     fontVariantNumeric: 'tabular-nums', minWidth: 84, textAlign: 'right'
                                   }}>
-                                    ₺{money(aptGroup.total)}
+                                    {formatMoney(aptGroup.total)}
                                   </span>
                                 </div>
                                 <AnimatePresence initial={false}>
@@ -1049,7 +1055,7 @@ export default function Expenses() {
                                           }}
                                         >
                                           <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
-                                            {formatDate(exp.expense_date)}
+                                            {fmtDate(exp.expense_date)}
                                           </span>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                                             <div style={{
@@ -1068,10 +1074,10 @@ export default function Expenses() {
                                             background: exp.is_tenant_billed ? '#ECFDF5' : '#FEF2F2',
                                             color: exp.is_tenant_billed ? '#059669' : '#DC2626',
                                           }}>
-                                            {exp.is_tenant_billed ? 'Yansıt.' : 'Yansıtılmaz'}
+                                            {exp.is_tenant_billed ? t('expenses.list.billableShort') : t('expenses.list.nonBillableShort')}
                                           </span>
                                           <span style={{ textAlign: 'right', fontWeight: 700, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                                            ₺{money(exp.amount)}
+                                            {formatMoney(exp.amount)}
                                           </span>
                                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                                             <motion.button
@@ -1113,8 +1119,8 @@ export default function Expenses() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               fontSize: 13, color: C.textMuted, fontWeight: 600
             }}>
-              <span>{filteredExpenses.length} kayıt · {groupedByBuilding.length} bina</span>
-              <span style={{ fontWeight: 800, color: C.text }}>Toplam: ₺{money(totalAll)}</span>
+              <span>{t('expenses.list.footerCounts', { records: filteredExpenses.length, buildings: groupedByBuilding.length })}</span>
+              <span style={{ fontWeight: 800, color: C.text }}>{t('expenses.list.footerTotal')}: {formatMoney(totalAll)}</span>
             </div>
           )}
         </motion.div>
@@ -1122,12 +1128,12 @@ export default function Expenses() {
         {/* ── Sidebar: Category Distribution ── */}
         <motion.div variants={fadeItem} style={cardBox}>
           <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid ${C.borderLight}` }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>Gider Dağılımı</h3>
-            <p style={{ fontSize: 11, color: C.textFaint, margin: '2px 0 0' }}>Kategoriye Göre</p>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0 }}>{t('expenses.sidebar.title')}</h3>
+            <p style={{ fontSize: 11, color: C.textFaint, margin: '2px 0 0' }}>{t('expenses.sidebar.subtitle')}</p>
           </div>
           <div style={{ padding: '12px 20px 16px' }}>
             {categoryDistribution.length === 0 ? (
-              <p style={{ fontSize: 13, color: C.textFaint, textAlign: 'center', padding: 20 }}>Veri yok</p>
+              <p style={{ fontSize: 13, color: C.textFaint, textAlign: 'center', padding: 20 }}>{t('expenses.sidebar.empty')}</p>
             ) : (
               categoryDistribution.map((cat, i) => {
                 const pct = totalAll > 0 ? (cat.total / totalAll * 100) : 0
@@ -1139,7 +1145,7 @@ export default function Expenses() {
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{cat.name}</span>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-                        ₺{money(cat.total)}
+                        {formatMoney(cat.total)}
                       </span>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: C.borderLight, overflow: 'hidden' }}>
@@ -1190,7 +1196,7 @@ export default function Expenses() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0 }}>
-                  {editingExpense ? 'Gider Düzenle' : 'Yeni Gider'}
+                  {editingExpense ? t('expenses.expenseModal.titleEdit') : t('expenses.expenseModal.titleNew')}
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -1205,15 +1211,15 @@ export default function Expenses() {
                 {/* Scope Toggle — only when adding */}
                 {!editingExpense && (
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Kapsam</label>
+                    <label style={labelStyle}>{t('expenses.expenseModal.scope')}</label>
                     <div style={{
                       display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
                       background: '#FAFBFC', border: `1.5px solid ${C.border}`,
                       borderRadius: 10, padding: 4
                     }}>
                       {[
-                        { key: 'building', label: 'Tüm Bina', Icon: Building2 },
-                        { key: 'apartment', label: 'Tek Daire', Icon: Home }
+                        { key: 'building', label: t('expenses.expenseModal.scopeBuilding'), Icon: Building2 },
+                        { key: 'apartment', label: t('expenses.expenseModal.scopeApartment'), Icon: Home }
                       ].map(opt => {
                         const active = expenseForm.scope === opt.key
                         const Icon = opt.Icon
@@ -1246,18 +1252,18 @@ export default function Expenses() {
                 {/* Building picker (when scope=building) */}
                 {!editingExpense && expenseForm.scope === 'building' ? (
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Bina *</label>
+                    <label style={labelStyle}>{t('expenses.expenseModal.buildingLabel')}</label>
                     <select
                       value={expenseForm.building_id}
                       onChange={e => setExpenseForm(prev => ({ ...prev, building_id: e.target.value }))}
                       style={{ ...inputStyle, cursor: 'pointer' }}
                     >
-                      <option value="">Bina seçin...</option>
+                      <option value="">{t('expenses.expenseModal.buildingPlaceholder')}</option>
                       {buildings.map(b => {
                         const count = apartments.filter(a => a.building_id === b.id).length
                         return (
                           <option key={b.id} value={b.id} disabled={count === 0}>
-                            {b.name} ({count} daire)
+                            {t('expenses.expenseModal.buildingOption', { name: b.name, count })}
                           </option>
                         )
                       })}
@@ -1265,13 +1271,13 @@ export default function Expenses() {
                   </div>
                 ) : (
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Mülk *</label>
+                    <label style={labelStyle}>{t('expenses.expenseModal.apartmentLabel')}</label>
                     <select
                       value={expenseForm.apartment_id}
                       onChange={e => setExpenseForm(prev => ({ ...prev, apartment_id: e.target.value }))}
                       style={{ ...inputStyle, cursor: 'pointer' }}
                     >
-                      <option value="">Mülk seçin...</option>
+                      <option value="">{t('expenses.expenseModal.apartmentPlaceholder')}</option>
                       {apartments.map(a => (
                         <option key={a.id} value={a.id}>{apartmentLabel(a)}</option>
                       ))}
@@ -1281,15 +1287,15 @@ export default function Expenses() {
 
                 {/* Category */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Kategori *</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.categoryLabel')}</label>
                   <select
                     value={expenseForm.category_id}
                     onChange={e => onCategorySelect(e.target.value)}
                     style={{ ...inputStyle, cursor: 'pointer' }}
                   >
-                    <option value="">Kategori seçin...</option>
+                    <option value="">{t('expenses.expenseModal.categoryPlaceholder')}</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}{c.is_tenant_billable ? ' (yansıtılabilir)' : ''}</option>
+                      <option key={c.id} value={c.id}>{c.name}{c.is_tenant_billable ? t('expenses.expenseModal.billableTag') : ''}</option>
                     ))}
                   </select>
                 </div>
@@ -1297,10 +1303,10 @@ export default function Expenses() {
                 {/* Distribution Key */}
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>
-                    Dağıtım Anahtarı
+                    {t('expenses.expenseModal.distKeyLabel')}
                     {expenseForm.scope === 'apartment' && (
                       <span style={{ fontSize: 10, fontWeight: 500, color: C.textFaint, marginLeft: 6 }}>
-                        (daire kapsamı · bilgilendirici)
+                        {t('expenses.expenseModal.distKeyApartmentNote')}
                       </span>
                     )}
                   </label>
@@ -1329,7 +1335,7 @@ export default function Expenses() {
                           }}
                         >
                           <DKIcon size={12} />
-                          {dk.short}
+                          {t(`distributionKeys.${k}.short`)}
                         </motion.button>
                       )
                     })}
@@ -1338,26 +1344,28 @@ export default function Expenses() {
 
                 {/* Amount */}
                 <div>
-                  <label style={labelStyle}>Tutar (₺) *</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.amount')} *</label>
                   <input
                     type="number" step="0.01" min="0"
                     value={expenseForm.amount}
                     onChange={e => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
-                    placeholder="0,00"
+                    placeholder={t('expenses.expenseModal.amountPlaceholder')}
                     style={inputStyle}
                   />
                   {!editingExpense && expenseForm.scope === 'building' && expenseForm.building_id && Number(expenseForm.amount) > 0 && (() => {
                     const bldApts = apartments.filter(a => a.building_id === expenseForm.building_id)
                     const count = bldApts.length
                     if (count === 0) return null
-                    const dk = getDistributionKey(expenseForm.distribution_key)
                     return (
                       <div style={{
                         fontSize: 11, fontWeight: 700, color: C.teal,
                         marginTop: 8, display: 'flex', alignItems: 'center', gap: 6
                       }}>
                         <ChevronRight size={12} />
-                        {count} daireye {dk.label.toLowerCase()} üzerinden paylaştırılacak
+                        {t('expenses.expenseModal.sharePreview', {
+                          count,
+                          keyLabel: t(`distributionKeys.${expenseForm.distribution_key || 'equal'}.label`).toLowerCase()
+                        })}
                       </div>
                     )
                   })()}
@@ -1365,7 +1373,7 @@ export default function Expenses() {
 
                 {/* Date */}
                 <div>
-                  <label style={labelStyle}>Tarih</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.date')}</label>
                   <input
                     type="date"
                     value={expenseForm.expense_date}
@@ -1376,13 +1384,13 @@ export default function Expenses() {
 
                 {/* Period Month */}
                 <div>
-                  <label style={labelStyle}>Dönem Ayı</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.periodMonth')}</label>
                   <select
                     value={expenseForm.period_month}
                     onChange={e => setExpenseForm(prev => ({ ...prev, period_month: e.target.value }))}
                     style={{ ...inputStyle, cursor: 'pointer' }}
                   >
-                    {MONTH_NAMES.map((m, i) => (
+                    {monthNames.map((m, i) => (
                       <option key={i} value={i + 1}>{m}</option>
                     ))}
                   </select>
@@ -1390,7 +1398,7 @@ export default function Expenses() {
 
                 {/* Period Year */}
                 <div>
-                  <label style={labelStyle}>Dönem Yılı</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.periodYear')}</label>
                   <input
                     type="number" min="2020" max="2030"
                     value={expenseForm.period_year}
@@ -1421,17 +1429,17 @@ export default function Expenses() {
                     />
                   </motion.button>
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                    Kiracıya yansıtılabilir
+                    {t('expenses.expenseModal.billableToggle')}
                   </span>
                 </div>
 
                 {/* Notes */}
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Notlar</label>
+                  <label style={labelStyle}>{t('expenses.expenseModal.notes')}</label>
                   <textarea
                     value={expenseForm.notes}
                     onChange={e => setExpenseForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="İsteğe bağlı notlar..."
+                    placeholder={t('expenses.expenseModal.notesPlaceholder')}
                     rows={3}
                     style={{ ...inputStyle, resize: 'vertical' }}
                   />
@@ -1448,7 +1456,7 @@ export default function Expenses() {
                     background: 'none', color: C.textMuted, border: `1.5px solid ${C.border}`, cursor: 'pointer'
                   }}
                 >
-                  İptal
+                  {t('expenses.expenseModal.cancel')}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -1460,7 +1468,7 @@ export default function Expenses() {
                     display: 'flex', alignItems: 'center', gap: 8
                   }}
                 >
-                  <Check size={16} /> {editingExpense ? 'Kaydet' : 'Ekle'}
+                  <Check size={16} /> {editingExpense ? t('expenses.expenseModal.save') : t('expenses.expenseModal.add')}
                 </motion.button>
               </div>
             </motion.div>
@@ -1497,7 +1505,7 @@ export default function Expenses() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0 }}>
-                  Gider Kategorileri
+                  {t('expenses.categoryModal.title')}
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -1532,12 +1540,12 @@ export default function Expenses() {
                       <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
                         {cat.is_tenant_billable && (
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#ECFDF5', color: '#059669' }}>
-                            Yansıtılabilir
+                            {t('expenses.categoryModal.tagBillable')}
                           </span>
                         )}
                         {cat.is_recurring && (
                           <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#EFF6FF', color: '#2563EB' }}>
-                            Aylık
+                            {t('expenses.categoryModal.tagRecurring')}
                           </span>
                         )}
                       </div>
@@ -1568,22 +1576,22 @@ export default function Expenses() {
                 border: `1px solid ${C.borderLight}`
               }}>
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 14px' }}>
-                  {editingCategory ? 'Kategori Düzenle' : 'Yeni Kategori'}
+                  {editingCategory ? t('expenses.categoryModal.formTitleEdit') : t('expenses.categoryModal.formTitleNew')}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Name</label>
+                    <label style={labelStyle}>{t('expenses.categoryModal.name')}</label>
                     <input
                       value={categoryForm.name}
                       onChange={e => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="ör: Emlak Vergisi"
+                      placeholder={t('expenses.categoryModal.namePlaceholder')}
                       style={inputStyle}
                     />
                   </div>
 
                   {/* Icon Picker */}
                   <div>
-                    <label style={labelStyle}>Icon</label>
+                    <label style={labelStyle}>{t('expenses.categoryModal.icon')}</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {ICON_CHOICES.map(iconName => (
                         <motion.button
@@ -1605,7 +1613,7 @@ export default function Expenses() {
 
                   {/* Color Picker */}
                   <div>
-                    <label style={labelStyle}>Renk</label>
+                    <label style={labelStyle}>{t('expenses.categoryModal.color')}</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {COLOR_CHOICES.map(color => (
                         <motion.button
@@ -1644,7 +1652,7 @@ export default function Expenses() {
                         }}
                       />
                     </motion.button>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Yansıtılabilir</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t('expenses.categoryModal.toggleBillable')}</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1667,7 +1675,7 @@ export default function Expenses() {
                         }}
                       />
                     </motion.button>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Aylık</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t('expenses.categoryModal.toggleRecurring')}</span>
                   </div>
                 </div>
 
@@ -1682,7 +1690,7 @@ export default function Expenses() {
                         background: 'none', color: C.textMuted, border: `1px solid ${C.border}`, cursor: 'pointer'
                       }}
                     >
-                      İptal
+                      {t('expenses.categoryModal.cancel')}
                     </motion.button>
                   )}
                   <motion.button
@@ -1695,7 +1703,7 @@ export default function Expenses() {
                       display: 'flex', alignItems: 'center', gap: 6
                     }}
                   >
-                    <Check size={14} /> {editingCategory ? 'Kaydet' : 'Ekle'}
+                    <Check size={14} /> {editingCategory ? t('expenses.categoryModal.save') : t('expenses.categoryModal.add')}
                   </motion.button>
                 </div>
               </div>
@@ -1739,10 +1747,10 @@ export default function Expenses() {
               }}>
                 <div>
                   <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>
-                    Yan Gider Hesap Kesimi
+                    {t('expenses.abrechnung.title')}
                   </h2>
                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>
-                    Dönemsel gider raporu oluştur
+                    {t('expenses.abrechnung.subtitle')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1758,7 +1766,7 @@ export default function Expenses() {
                         letterSpacing: '0.01em'
                       }}
                     >
-                      <FileText size={14} /> Fatura Çıkar
+                      <FileText size={14} /> {t('expenses.abrechnung.invoice')}
                     </motion.button>
                   )}
                   <motion.button
@@ -1774,15 +1782,15 @@ export default function Expenses() {
               <div style={{ padding: '24px 32px 32px' }}>
                 {/* Scope toggle */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={labelStyle}>Kapsam</label>
+                  <label style={labelStyle}>{t('expenses.abrechnung.scope')}</label>
                   <div style={{
                     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
                     background: '#FAFBFC', border: `1.5px solid ${C.border}`,
                     borderRadius: 10, padding: 4
                   }}>
                     {[
-                      { key: 'building', label: 'Tüm Bina', Icon: Building2 },
-                      { key: 'apartment', label: 'Tek Daire', Icon: Home }
+                      { key: 'building', label: t('expenses.abrechnung.scopeBuilding'), Icon: Building2 },
+                      { key: 'apartment', label: t('expenses.abrechnung.scopeApartment'), Icon: Home }
                     ].map(opt => {
                       const active = abrechnungScope === opt.key
                       const Icon = opt.Icon
@@ -1817,18 +1825,18 @@ export default function Expenses() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
                   {abrechnungScope === 'apartment' ? (
                     <div>
-                      <label style={labelStyle}>Mülk</label>
+                      <label style={labelStyle}>{t('expenses.abrechnung.apartmentLabel')}</label>
                       <select
                         value={abrechnungApt}
                         onChange={e => setAbrechnungApt(e.target.value)}
                         style={{ ...inputStyle, cursor: 'pointer' }}
                       >
-                        <option value="">Seçin...</option>
+                        <option value="">{t('expenses.abrechnung.selectPlaceholder')}</option>
                         {apartments.map(a => {
                           const occupied = !!tenantsByApt[a.id]
                           return (
                             <option key={a.id} value={a.id} disabled={!occupied}>
-                              {apartmentLabel(a)}{occupied ? '' : ' — Boş'}
+                              {apartmentLabel(a)}{occupied ? '' : t('expenses.abrechnung.aptEmptySuffix')}
                             </option>
                           )
                         })}
@@ -1836,18 +1844,18 @@ export default function Expenses() {
                     </div>
                   ) : (
                     <div>
-                      <label style={labelStyle}>Bina</label>
+                      <label style={labelStyle}>{t('expenses.abrechnung.buildingLabel')}</label>
                       <select
                         value={abrechnungBld}
                         onChange={e => setAbrechnungBld(e.target.value)}
                         style={{ ...inputStyle, cursor: 'pointer' }}
                       >
-                        <option value="">Seçin...</option>
+                        <option value="">{t('expenses.abrechnung.selectPlaceholder')}</option>
                         {buildings.map(b => {
                           const count = apartments.filter(a => a.building_id === b.id).length
                           return (
                             <option key={b.id} value={b.id} disabled={count === 0}>
-                              {b.name} ({count} daire)
+                              {t('expenses.abrechnung.buildingOption', { name: b.name, count })}
                             </option>
                           )
                         })}
@@ -1855,7 +1863,7 @@ export default function Expenses() {
                     </div>
                   )}
                   <div>
-                    <label style={labelStyle}>Başlangıç</label>
+                    <label style={labelStyle}>{t('expenses.abrechnung.start')}</label>
                     <input
                       type="date" value={abrechnungStart}
                       onChange={e => setAbrechnungStart(e.target.value)}
@@ -1863,7 +1871,7 @@ export default function Expenses() {
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Bitiş</label>
+                    <label style={labelStyle}>{t('expenses.abrechnung.end')}</label>
                     <input
                       type="date" value={abrechnungEnd}
                       onChange={e => setAbrechnungEnd(e.target.value)}
@@ -1884,42 +1892,42 @@ export default function Expenses() {
                         {abrechnungData.mode === 'building' ? (
                           <>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Bina</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.building')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                                 {abrechnungData.building?.name || '—'}
                               </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Daire Sayısı</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.aptCount')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                                 {abrechnungData.apartmentRows.length}
                               </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.period')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                {abrechnungData.monthsInPeriod} Ay
+                                {t('expenses.abrechnung.info.periodMonths', { n: abrechnungData.monthsInPeriod })}
                               </div>
                             </div>
                           </>
                         ) : (
                           <>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Mülk</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.apartment')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                                 {apartmentLabel(abrechnungData.apt)}
                               </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Kiracı</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.tenant')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                {abrechnungData.tenant?.full_name || 'Aktif kiracı yok'}
+                                {abrechnungData.tenant?.full_name || t('expenses.abrechnung.info.noActiveTenant')}
                               </div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>Dönem</div>
+                              <div style={{ fontSize: 11, color: C.textFaint, fontWeight: 600 }}>{t('expenses.abrechnung.info.period')}</div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                {abrechnungData.monthsInPeriod} Ay
+                                {t('expenses.abrechnung.info.periodMonths', { n: abrechnungData.monthsInPeriod })}
                               </div>
                             </div>
                           </>
@@ -1932,7 +1940,7 @@ export default function Expenses() {
                       <>
                         <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 4, height: 16, borderRadius: 2, background: C.teal }} />
-                          Daire Bazlı Dağılım
+                          {t('expenses.abrechnung.distByApt.title')}
                         </h4>
                         <div style={{
                           borderRadius: 12, border: `1px solid ${C.borderLight}`,
@@ -1945,16 +1953,17 @@ export default function Expenses() {
                             textTransform: 'uppercase', letterSpacing: '0.5px',
                             borderBottom: `1px solid ${C.borderLight}`
                           }}>
-                            <div>Daire</div>
-                            <div>Kiracı</div>
-                            <div style={{ textAlign: 'right' }}>Yansıtılabilir</div>
-                            <div style={{ textAlign: 'right' }}>Aidat</div>
-                            <div style={{ textAlign: 'right' }}>Fark</div>
+                            <div>{t('expenses.abrechnung.distByApt.colApt')}</div>
+                            <div>{t('expenses.abrechnung.distByApt.colTenant')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.distByApt.colBillable')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.distByApt.colAidat')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.distByApt.colDiff')}</div>
                           </div>
                           {abrechnungData.apartmentRows.map((r, i) => {
                             const diffColor = r.difference > 0 ? '#DC2626' : r.difference < 0 ? '#059669' : C.text
-                            const floor = r.apt?.floor_no ? `Kat ${r.apt.floor_no} ` : ''
-                            const label = `${floor}Daire ${r.apt?.unit_no || '—'}`
+                            const label = r.apt?.floor_no
+                              ? t('expenses.apartmentLabel.withFloor', { floor: r.apt.floor_no, unit: r.apt?.unit_no || '—' })
+                              : t('expenses.apartmentLabel.noFloor', { unit: r.apt?.unit_no || '—' })
                             return (
                               <div key={i} style={{
                                 display: 'grid', gridTemplateColumns: '1.3fr 1.4fr 1fr 1fr 1fr',
@@ -1964,19 +1973,19 @@ export default function Expenses() {
                               }}>
                                 <div style={{ fontWeight: 700, color: C.text }}>{label}</div>
                                 <div style={{ color: r.tenant ? C.text : C.textFaint, fontWeight: 500 }}>
-                                  {r.tenant?.full_name || '— boş —'}
+                                  {r.tenant?.full_name || t('expenses.abrechnung.distByApt.emptyApt')}
                                 </div>
                                 <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                                  ₺{money(r.totalBillable)}
+                                  {formatMoney(r.totalBillable)}
                                 </div>
                                 <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: C.textMuted }}>
-                                  ₺{money(r.totalVorauszahlung)}
+                                  {formatMoney(r.totalVorauszahlung)}
                                 </div>
                                 <div style={{
                                   textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                                   fontWeight: 800, color: diffColor
                                 }}>
-                                  {r.difference > 0 ? '+' : ''}₺{money(Math.abs(r.difference))}
+                                  {r.difference > 0 ? '+' : ''}{formatMoney(Math.abs(r.difference))}
                                 </div>
                               </div>
                             )
@@ -1987,18 +1996,18 @@ export default function Expenses() {
                             borderTop: `1px solid ${C.borderLight}`,
                             fontSize: 12, fontWeight: 800
                           }}>
-                            <div style={{ gridColumn: '1 / 3', color: '#059669' }}>Bina Toplamı</div>
+                            <div style={{ gridColumn: '1 / 3', color: '#059669' }}>{t('expenses.abrechnung.distByApt.buildingTotal')}</div>
                             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#059669' }}>
-                              ₺{money(abrechnungData.totalBillable)}
+                              {formatMoney(abrechnungData.totalBillable)}
                             </div>
                             <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#059669' }}>
-                              ₺{money(abrechnungData.totalVorauszahlung)}
+                              {formatMoney(abrechnungData.totalVorauszahlung)}
                             </div>
                             <div style={{
                               textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                               color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
                             }}>
-                              {abrechnungData.difference > 0 ? '+' : ''}₺{money(Math.abs(abrechnungData.difference))}
+                              {abrechnungData.difference > 0 ? '+' : ''}{formatMoney(Math.abs(abrechnungData.difference))}
                             </div>
                           </div>
                         </div>
@@ -2008,7 +2017,7 @@ export default function Expenses() {
                     {/* Umlagefähige Kosten */}
                     <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 4, height: 16, borderRadius: 2, background: C.green }} />
-                      Kiracıya Yansıtılabilir Giderler
+                      {t('expenses.abrechnung.billable.title')}
                     </h4>
                     <div style={{
                       borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
@@ -2021,22 +2030,22 @@ export default function Expenses() {
                             fontSize: 10, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '1px',
                             borderBottom: `1px solid #FCD9A8`
                           }}>
-                            <div>Kalem</div>
-                            <div>Anahtar</div>
-                            <div style={{ textAlign: 'right' }}>Toplam (₺)</div>
-                            <div style={{ textAlign: 'right' }}>Sizin Payınız (₺)</div>
+                            <div>{t('expenses.abrechnung.billable.colItem')}</div>
+                            <div>{t('expenses.abrechnung.billable.colKey')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.billable.colTotal')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.billable.colShare')}</div>
                           </div>
                           {abrechnungData.byCategory.length === 0 ? (
                             <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
-                              Bu dönemde yansıtılabilir gider bulunamadı
+                              {t('expenses.abrechnung.billable.empty')}
                             </div>
                           ) : (
                             abrechnungData.byCategory.map((cat, i) => {
-                              const dk = getDistributionKey(cat.distKey)
-                              const isAptScope = cat.keyLabel === 'Daire özel'
+                              const isAptScope = !cat.isBuildingScope
+                              const dkLabel = t(`distributionKeys.${cat.distKey || 'equal'}.label`)
                               const anahtarText = isAptScope
-                                ? 'Daire Özel'
-                                : `${dk.label} · ${cat.keyLabel}`
+                                ? t('expenses.abrechnung.billable.apartmentScope')
+                                : `${dkLabel} · ${cat.keyLabel}`
                               return (
                                 <div key={i} style={{
                                   display: 'grid', gridTemplateColumns: '1.2fr 1.8fr 130px 150px',
@@ -2045,7 +2054,7 @@ export default function Expenses() {
                                 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: C.text, minWidth: 0 }}>
                                     <CategoryIcon name={cat.icon} size={14} color={cat.color} />
-                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
+                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name || t('expenses.abrechnung.fallbackCategory')}</span>
                                   </div>
                                   <div style={{
                                     fontSize: 13, fontStyle: 'italic', color: '#8A7A5E',
@@ -2054,10 +2063,10 @@ export default function Expenses() {
                                     {anahtarText}
                                   </div>
                                   <div style={{ fontSize: 13, fontWeight: 500, color: C.textMuted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                    {money2(cat.totalCost)} ₺
+                                    {formatMoney(cat.totalCost)}
                                   </div>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                    {money2(cat.share)} ₺
+                                    {formatMoney(cat.share)}
                                   </div>
                                 </div>
                               )
@@ -2068,10 +2077,10 @@ export default function Expenses() {
                             gap: 14, padding: '16px 22px', background: '#F0FDF4',
                             borderTop: `2px solid #BBF7D0`, fontWeight: 800, fontSize: 14
                           }}>
-                            <div style={{ color: '#059669' }}>Toplam Pay</div>
+                            <div style={{ color: '#059669' }}>{t('expenses.abrechnung.billable.totalShare')}</div>
                             <div />
                             <div />
-                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money2(abrechnungData.totalBillable)} ₺</div>
+                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(abrechnungData.totalBillable)}</div>
                           </div>
                         </>
                       ) : (
@@ -2083,21 +2092,23 @@ export default function Expenses() {
                             borderBottom: `1px solid #FCD9A8`
                           }}>
                             <div />
-                            <div>Kalem</div>
-                            <div>Anahtar · Dağıtım</div>
-                            <div style={{ textAlign: 'right' }}>Toplam (₺)</div>
+                            <div>{t('expenses.abrechnung.billable.colItem')}</div>
+                            <div>{t('expenses.abrechnung.billable.colKeyScope')}</div>
+                            <div style={{ textAlign: 'right' }}>{t('expenses.abrechnung.billable.colTotal')}</div>
                           </div>
                           {abrechnungData.byCategory.length === 0 ? (
                             <div style={{ padding: 20, textAlign: 'center', color: C.textFaint, fontSize: 13 }}>
-                              Bu dönemde yansıtılabilir gider bulunamadı
+                              {t('expenses.abrechnung.billable.empty')}
                             </div>
                           ) : (
                             abrechnungData.byCategory.map((cat, i) => {
-                              const dk = getDistributionKey(cat.distKey)
+                              const dkLabel = t(`distributionKeys.${cat.distKey || 'equal'}.label`)
                               const catKey = `${cat.name}__${i}`
                               const open = expandedAbrechnungCats.has(catKey)
                               const isAptScope = !cat.isBuildingScope
-                              const scopeLabel = isAptScope ? 'Daire Özel' : 'Bina Geneli'
+                              const scopeLabel = isAptScope
+                                ? t('expenses.abrechnung.billable.apartmentScope')
+                                : t('expenses.abrechnung.billable.buildingScope')
                               const perApts = (cat.perApartment || []).filter(p => p.share > 0)
                               const expandable = perApts.length > 0
                               const isLast = i === abrechnungData.byCategory.length - 1
@@ -2131,16 +2142,16 @@ export default function Expenses() {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 500, color: C.text, minWidth: 0 }}>
                                       <CategoryIcon name={cat.icon} size={14} color={cat.color} />
-                                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
+                                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name || t('expenses.abrechnung.fallbackCategory')}</span>
                                     </div>
                                     <div style={{
                                       fontSize: 13, fontStyle: 'italic', color: '#8A7A5E',
                                       fontWeight: 400, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                                     }}>
-                                      {dk.label} · {scopeLabel}
+                                      {dkLabel} · {scopeLabel}
                                     </div>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                                      {money2(cat.total)} ₺
+                                      {formatMoney(cat.total)}
                                     </div>
                                   </div>
                                   {open && expandable && (
@@ -2165,7 +2176,7 @@ export default function Expenses() {
                                             {p.keyLabel}
                                           </div>
                                           <div style={{ textAlign: 'right', fontWeight: 600, color: C.text, fontVariantNumeric: 'tabular-nums' }}>
-                                            {money2(p.share)} ₺
+                                            {formatMoney(p.share)}
                                           </div>
                                         </div>
                                       ))}
@@ -2181,9 +2192,9 @@ export default function Expenses() {
                             borderTop: `2px solid #BBF7D0`, fontWeight: 800, fontSize: 14
                           }}>
                             <div />
-                            <div style={{ color: '#059669' }}>Toplam Yansıtılabilir</div>
+                            <div style={{ color: '#059669' }}>{t('expenses.abrechnung.billable.totalBillable')}</div>
                             <div />
-                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money2(abrechnungData.totalBillable)} ₺</div>
+                            <div style={{ color: '#059669', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(abrechnungData.totalBillable)}</div>
                           </div>
                         </>
                       )}
@@ -2199,16 +2210,24 @@ export default function Expenses() {
                       }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600 }}>
-                            {abrechnungData.mode === 'building' ? 'Bina Toplam Aidat' : 'Aylık Aidat'}
+                            {abrechnungData.mode === 'building'
+                              ? t('expenses.abrechnung.aidat.buildingTitle')
+                              : t('expenses.abrechnung.aidat.monthlyTitle')}
                           </div>
                           <div style={{ fontSize: 11, color: C.textFaint }}>
                             {abrechnungData.mode === 'building'
-                              ? `${abrechnungData.apartmentRows.length} daireden ${abrechnungData.monthsInPeriod} aylık dönem`
-                              : `${abrechnungData.monthsInPeriod} ay × ₺${money(abrechnungData.vorauszahlung)}/ay`}
+                              ? t('expenses.abrechnung.aidat.buildingSub', {
+                                  apts: abrechnungData.apartmentRows.length,
+                                  months: abrechnungData.monthsInPeriod,
+                                })
+                              : t('expenses.abrechnung.aidat.monthlySub', {
+                                  months: abrechnungData.monthsInPeriod,
+                                  amount: formatMoney(abrechnungData.vorauszahlung),
+                                })}
                           </div>
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          ₺{money(abrechnungData.totalVorauszahlung)}
+                          {formatMoney(abrechnungData.totalVorauszahlung)}
                         </div>
                       </div>
                     </div>
@@ -2230,24 +2249,24 @@ export default function Expenses() {
                             color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
                           }}>
                             {abrechnungData.difference > 0
-                              ? 'Ek Ödeme Gerekli'
+                              ? t('expenses.abrechnung.diff.payTitle')
                               : abrechnungData.difference < 0
-                                ? 'Kiracıya İade'
-                                : 'Dengede'}
+                                ? t('expenses.abrechnung.diff.refundTitle')
+                                : t('expenses.abrechnung.diff.balancedTitle')}
                           </div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                             {abrechnungData.difference > 0
-                              ? 'Kiracı ek ödeme yapmalı'
+                              ? t('expenses.abrechnung.diff.paySub')
                               : abrechnungData.difference < 0
-                                ? 'Kiracıya geri ödeme yapılmalı'
-                                : 'Fark yok — tam dengelenmiş'}
+                                ? t('expenses.abrechnung.diff.refundSub')
+                                : t('expenses.abrechnung.diff.balancedSub')}
                           </div>
                         </div>
                         <div style={{
                           fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
                           color: abrechnungData.difference > 0 ? '#DC2626' : abrechnungData.difference < 0 ? '#059669' : C.text
                         }}>
-                          {abrechnungData.difference > 0 ? '+' : ''}₺{money(Math.abs(abrechnungData.difference))}
+                          {abrechnungData.difference > 0 ? '+' : ''}{formatMoney(Math.abs(abrechnungData.difference))}
                         </div>
                       </div>
                     </div>
@@ -2257,7 +2276,7 @@ export default function Expenses() {
                       <>
                         <h4 style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 4, height: 16, borderRadius: 2, background: C.red }} />
-                          Yansıtılamaz Giderler (Referans)
+                          {t('expenses.abrechnung.nonBillable.title')}
                         </h4>
                         <div style={{
                           borderRadius: 12, border: `1px solid ${C.borderLight}`, overflow: 'hidden', marginBottom: 16
@@ -2270,8 +2289,8 @@ export default function Expenses() {
                                 padding: '10px 16px', alignItems: 'center',
                                 borderBottom: i < abrechnungData.nonBillableByCategory.length - 1 ? `1px solid ${C.borderLight}` : 'none'
                               }}>
-                                <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
-                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₺{money(amount)}</div>
+                                <div style={{ fontSize: 13, fontWeight: 500 }}>{cat.name || t('expenses.abrechnung.fallbackCategory')}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(amount)}</div>
                               </div>
                             )
                           })}
@@ -2280,8 +2299,8 @@ export default function Expenses() {
                             padding: '10px 16px', background: '#FEF2F2',
                             borderTop: `1px solid ${C.borderLight}`, fontWeight: 700, fontSize: 13
                           }}>
-                            <div style={{ color: '#DC2626' }}>Toplam yansıtılamaz</div>
-                            <div style={{ color: '#DC2626' }}>₺{money(abrechnungData.totalNonBillable)}</div>
+                            <div style={{ color: '#DC2626' }}>{t('expenses.abrechnung.nonBillable.total')}</div>
+                            <div style={{ color: '#DC2626' }}>{formatMoney(abrechnungData.totalNonBillable)}</div>
                           </div>
                         </div>
                       </>
@@ -2293,8 +2312,8 @@ export default function Expenses() {
                     <FileText size={32} color={C.textFaint} style={{ marginBottom: 12 }} />
                     <div>
                       {abrechnungScope === 'building'
-                        ? 'Rapor oluşturmak için bir bina seçin.'
-                        : 'Rapor oluşturmak için bir mülk seçin.'}
+                        ? t('expenses.abrechnung.empty.building')
+                        : t('expenses.abrechnung.empty.apartment')}
                     </div>
                   </div>
                 )}
@@ -2337,8 +2356,8 @@ export default function Expenses() {
                   <AlertTriangle size={20} color="#fff" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>Silme Onayı</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Bu işlem geri alınamaz</p>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>{t('expenses.confirmDelete.title')}</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{t('expenses.confirmDelete.subtitle')}</p>
                 </div>
               </div>
               <div style={{ padding: '24px 28px' }}>
@@ -2359,7 +2378,7 @@ export default function Expenses() {
                     color: C.textMuted, fontFamily: font
                   }}
                 >
-                  Vazgeç
+                  {t('expenses.confirmDelete.cancel')}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -2371,7 +2390,7 @@ export default function Expenses() {
                     color: '#fff', fontFamily: font
                   }}
                 >
-                  Evet, Sil
+                  {t('expenses.confirmDelete.confirm')}
                 </motion.button>
               </div>
             </motion.div>

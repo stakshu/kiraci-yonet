@@ -8,26 +8,17 @@
 
 import { motion } from 'motion/react'
 import { Printer, X, ArrowLeft } from 'lucide-react'
-import { apartmentLabel } from '../lib/apartmentLabel'
+import { useTranslation } from 'react-i18next'
 import { householdSize } from '../lib/householdSize'
+import { formatMoney, formatNumber, formatDate, getLocaleConfig } from '../i18n/formatters'
 
-const fmt2 = (n) => Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const fmtDate = (d) => {
-  if (!d) return '—'
+const fmtStamp = (d, lang) => {
+  const cfg = getLocaleConfig(lang)
   const dt = d instanceof Date ? d : new Date(d)
-  if (isNaN(dt.getTime())) return '—'
-  return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-const fmtStamp = (d) => {
-  const dt = d instanceof Date ? d : new Date(d)
-  return dt.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-const DK_LABEL = {
-  equal:   'Eşit Pay',
-  area:    'Konut Alanı (m²)',
-  persons: 'Kişi Sayısı',
-  units:   'Daire Sayısı',
+  return dt.toLocaleString(cfg.locale, {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 export default function InvoicePreview({
@@ -39,13 +30,15 @@ export default function InvoicePreview({
   onClose,
   onBackToEdit,
 }) {
+  const { t, i18n } = useTranslation()
   if (!data) return null
 
+  const lang = i18n.language
   const isApt = data.mode !== 'building'
-  const periodLabel = `${fmtDate(start)} – ${fmtDate(end)}`
-  const issueStamp  = fmtStamp(new Date())
-  const issueDate   = fmtDate(new Date())
-  const invoiceNo   = `NKA-${new Date(start).getFullYear()}-${(Date.now() % 10000).toString().padStart(4, '0')}`
+  const periodLabel = `${formatDate(start)} – ${formatDate(end)}`
+  const issueStamp  = fmtStamp(new Date(), lang)
+  const issueDate   = formatDate(new Date())
+  const invoiceNo   = `${t('invoice.top.invoicePrefix')}-${new Date(start).getFullYear()}-${(Date.now() % 10000).toString().padStart(4, '0')}`
 
   // Apartment-mode hesapları
   const apt        = isApt ? data.apt : null
@@ -62,10 +55,15 @@ export default function InvoicePreview({
     .filter(a => apt && a.building_id === apt.building_id && tenantsByApt[a.id])
     .reduce((s, a) => s + householdSize(tenantsByApt[a.id]), 0)
 
-  // Print
+  const aptLabelText = (a) => {
+    if (!a) return '—'
+    return a.floor_no
+      ? t('invoice.apartmentLabel.withFloor', { floor: a.floor_no, unit: a.unit_no || '—' })
+      : t('invoice.apartmentLabel.noFloor', { unit: a.unit_no || '—' })
+  }
+
   const handlePrint = () => window.print()
 
-  // ─── Render: Backdrop + Paper ───
   return (
     <>
       <style>{`
@@ -168,7 +166,6 @@ export default function InvoicePreview({
           background: linear-gradient(90deg, #8b2e1f 0%, #d97757 50%, #8b2e1f 100%);
         }
 
-        /* Top stamp + title */
         .inv-top {
           display: flex; align-items: flex-start; justify-content: space-between;
           gap: 28px;
@@ -221,7 +218,6 @@ export default function InvoicePreview({
           letter-spacing: .06em;
         }
 
-        /* Parties */
         .inv-parties {
           margin-bottom: 28px;
         }
@@ -239,7 +235,6 @@ export default function InvoicePreview({
           line-height: 1.55;
         }
 
-        /* Property info bar */
         .inv-property {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr;
@@ -263,7 +258,6 @@ export default function InvoicePreview({
           font-variant-numeric: tabular-nums;
         }
 
-        /* Breakdown table */
         .inv-table {
           width: 100%;
           border-collapse: collapse;
@@ -335,7 +329,6 @@ export default function InvoicePreview({
         }
         .inv-footer strong { color: #4a4641; }
 
-        /* Building-mode specific */
         .inv-section-h {
           font-family: 'Fraunces', serif;
           font-size: 18px;
@@ -347,7 +340,6 @@ export default function InvoicePreview({
         }
         .inv-section-h em { font-style: italic; color: #8b2e1f; font-weight: 400; }
 
-        /* PRINT */
         @media print {
           @page { size: A4 portrait; margin: 14mm 12mm; }
           html, body { background: white !important; }
@@ -377,108 +369,115 @@ export default function InvoicePreview({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
       >
-        {/* TOOLBAR (chrome — print'te gizlenir) */}
+        {/* TOOLBAR */}
         <div className="invoice-toolbar" data-no-print>
-          <div className="ttl">Yan Giderler <em>Hesabı</em></div>
+          <div className="ttl">{t('invoice.titlePrefix')} <em>{t('invoice.titleEm')}</em></div>
           <div className="actions">
             <button className="btn-ghost" onClick={onBackToEdit || onClose}>
-              <ArrowLeft size={14} /> Düzenle
+              <ArrowLeft size={14} /> {t('invoice.toolbar.edit')}
             </button>
             <button className="btn-primary" onClick={handlePrint}>
-              <Printer size={14} /> Yazdır / PDF Kaydet
+              <Printer size={14} /> {t('invoice.toolbar.print')}
             </button>
-            <button className="icon-btn" onClick={onClose} aria-label="Kapat">
+            <button className="icon-btn" onClick={onClose} aria-label={t('invoice.toolbar.close')}>
               <X size={16} />
             </button>
           </div>
         </div>
 
-        {/* PAPER (print'te tek görünen kısım) */}
+        {/* PAPER */}
         <motion.div
           className="invoice-paper"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
         >
-          {/* TOP STAMP + TITLE + PERIOD */}
           <div className="inv-top">
             <div className="inv-stamp">{issueStamp}</div>
-            <h1 className="inv-title">Yan Giderler <em>Hesabı</em></h1>
+            <h1 className="inv-title">{t('invoice.titlePrefix')} <em>{t('invoice.titleEm')}</em></h1>
             <div className="inv-period">
-              Hesap Dönemi
+              {t('invoice.top.period')}
               <strong>{periodLabel}</strong>
-              <div className="meta-no">No. {invoiceNo}</div>
+              <div className="meta-no">{t('invoice.top.no')} {invoiceNo}</div>
             </div>
           </div>
 
-          {/* PARTIES */}
           <div className="inv-parties">
             <div>
-              <h3>Kiracı</h3>
+              <h3>{t('invoice.parties.tenant')}</h3>
               <div className="party-body">
                 {isApt
-                  ? (tenant?.full_name || 'Aktif kiracı yok')
-                  : `${data.apartmentRows?.length || 0} daire / ${data.apartmentRows?.filter(r => r.tenant).length || 0} aktif kiracı`}
+                  ? (tenant?.full_name || t('invoice.parties.noActiveTenant'))
+                  : t('invoice.parties.buildingTenants', {
+                      apts: data.apartmentRows?.length || 0,
+                      active: data.apartmentRows?.filter(r => r.tenant).length || 0,
+                    })}
               </div>
             </div>
           </div>
 
-          {/* PROPERTY INFO */}
           {isApt ? (
             <div className="inv-property">
               <div className="kv">
-                <label>Kiralık Mülk</label>
-                <span>{`${buildingName}, ${apartmentLabel(apt)}`}</span>
+                <label>{t('invoice.propertyApt.title')}</label>
+                <span>{`${buildingName}, ${aptLabelText(apt)}`}</span>
               </div>
               <div className="kv">
-                <label>Konut Alanı</label>
-                <span>{aptArea > 0 ? `${fmt2(aptArea)} / ${fmt2(totalAreaInBuilding || aptArea)} m²` : '—'}</span>
+                <label>{t('invoice.propertyApt.area')}</label>
+                <span>{aptArea > 0 ? `${formatNumber(aptArea, { min: 2, max: 2 })} / ${formatNumber(totalAreaInBuilding || aptArea, { min: 2, max: 2 })} m²` : '—'}</span>
               </div>
               <div className="kv">
-                <label>Kişi Sayısı</label>
+                <label>{t('invoice.propertyApt.persons')}</label>
                 <span>{aptPersons > 0 ? `${aptPersons} / ${totalPersons || aptPersons}` : '—'}</span>
               </div>
             </div>
           ) : (
             <div className="inv-property">
               <div className="kv">
-                <label>Bina</label>
+                <label>{t('invoice.propertyBld.building')}</label>
                 <span>{data.building?.name || '—'}</span>
               </div>
               <div className="kv">
-                <label>Daire Sayısı</label>
+                <label>{t('invoice.propertyBld.aptCount')}</label>
                 <span>{data.apartmentRows?.length || 0}</span>
               </div>
               <div className="kv">
-                <label>Hesap Süresi</label>
-                <span>{data.monthsInPeriod} Ay</span>
+                <label>{t('invoice.propertyBld.duration')}</label>
+                <span>{t('invoice.propertyBld.months', { n: data.monthsInPeriod })}</span>
               </div>
             </div>
           )}
 
-          {/* BREAKDOWN — apartment veya building summary */}
           {isApt ? (
-            <ApartmentBreakdown data={data} />
+            <ApartmentBreakdown data={data} t={t} />
           ) : (
-            <BuildingBreakdown data={data} />
+            <BuildingBreakdown data={data} t={t} aptLabelText={aptLabelText} />
           )}
 
-          {/* FOOTER NOTE */}
           <div className="inv-footer">
-            <strong>Açıklama:</strong> Bu hesap, kiracı ile mutabık kalınan dağıtım anahtarlarına göre düzenlenmiştir.
-            Belirtilen giderler, hesap döneminde fiilen gerçekleşen işletme giderlerine karşılık gelmektedir.
+            <strong>{t('invoice.footer.explanationLabel')}</strong> {t('invoice.footer.explanation')}
             <br /><br />
             {data.difference > 0.005 ? (
-              <>Lütfen <strong>{fmt2(Math.abs(data.difference))} ₺ tutarındaki ek ödeme bedelini</strong>, bu hesabın tarafınıza ulaşmasından itibaren 30 gün içinde havale ediniz.</>
+              <>
+                {t('invoice.footer.payNoticePre')}
+                <strong>{t('invoice.footer.payNoticeStrong', { amount: formatMoney(Math.abs(data.difference)) })}</strong>
+                {t('invoice.footer.payNoticePost')}
+              </>
             ) : data.difference < -0.005 ? (
-              <><strong>{fmt2(Math.abs(data.difference))} ₺</strong> tutarındaki alacağınız 30 gün içinde tarafınıza iade edilecek veya bir sonraki kira ödemenizden mahsup edilecektir.</>
+              <>
+                {t('invoice.footer.refundNoticePre')}
+                <strong>{t('invoice.footer.refundNoticeStrong', { amount: formatMoney(Math.abs(data.difference)) })}</strong>
+                {t('invoice.footer.refundNoticePost')}
+              </>
             ) : (
-              <>Peşin ödemeleriniz yan giderleri tam olarak karşılamaktadır.</>
+              <>{t('invoice.footer.balancedNotice')}</>
             )}
             <br /><br />
-            Hesaba yapılacak itirazların, hesabın tarafınıza ulaşmasından itibaren 12 ay içinde yazılı olarak bildirilmesi gerekmektedir. Belgeler randevu ile incelenebilir.
+            {t('invoice.footer.objectionNotice')}
             <br /><br />
-            <span style={{ fontSize: 10, color: '#bbb4a6' }}>Düzenleme Tarihi: {issueDate} · KiraciYonet</span>
+            <span style={{ fontSize: 10, color: '#bbb4a6' }}>
+              {t('invoice.footer.issueDate', { date: issueDate })}
+            </span>
           </div>
         </motion.div>
       </motion.div>
@@ -487,7 +486,7 @@ export default function InvoicePreview({
 }
 
 /* ── Apartment Mode Breakdown ── */
-function ApartmentBreakdown({ data }) {
+function ApartmentBreakdown({ data, t }) {
   const rows = data.byCategory || []
   const isNach = data.difference > 0.005
   const isGut  = data.difference < -0.005
@@ -497,44 +496,53 @@ function ApartmentBreakdown({ data }) {
       <table className="inv-table">
         <thead>
           <tr>
-            <th>Kalem</th>
-            <th>Anahtar</th>
-            <th className="num">Toplam (₺)</th>
-            <th className="num">Sizin Payınız (₺)</th>
+            <th>{t('invoice.tableApt.item')}</th>
+            <th>{t('invoice.tableApt.key')}</th>
+            <th className="num">{t('invoice.tableApt.total')}</th>
+            <th className="num">{t('invoice.tableApt.share')}</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr><td colSpan={4} style={{ textAlign:'center', color:'#8a847b', fontStyle:'italic', padding:'20px 4px' }}>
-              Bu dönemde yansıtılabilir gider bulunamadı.
+              {t('invoice.tableApt.empty')}
             </td></tr>
-          ) : rows.map((r, i) => (
-            <tr key={i}>
-              <td style={{ fontWeight: 500 }}>{r.name}</td>
-              <td className="key">
-                {r.keyLabel === 'Daire özel'
-                  ? 'Daire Özel'
-                  : `${DK_LABEL[r.distKey] || 'Eşit Pay'} · ${r.keyLabel || ''}`}
-              </td>
-              <td className="num">{fmt2(r.totalCost)} ₺</td>
-              <td className="num" style={{ fontWeight: 600 }}>{fmt2(r.share)} ₺</td>
-            </tr>
-          ))}
+          ) : rows.map((r, i) => {
+            const isAptScope = !r.isBuildingScope
+            const dkLabel = t(`distributionKeys.${r.distKey || 'equal'}.label`)
+            const keyText = isAptScope
+              ? t('invoice.tableApt.apartmentScope')
+              : `${dkLabel} · ${r.keyLabel || ''}`
+            return (
+              <tr key={i}>
+                <td style={{ fontWeight: 500 }}>{r.name}</td>
+                <td className="key">{keyText}</td>
+                <td className="num">{formatMoney(r.totalCost)}</td>
+                <td className="num" style={{ fontWeight: 600 }}>{formatMoney(r.share)}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 
       <div className="inv-totals">
         <div className="row sum">
-          <span>Toplam Yan Gideriniz</span>
-          <span>{fmt2(data.totalBillable)} ₺</span>
+          <span>{t('invoice.totalsApt.totalBillable')}</span>
+          <span>{formatMoney(data.totalBillable)}</span>
         </div>
         <div className="row prepay">
-          <span>Ödenmiş peşin ödemeler düşülür</span>
-          <span>− {fmt2(data.totalVorauszahlung)} ₺</span>
+          <span>{t('invoice.totalsApt.deductPrepay')}</span>
+          <span>− {formatMoney(data.totalVorauszahlung)}</span>
         </div>
         <div className={`row result ${isNach ? 'nach' : isGut ? 'gut' : ''}`}>
-          <span>{isNach ? 'Ek Ödeme' : isGut ? 'Alacak (Kiracı Lehine)' : 'Denk'}</span>
-          <span>{fmt2(Math.abs(data.difference))} ₺</span>
+          <span>
+            {isNach
+              ? t('invoice.totalsApt.resultPay')
+              : isGut
+                ? t('invoice.totalsApt.resultRefund')
+                : t('invoice.totalsApt.resultBalanced')}
+          </span>
+          <span>{formatMoney(Math.abs(data.difference))}</span>
         </div>
       </div>
     </>
@@ -542,7 +550,7 @@ function ApartmentBreakdown({ data }) {
 }
 
 /* ── Building Mode Breakdown ── */
-function BuildingBreakdown({ data }) {
+function BuildingBreakdown({ data, t, aptLabelText }) {
   const cats = data.byCategory || []
   const aptRows = data.apartmentRows || []
   const isNach = data.difference > 0.005
@@ -550,54 +558,53 @@ function BuildingBreakdown({ data }) {
 
   return (
     <>
-      <h2 className="inv-section-h">Kategori <em>Toplamları</em></h2>
+      <h2 className="inv-section-h">{t('invoice.section.categoryTotalsPrefix')} <em>{t('invoice.section.categoryTotalsEm')}</em></h2>
       <table className="inv-table" style={{ marginBottom: 28 }}>
         <thead>
           <tr>
-            <th>Kalem</th>
-            <th>Anahtar</th>
-            <th className="num">Toplam (₺)</th>
+            <th>{t('invoice.tableBld.item')}</th>
+            <th>{t('invoice.tableBld.key')}</th>
+            <th className="num">{t('invoice.tableBld.total')}</th>
           </tr>
         </thead>
         <tbody>
           {cats.length === 0 ? (
             <tr><td colSpan={3} style={{ textAlign:'center', color:'#8a847b', fontStyle:'italic', padding:'20px 4px' }}>
-              Bu dönemde yansıtılabilir gider bulunamadı.
+              {t('invoice.tableBld.empty')}
             </td></tr>
           ) : cats.map((c, i) => (
             <tr key={i}>
               <td style={{ fontWeight: 500 }}>{c.name}</td>
-              <td className="key">{DK_LABEL[c.distKey] || 'Eşit Pay'}</td>
-              <td className="num" style={{ fontWeight: 600 }}>{fmt2(c.total)} ₺</td>
+              <td className="key">{t(`distributionKeys.${c.distKey || 'equal'}.label`)}</td>
+              <td className="num" style={{ fontWeight: 600 }}>{formatMoney(c.total)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <h2 className="inv-section-h">Daire Bazlı <em>Dağılım</em></h2>
+      <h2 className="inv-section-h">{t('invoice.section.distByAptPrefix')} <em>{t('invoice.section.distByAptEm')}</em></h2>
       <table className="inv-table">
         <thead>
           <tr>
-            <th>Daire</th>
-            <th>Kiracı</th>
-            <th className="num">Yansıtılabilir (₺)</th>
-            <th className="num">Aidat (₺)</th>
-            <th className="num">Fark (₺)</th>
+            <th>{t('invoice.tableBld.apt')}</th>
+            <th>{t('invoice.tableBld.tenant')}</th>
+            <th className="num">{t('invoice.tableBld.billable')}</th>
+            <th className="num">{t('invoice.tableBld.aidat')}</th>
+            <th className="num">{t('invoice.tableBld.diff')}</th>
           </tr>
         </thead>
         <tbody>
           {aptRows.map((r, i) => {
             const dColor = r.difference > 0 ? '#8b2e1f' : r.difference < 0 ? '#2d5a3f' : '#1c1a17'
             const sign = r.difference > 0 ? '+' : r.difference < 0 ? '−' : ''
-            const floor = r.apt?.floor_no ? `Kat ${r.apt.floor_no} · ` : ''
             return (
               <tr key={i}>
-                <td style={{ fontWeight: 500 }}>{floor}Daire {r.apt?.unit_no || '—'}</td>
-                <td style={{ color: r.tenant ? '#1c1a17' : '#bbb4a6' }}>{r.tenant?.full_name || '— boş —'}</td>
-                <td className="num">{fmt2(r.totalBillable)} ₺</td>
-                <td className="num" style={{ color:'#4a4641' }}>{fmt2(r.totalVorauszahlung)} ₺</td>
+                <td style={{ fontWeight: 500 }}>{aptLabelText(r.apt)}</td>
+                <td style={{ color: r.tenant ? '#1c1a17' : '#bbb4a6' }}>{r.tenant?.full_name || t('invoice.tableBld.emptyApt')}</td>
+                <td className="num">{formatMoney(r.totalBillable)}</td>
+                <td className="num" style={{ color:'#4a4641' }}>{formatMoney(r.totalVorauszahlung)}</td>
                 <td className="num" style={{ fontWeight: 700, color: dColor }}>
-                  {sign}{fmt2(Math.abs(r.difference))} ₺
+                  {sign}{formatMoney(Math.abs(r.difference))}
                 </td>
               </tr>
             )
@@ -607,16 +614,22 @@ function BuildingBreakdown({ data }) {
 
       <div className="inv-totals">
         <div className="row sum">
-          <span>Bina Toplam Yansıtılabilir</span>
-          <span>{fmt2(data.totalBillable)} ₺</span>
+          <span>{t('invoice.totalsBld.totalBillable')}</span>
+          <span>{formatMoney(data.totalBillable)}</span>
         </div>
         <div className="row prepay">
-          <span>Toplanmış aidat ödemeleri düşülür</span>
-          <span>− {fmt2(data.totalVorauszahlung)} ₺</span>
+          <span>{t('invoice.totalsBld.deductPrepay')}</span>
+          <span>− {formatMoney(data.totalVorauszahlung)}</span>
         </div>
         <div className={`row result ${isNach ? 'nach' : isGut ? 'gut' : ''}`}>
-          <span>{isNach ? 'Açık (Bina Lehine)' : isGut ? 'Fazlalık (Kiracılar Lehine)' : 'Denk'}</span>
-          <span>{fmt2(Math.abs(data.difference))} ₺</span>
+          <span>
+            {isNach
+              ? t('invoice.totalsBld.resultPay')
+              : isGut
+                ? t('invoice.totalsBld.resultRefund')
+                : t('invoice.totalsBld.resultBalanced')}
+          </span>
+          <span>{formatMoney(Math.abs(data.difference))}</span>
         </div>
       </div>
     </>

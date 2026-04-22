@@ -1,9 +1,11 @@
-/* ── KiraciYonet — Sidebar — Lucide + Motion ── */
+/* ── KiraciYonet — Sidebar — Lucide + Motion + i18n ── */
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from './Toast'
+import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, HelpCircle,
@@ -22,26 +24,6 @@ const ICON_MAP = {
   home: Home
 }
 
-const NAV_SECTIONS = [
-  {
-    label: 'GENEL',
-    items: [
-      { text: 'Ozet', icon: 'dashboard', route: '/dashboard', tooltip: 'Ozet' },
-      { text: 'Mulklerim', icon: 'building', route: '/properties', tooltip: 'Mulklerim' },
-      { text: 'Kiracilar', icon: 'users', route: '/tenants/list', tooltip: 'Kiracilar' },
-      { text: 'Odemeler', icon: 'card', route: '/payments/rent', tooltip: 'Odemeler' }
-    ]
-  },
-  {
-    label: 'YONETIM',
-    items: [
-      { text: 'Giderler', icon: 'dollar', route: '/expenses', tooltip: 'Giderler' },
-      { text: 'Muhasebe', icon: 'chart', route: '/accounting', tooltip: 'Muhasebe' },
-      { text: 'Belgeler', icon: 'file', route: '/documents', tooltip: 'Belgeler' }
-    ]
-  }
-]
-
 function Icon({ name, className }) {
   const LucideIcon = ICON_MAP[name]
   if (!LucideIcon) return null
@@ -51,16 +33,37 @@ function Icon({ name, className }) {
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
   const { user, signOut } = useAuth()
   const { showToast } = useToast()
   const [openGroups, setOpenGroups] = useState({})
 
+  const NAV_SECTIONS = [
+    {
+      label: t('sidebar.sectionGeneral'),
+      items: [
+        { text: t('sidebar.overview'),   icon: 'dashboard', route: '/dashboard' },
+        { text: t('sidebar.properties'), icon: 'building',  route: '/properties' },
+        { text: t('sidebar.tenants'),    icon: 'users',     route: '/tenants/list' },
+        { text: t('sidebar.payments'),   icon: 'card',      route: '/payments/rent' }
+      ]
+    },
+    {
+      label: t('sidebar.sectionManagement'),
+      items: [
+        { text: t('sidebar.expenses'),   icon: 'dollar', route: '/expenses' },
+        { text: t('sidebar.accounting'), icon: 'chart',  route: '/accounting' },
+        { text: t('sidebar.documents'),  icon: 'file',   route: '/documents' }
+      ]
+    }
+  ]
+
   const handleLogout = async () => {
     try {
       await signOut()
-      showToast('Basariyla cikis yapildi.')
+      showToast(t('sidebar.logoutSuccess'))
     } catch (err) {
-      showToast('Cikis hatasi: ' + err.message, 'error')
+      showToast(t('sidebar.logoutError', { msg: err.message }), 'error')
     }
   }
 
@@ -81,7 +84,7 @@ export default function Sidebar() {
         >
           <Home className="w-[18px] h-[18px] text-white" strokeWidth={2} />
         </motion.div>
-        <span className="sb-logo-text">KiraciYonet</span>
+        <span className="sb-logo-text">{t('app.name')}</span>
       </div>
 
       {/* Navigation */}
@@ -96,7 +99,7 @@ export default function Sidebar() {
                   <div className={`nav-group${isOpen ? ' open' : ''}`} key={ii}>
                     <a
                       className={`nav-item${isGroupActive(item.children) ? ' active' : ''}`}
-                      data-tooltip={item.tooltip}
+                      data-tooltip={item.text}
                       onClick={() => toggleGroup(item.text)}
                     >
                       <span className="nav-item-icon">
@@ -123,7 +126,7 @@ export default function Sidebar() {
                 <motion.a
                   key={ii}
                   className={`nav-item${isActive(item.route) ? ' active' : ''}`}
-                  data-tooltip={item.tooltip}
+                  data-tooltip={item.text}
                   onClick={() => goTo(item.route)}
                   whileHover={{ x: 2 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -144,16 +147,18 @@ export default function Sidebar() {
         <div className="nav-section" style={{ paddingBottom: 4 }}>
           <motion.a
             className="nav-item"
-            data-tooltip="Yardim"
+            data-tooltip={t('sidebar.helpSupport')}
             whileHover={{ x: 2 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           >
             <span className="nav-item-icon">
               <HelpCircle className="w-[18px] h-[18px]" />
             </span>
-            <span className="nav-item-text">Yardim & Destek</span>
+            <span className="nav-item-text">{t('sidebar.helpSupport')}</span>
           </motion.a>
         </div>
+
+        <LanguageSwitcher />
 
         <div className="sb-user">
           <motion.div
@@ -164,12 +169,12 @@ export default function Sidebar() {
             KY
           </motion.div>
           <div className="sb-user-info">
-            <div className="sb-user-name">{user ? user.email.split('@')[0] : 'Kullanici'}</div>
+            <div className="sb-user-name">{user ? user.email.split('@')[0] : t('sidebar.user')}</div>
             <div className="sb-user-badge">
               {user ? (
-                <><span className="inline-block w-2 h-2 rounded-full" style={{ background: '#00D47E' }} /> Cevrimici</>
+                <><span className="inline-block w-2 h-2 rounded-full" style={{ background: '#00D47E' }} /> {t('sidebar.online')}</>
               ) : (
-                <><span className="inline-block w-2 h-2 rounded-full" style={{ background: '#94A3B8' }} /> Giris yapilmadi</>
+                <><span className="inline-block w-2 h-2 rounded-full" style={{ background: '#94A3B8' }} /> {t('sidebar.notLoggedIn')}</>
               )}
             </div>
           </div>
@@ -180,8 +185,8 @@ export default function Sidebar() {
               onClick={handleLogout}
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.94 }}
-              title="Cikis yap"
-              aria-label="Cikis yap"
+              title={t('sidebar.logoutTitle')}
+              aria-label={t('sidebar.logoutTitle')}
             >
               <LogOut className="w-[16px] h-[16px]" />
             </motion.button>

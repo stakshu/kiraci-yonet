@@ -1,0 +1,1162 @@
+{
+  "app": {
+    "name": "KiraciYonet",
+    "tagline": "Mülk yönetim paneli"
+  },
+  "common": {
+    "save": "Kaydet",
+    "saving": "Kaydediliyor...",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "deleting": "Siliniyor...",
+    "edit": "Düzenle",
+    "add": "Ekle",
+    "close": "Kapat",
+    "confirm": "Onayla",
+    "back": "Geri",
+    "next": "İleri",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "all": "Tümü",
+    "none": "Yok",
+    "loading": "Yükleniyor...",
+    "empty": "Kayıt yok",
+    "yes": "Evet",
+    "no": "Hayır",
+    "required": "Zorunlu",
+    "optional": "İsteğe bağlı",
+    "total": "Toplam",
+    "subtotal": "Ara toplam",
+    "amount": "Tutar",
+    "date": "Tarih",
+    "description": "Açıklama",
+    "status": "Durum",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "actions": "İşlemler",
+    "select": "Seç",
+    "selectPlaceholder": "Seçiniz",
+    "download": "İndir",
+    "print": "Yazdır",
+    "export": "Dışa aktar",
+    "success": "Başarılı",
+    "error": "Hata",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "more": "Daha fazla",
+    "less": "Daha az",
+    "viewAll": "Tümünü gör",
+    "reset": "Sıfırla",
+    "apply": "Uygula",
+    "logout": "Çıkış yap",
+    "profile": "Profil",
+    "settings": "Ayarlar",
+    "help": "Yardım",
+    "support": "Destek",
+    "language": "Dil"
+  },
+  "sidebar": {
+    "sectionGeneral": "GENEL",
+    "sectionManagement": "YÖNETİM",
+    "overview": "Özet",
+    "properties": "Mülklerim",
+    "tenants": "Kiracılar",
+    "payments": "Ödemeler",
+    "expenses": "Giderler",
+    "accounting": "Muhasebe",
+    "documents": "Belgeler",
+    "helpSupport": "Yardım & Destek",
+    "online": "Çevrimiçi",
+    "notLoggedIn": "Giriş yapılmadı",
+    "user": "Kullanıcı",
+    "logoutTitle": "Çıkış yap",
+    "logoutSuccess": "Başarıyla çıkış yapıldı.",
+    "logoutError": "Çıkış hatası: {{msg}}"
+  },
+  "languages": {
+    "tr": "Türkçe",
+    "en": "İngilizce",
+    "de": "Almanca",
+    "switcherLabel": "Dil",
+    "switcherTitle": "Arayüz dilini değiştir"
+  },
+  "propertyTypes": {
+    "daire": "Daire",
+    "mustakil": "Müstakil Ev",
+    "villa": "Villa",
+    "dukkan": "Dükkan",
+    "ofis": "Ofis",
+    "arsa": "Arsa",
+    "diger": "Diğer"
+  },
+  "buildingTypes": {
+    "apartman": "Apartman",
+    "mustakil": "Müstakil Ev",
+    "villa": "Villa",
+    "dukkan": "Dükkan",
+    "ofis": "Ofis",
+    "diger": "Diğer"
+  },
+  "properties": {
+    "title": "Mülklerim",
+    "searchPlaceholder": "Bina / şehir / ilçe / adres ara...",
+    "addProperty": "Mülk Ekle",
+    "addApartment": "Daire Ekle",
+    "stats": {
+      "totalBuildings": "Toplam Bina",
+      "totalUnits": "Toplam Daire",
+      "occupied": "Kirada",
+      "vacant": "Boşta",
+      "monthlyIncome": "Aylık Gelir"
+    },
+    "table": {
+      "building": "Bina",
+      "address": "Adres",
+      "units": "Daire",
+      "occupied": "Kirada",
+      "vacant": "Boşta",
+      "monthlyIncome": "Aylık Gelir",
+      "singleUnit": "1 Birim",
+      "yearsOld": "{{n}} yaşında"
+    },
+    "empty": {
+      "none": "Henüz bina eklenmemiş. \"+ Mülk Ekle\" ile başlayın.",
+      "search": "Aramayla eşleşen bina bulunamadı."
+    },
+    "errorPrefix": "Hata",
+    "toasts": {
+      "sessionExpired": "Oturum süresi dolmuş.",
+      "buildingRequired": "Bina seçiniz.",
+      "apartmentBuildingsRequired": "Apartman tipinde bina yok. Önce bir apartman ekleyiniz.",
+      "unitError": "Bina eklendi ama birim kaydında hata: {{msg}}",
+      "errorPrefix": "Hata: {{msg}}",
+      "buildingAdded": "Bina eklendi.",
+      "propertyAdded": "Mülk eklendi.",
+      "apartmentAdded": "Daire eklendi."
+    },
+    "modal": {
+      "addBuildingTitle": "Yeni Mülk Ekle",
+      "addApartmentTitle": "Yeni Daire Ekle",
+      "typeLabel": "Mülk Tipi *",
+      "buildingNameMulti": "Bina Adı *",
+      "buildingNameSingle": "Mülk Adı *",
+      "buildingNameMultiPh": "Cömertkent Sitesi H1 Blok",
+      "buildingNameSinglePh": "Deniz Manzaralı Villa",
+      "city": "Şehir",
+      "cityPh": "İstanbul",
+      "district": "İlçe",
+      "districtPh": "Kadıköy",
+      "address": "Adres",
+      "addressPh": "Mahalle, Sokak, No",
+      "buildingAge": "Bina Yaşı",
+      "constructionYear": "Yapım Yılı",
+      "notes": "Notlar",
+      "optional": "Opsiyonel",
+      "unitInfo": "Birim Bilgileri",
+      "roomCount": "Oda Sayısı",
+      "floor": "Kat",
+      "deposit": "Depozito",
+      "grossArea": "Brüt m²",
+      "netArea": "Net m²",
+      "furnished": "Eşyalı",
+      "building": "Bina *",
+      "unitNo": "Daire No *",
+      "propertyType": "Mülk Tipi",
+      "notesPh": "Opsiyonel notlar...",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "saving": "Kaydediliyor..."
+    }
+  },
+  "buildingDetail": {
+    "backToProperties": "Mülklerim",
+    "editBuilding": "Düzenle",
+    "deleteBuilding": "Sil",
+    "addressNotSet": "Adres bilgisi girilmemiş",
+    "stats": {
+      "unit": "Birim",
+      "apartment": "Daire",
+      "occupied": "Kirada",
+      "vacant": "Boşta",
+      "monthly": "Aylık"
+    },
+    "addApartment": "Daire Ekle",
+    "table": {
+      "unit": "Birim",
+      "apartment": "Daire",
+      "tenant": "Kiracı",
+      "nextPayment": "Sıradaki Ödeme",
+      "leaseEnd": "Sözleşme Bitiş",
+      "occupied": "Kirada",
+      "vacant": "Boşta",
+      "noPaymentRecord": "Ödeme kaydı yok",
+      "addLease": "Sözleşme Ekle",
+      "addTenant": "Kiracı Ekle"
+    },
+    "empty": {
+      "single": "Bu mülkün birim kaydı bulunamadı.",
+      "multi": "Bu binada henüz daire yok. \"+ Daire Ekle\" ile ekleyebilirsiniz."
+    },
+    "bldModal": {
+      "title": "Binayı Düzenle",
+      "name": "Bina Adı *",
+      "namePh": "Cömertkent Sitesi H1 Blok",
+      "city": "Şehir",
+      "cityPh": "İstanbul",
+      "district": "İlçe",
+      "districtPh": "Kadıköy",
+      "address": "Adres",
+      "addressPh": "Mahalle, Sokak, No",
+      "buildingAge": "Bina Yaşı",
+      "notes": "Notlar",
+      "notesPh": "Opsiyonel"
+    },
+    "aptModal": {
+      "titleAdd": "Yeni Daire Ekle",
+      "titleEdit": "Daireyi Düzenle",
+      "building": "Bina *",
+      "unitNo": "Daire No *",
+      "propertyType": "Mülk Tipi",
+      "roomCount": "Oda Sayısı",
+      "floor": "Kat",
+      "deposit": "Depozito (₺)",
+      "grossArea": "Brüt m²",
+      "netArea": "Net m²",
+      "furnished": "Eşyalı",
+      "notes": "Notlar",
+      "notesPh": "Opsiyonel notlar..."
+    },
+    "tenantModal": {
+      "title": "Kiracı Ekle",
+      "modeNew": "Yeni Kiracı",
+      "modeExisting": "Inaktif Kiracıdan Ata",
+      "noInactiveTitle": "Inaktif kiracı yok",
+      "noInactiveSub": "\"Yeni Kiracı\" sekmesinden ekleyebilirsiniz.",
+      "createNewCta": "Yeni Kiracı Oluştur",
+      "selectInactive": "Inaktif Kiracı Seç *",
+      "selectInactivePh": "Inaktif kiracı seçin...",
+      "fullName": "Ad Soyad *",
+      "fullNamePh": "Ahmet Yılmaz",
+      "tcNo": "TC No",
+      "tcNoPh": "12345678901",
+      "phone": "Telefon",
+      "phonePh": "0532 xxx xx xx",
+      "email": "E-posta",
+      "emailPh": "ornek@mail.com",
+      "leaseStart": "Sözleşme Başlangıç",
+      "leaseEnd": "Sözleşme Bitiş",
+      "monthlyRent": "Aylık Kira (₺)",
+      "deposit": "Depozito (₺)",
+      "submitNew": "Kiracı Ekle",
+      "submitAssign": "Ata"
+    },
+    "confirm": {
+      "deleteMulti": "Bu bina ve içindeki {{n}} daire (+ bağlı kiracılar ve ödemeler) silinecek. Emin misiniz?",
+      "deleteSingle": "Bina silinsin mi?",
+      "deleteApartment": "{{name}} silinsin mi?"
+    },
+    "toasts": {
+      "buildingNotFound": "Bina bulunamadı.",
+      "buildingUpdated": "Bina güncellendi.",
+      "buildingDeleted": "Bina silindi.",
+      "apartmentNotFound": "Daire bulunamadı.",
+      "apartmentUpdated": "Daire güncellendi.",
+      "apartmentAdded": "Daire eklendi.",
+      "apartmentDeleted": "Daire silindi.",
+      "selectInactiveRequired": "Inaktif kiracı seçin.",
+      "tenantAssigned": "Kiracı atandı.",
+      "tenantAdded": "Kiracı eklendi.",
+      "sessionExpired": "Oturum süresi dolmuş.",
+      "buildingRequired": "Bina seçiniz.",
+      "errorPrefix": "Hata: {{msg}}"
+    }
+  },
+  "propertyDetail": {
+    "back": "Mülklerime Dön",
+    "tabs": {
+      "details": "Mülk Detayları",
+      "payments": "Ödeme Akışı",
+      "lease": "Kira Sözleşmesi Bilgileri",
+      "documents": "Belgeler",
+      "notes": "Notlar"
+    },
+    "summary": {
+      "title": "Mülk Özeti",
+      "edit": "Düzenle",
+      "delete": "Mülkü Sil"
+    },
+    "fields": {
+      "building": "Bina",
+      "apartment": "Daire",
+      "location": "Lokasyon",
+      "propertyType": "Mülk tipi",
+      "roomCount": "Oda sayısı",
+      "furnished": "Eşyalı",
+      "m2Net": "m² (Net)",
+      "m2Gross": "m² (Brüt)",
+      "buildingAge": "Bina yaşı",
+      "address": "Adresi",
+      "floor": "Bulunduğu kat",
+      "deposit": "Depozito"
+    },
+    "basics": "Temel Bilgiler",
+    "edit": {
+      "buildingLabel": "Bina *",
+      "buildingPh": "Bina seçiniz",
+      "unitNo": "Daire No",
+      "propertyType": "Mülk Tipi",
+      "roomCount": "Oda Sayısı",
+      "floor": "Kat",
+      "grossArea": "Brüt m²",
+      "netArea": "Net m²",
+      "deposit": "Depozito (₺)",
+      "furnished": "Eşyalı",
+      "buildingScopeNote": "Bina bilgileri (şehir, ilçe, adres, bina yaşı) bina seviyesinde düzenlenir."
+    },
+    "tenantInfo": {
+      "fullName": "Ad Soyad",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "tcNo": "TC No",
+      "leaseStart": "Sözleşme Başlangıç",
+      "leaseEnd": "Sözleşme Bitiş",
+      "monthlyRent": "Aylık Kira",
+      "deposit": "Depozito"
+    },
+    "payments": {
+      "empty": "Ödeme kaydı bulunamadı.",
+      "unknownTenant": "Bilinmeyen",
+      "currentTenant": "Güncel Kiracı",
+      "pastTenant": "Geçmiş Kiracı",
+      "paymentCount": "{{n}} ödeme",
+      "thDueDate": "Vade Tarihi",
+      "thAmount": "Tutar",
+      "thStatus": "Durum",
+      "thPaidDate": "Ödeme Tarihi",
+      "paid": "Ödendi",
+      "overdue": "Gecikti",
+      "pending": "Bekliyor"
+    },
+    "lease": {
+      "currentTitle": "Güncel Kiracı Bilgileri",
+      "activeTenant": "Aktif Kiracı",
+      "endLease": "Sözleşmeyi Sonlandır",
+      "viewDetail": "Detaya Git",
+      "noCurrent": "Bu mülkte güncel kiracı bulunmuyor.",
+      "pastTitle": "Geçmiş Kiracılar",
+      "noPast": "Geçmiş kiracı kaydı bulunamadı.",
+      "formerTenant": "Eski Kiracı",
+      "rentSuffix": "ay"
+    },
+    "documents": {
+      "title": "Belgeler",
+      "uploading": "Yükleniyor...",
+      "upload": "Belge Yükle",
+      "empty": "Henüz belge yüklenmemiş.",
+      "emptyHint": "PDF, Word veya görsel dosyalarını yükleyebilirsiniz.",
+      "thName": "Dosya Adı",
+      "thSize": "Boyut",
+      "thDate": "Tarih"
+    },
+    "notes": {
+      "propertyNote": "Mülk Notu",
+      "tenantNote": "Kiracı Notu — {{name}}",
+      "edit": "Düzenle",
+      "add": "Not Ekle",
+      "propertyPh": "Mülk hakkında not yazın...",
+      "tenantPh": "Kiracı hakkında not yazın...",
+      "empty": "Henüz not eklenmemiş."
+    },
+    "endLeaseModal": {
+      "title": "Sözleşmeyi Sonlandır",
+      "body": "{{name}} adlı kiracı bu daireden çıkarılacaktır. Kiracı geçmiş kiracılar listesine taşınacaktır. Bu işlemi onaylıyor musunuz?",
+      "cancel": "Vazgeç",
+      "processing": "İşleniyor...",
+      "confirm": "Evet, Sonlandır"
+    },
+    "deletePropertyModal": {
+      "title": "Mülkü Sil",
+      "body": "{{label}} adlı mülk kalıcı olarak silinecektir. Bu mülke ait tüm veriler (ödemeler, belgeler) de silinecektir. Bu işlemi onaylıyor musunuz?",
+      "cancel": "Vazgeç",
+      "deleting": "Siliniyor...",
+      "confirm": "Evet, Sil"
+    },
+    "toasts": {
+      "propertyNotFound": "Mülk bulunamadı.",
+      "buildingRequired": "Bina seçiniz.",
+      "propertyUpdated": "Mülk bilgileri güncellendi.",
+      "propertyDeleted": "Mülk silindi.",
+      "noteSaved": "Not kaydedildi.",
+      "leaseEnded": "{{name}} sözleşmesi sonlandırıldı.",
+      "documentUploaded": "Belge yüklendi.",
+      "documentDeleted": "Belge silindi.",
+      "uploadError": "Yükleme hatası: {{msg}}",
+      "errorPrefix": "Hata: {{msg}}",
+      "confirmDeleteDoc": "{{name}} silinsin mi?"
+    }
+  },
+  "dashboard": {
+    "greet": {
+      "night": "İyi geceler",
+      "morning": "Günaydın",
+      "day": "İyi günler",
+      "evening": "İyi akşamlar"
+    },
+    "addTenant": "Kiracı Ekle",
+    "addProperty": "Mülk Ekle",
+    "addPayment": "Tahsilat Ekle",
+    "kpi": {
+      "thisMonth": "Bu Ay",
+      "collectedTitle": "Gerçekleşen Ödemeler",
+      "overdueTitle": "Geciken Ödemeler",
+      "upcomingTitle": "Gelecek Ödemeler",
+      "noPayment": "Ödeme yok",
+      "noOverdue": "Geciken yok",
+      "noUpcoming": "Bekleyen yok",
+      "fromProperties": "{{count}} Mülk'ten"
+    },
+    "overdueList": {
+      "title": "Geciken Kiralar",
+      "all": "Tümü",
+      "empty": "Geciken ödeme yok.",
+      "daysLate": "{{count}} gün gecikme"
+    },
+    "trend": {
+      "title": "Tahsilat Trendi",
+      "period": "12 ay"
+    },
+    "recent": {
+      "title": "Son Hareketler",
+      "empty": "Henüz ödeme yok.",
+      "all": "Tümü"
+    },
+    "status": {
+      "title": "Mülk Durumu",
+      "occupied": "Dolu",
+      "vacant": "Boş",
+      "summary": "{{b}} bina · {{a}} daire",
+      "occupancy": "%{{pct}} doluluk"
+    },
+    "time": {
+      "justNow": "Az önce",
+      "minutes": "{{n}} dk",
+      "hours": "{{n}} sa",
+      "yesterday": "Dün",
+      "days": "{{n}} gün"
+    }
+  },
+  "auth": {
+    "loginTitle": "Hoş Geldiniz",
+    "loginSubtitle": "Hesabınıza giriş yapın",
+    "registerTitle": "Hesap Oluşturun",
+    "registerSubtitle": "Hemen başlayın",
+    "forgotTitle": "Şifre Sıfırlama",
+    "forgotSubtitle": "E-posta adresinize sıfırlama linki göndereceğiz",
+    "email": "E-posta",
+    "emailPlaceholder": "ornek@email.com",
+    "password": "Şifre",
+    "passwordPlaceholder": "••••••••",
+    "passwordHint": "En az 6 karakter",
+    "passwordRepeat": "Şifre Tekrar",
+    "passwordRepeatPlaceholder": "Şifrenizi tekrarlayın",
+    "forgotLink": "Şifremi unuttum?",
+    "loginButton": "Giriş Yap",
+    "loginLoading": "Giriş yapılıyor...",
+    "registerButton": "Kayıt Ol",
+    "registerLoading": "Kayıt yapılıyor...",
+    "forgotButton": "Sıfırlama Linki Gönder",
+    "forgotLoading": "Gönderiliyor...",
+    "backToLogin": "← Giriş ekranına dön",
+    "noAccount": "Hesabınız yok mu?",
+    "haveAccount": "Zaten hesabınız var mı?",
+    "signUpAction": "Kayıt Ol",
+    "signInAction": "Giriş Yap",
+    "loginSuccess": "Başarıyla giriş yapıldı!",
+    "registerSuccess": "Kayıt başarılı! Hoş geldiniz.",
+    "registerVerify": "Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.",
+    "resetSent": "Sıfırlama linki e-posta adresinize gönderildi.",
+    "passwordMismatch": "Şifreler eşleşmiyor.",
+    "error": {
+      "invalidCredentials": "E-posta veya şifre hatalı.",
+      "emailNotConfirmed": "E-posta adresiniz henüz doğrulanmadı.",
+      "userExists": "Bu e-posta adresi zaten kayıtlı.",
+      "passwordShort": "Şifre en az 6 karakter olmalıdır.",
+      "rateLimited": "Güvenlik nedeniyle 60 saniyede bir istek gönderebilirsiniz."
+    },
+    "marketing": {
+      "line1": "Mülklerinizi",
+      "line2": "yönetmenin",
+      "line3": "en akıllı yolu.",
+      "description": "Kira takibi, gider yönetimi ve finansal raporlama — tek platformda.",
+      "statPropertiesLabel": "1.200+ Mülk",
+      "statPropertiesSub": "Yönetiliyor",
+      "statCollectionLabel": "%98 Tahsilat",
+      "statCollectionSub": "Oranı",
+      "statVolumeLabel": "₺2.4M+",
+      "statVolumeSub": "Aylık Takip",
+      "copyright": "© 2026 KiraciYonet. Tüm hakları saklıdır."
+    }
+  },
+  "tenantsList": {
+    "heading": "Kiracılar",
+    "addTenant": "Kiracı Ekle",
+    "stats": {
+      "total": "Toplam Kiracı",
+      "active": "Aktif Kiracı",
+      "inactive": "İnaktif Kiracı",
+      "former": "Eski Kiracı",
+      "expiring": "Süresi Dolan (30 gün)"
+    },
+    "tabs": {
+      "active": "Aktif Kiracılar",
+      "inactive": "İnaktif Kiracılar",
+      "former": "Eski Kiracılar"
+    },
+    "searchPh": "Kiracı ara...",
+    "table": {
+      "tenant": "Kiracı",
+      "phone": "Telefon",
+      "apartment": "Daire",
+      "leaseEnd": "Sözleşme Bitiş",
+      "rent": "Kira",
+      "email": "E-posta",
+      "referenceRent": "Referans Kira",
+      "lastApartment": "Son Daire",
+      "lastRent": "Son Kira"
+    },
+    "lease": {
+      "daysLate": "{{n}} gün gecikti",
+      "endsToday": "Bugün bitiyor",
+      "daysLeft": "{{n}} gün kaldı",
+      "monthsLeft": "~{{n}} ay kaldı"
+    },
+    "empty": {
+      "search": "Arama sonucu bulunamadı.",
+      "active": "Aktif kiracı bulunmuyor.",
+      "inactive": "İnaktif kiracı bulunmuyor.",
+      "former": "Eski kiracı bulunmuyor.",
+      "error": "Hata: {{msg}}"
+    },
+    "actions": {
+      "edit": "Düzenle",
+      "changeApartment": "Daire değiştir",
+      "moveToPast": "Eski kiracılara taşı",
+      "assignApartment": "Daire ata",
+      "delete": "Sil"
+    },
+    "modal": {
+      "titleAdd": "Yeni Kiracı Ekle",
+      "titleEdit": "Kiracıyı Düzenle",
+      "fullName": "Ad Soyad *",
+      "fullNamePh": "Ahmet Yılmaz",
+      "email": "E-posta",
+      "emailPh": "ornek@mail.com",
+      "phone": "Telefon",
+      "phonePh": "0532 123 4567",
+      "tcNo": "TC Kimlik",
+      "tcNoPh": "Opsiyonel",
+      "apartment": "Daire",
+      "apartmentPh": "Daire seçin...",
+      "leaseStart": "Sözleşme Başlangıç",
+      "leaseEnd": "Sözleşme Bitiş",
+      "monthlyRent": "Aylık Kira (₺)",
+      "deposit": "Depozito (₺)",
+      "emergencyTitle": "Acil Durum Kişisi",
+      "contactName": "Ad Soyad",
+      "contactNamePh": "Kişi adı",
+      "contactPhone": "Telefon",
+      "contactPhonePh": "0532 000 0000",
+      "financialTitle": "Finansal Bilgiler",
+      "iban": "IBAN",
+      "ibanPh": "DE00 0000 0000 0000 0000 00",
+      "nebenkosten": "Aylık Aidat (₺/ay)",
+      "nebenkostenPh": "0,00",
+      "householdTitle": "Hane Bilgisi",
+      "spouse": "Eş",
+      "children": "Çocuk",
+      "roommate": "Oda Arkadaşı",
+      "notes": "Notlar",
+      "notesPh": "Opsiyonel notlar..."
+    },
+    "assign": {
+      "titleMove": "Daire Değiştir",
+      "titleAssign": "Daire Ata",
+      "subtitleMove": "{{name}} · Mevcut: {{apt}}",
+      "subtitleAssign": "{{name}} için boş bir daire seçin",
+      "noVacantTitle": "Uygun boş daire yok",
+      "noVacantBody": "Önce bir daire ekleyin veya mevcut bir kiracıyı eski kiracılara taşıyın.",
+      "close": "Kapat",
+      "moveWarning": "Eski daireye ait bekleyen kira kayıtları silinir. Ödenmiş kayıtlar tarihçede kalır.",
+      "newApartment": "Yeni Daire *",
+      "apartment": "Daire *",
+      "currentSuffix": "(mevcut)",
+      "rentHint": "Sözleşme başlangıcından itibaren 120 aya kadar bekleyen kira kayıtları otomatik oluşturulur.",
+      "moveBtn": "Taşı",
+      "assignBtn": "Ata"
+    },
+    "toasts": {
+      "notFound": "Kiracı bulunamadı.",
+      "sessionExpired": "Oturum süresi dolmuş.",
+      "errorPrefix": "Hata: {{msg}}",
+      "deleteError": "Silme hatası: {{msg}}",
+      "tenantAdded": "Kiracı eklendi.",
+      "tenantUpdated": "Kiracı güncellendi.",
+      "tenantDeleted": "Kiracı silindi.",
+      "confirmDelete": "{{name}} silinsin mi? Bu işlem geri alınamaz.",
+      "confirmMoveToPast": "{{name}} eski kiracılara taşınsın mı?",
+      "movedToPast": "Kiracı eski kiracılara taşındı.",
+      "selectApartment": "Daire seçin.",
+      "sameApartment": "Yeni daire mevcut daireyle aynı.",
+      "deleteOldPaymentsError": "Eski ödemeler silinemedi: {{msg}}",
+      "updateError": "Güncelleme hatası: {{msg}}",
+      "movedToNew": "Kiracı yeni daireye taşındı.",
+      "assigned": "Daire kiracıya atandı."
+    }
+  },
+  "tenantDetail": {
+    "notFound": "Kiracı bulunamadı.",
+    "activeTenant": "Aktif Kiracı",
+    "formerTenant": "Eski Kiracı",
+    "contractPdf": "Sözleşme PDF",
+    "notSpecified": "Belirtilmemiş",
+    "sections": {
+      "personal": "Kişisel Bilgiler",
+      "emergency": "Acil Durum Kişisi",
+      "household": "Hane Bilgisi",
+      "notes": "Notlar",
+      "financial": "Finansal Bilgiler",
+      "lease": "Kira & Sözleşme",
+      "pastLease": "Geçmiş Sözleşme",
+      "rentCalc": "Kira Artışı Hesapla",
+      "paymentSummary": "Ödeme Özeti",
+      "paymentHistory": "Ödeme Geçmişi"
+    },
+    "fields": {
+      "fullName": "Ad Soyad",
+      "tcNo": "TC No",
+      "phone": "Telefon",
+      "email": "E-posta",
+      "monthlyRent": "Aylık Kira",
+      "deposit": "Depozito",
+      "iban": "IBAN",
+      "ibanPh": "DE...",
+      "nebenkosten": "Aylık Aidat",
+      "nebenkostenPh": "0,00",
+      "leaseStart": "Başlangıç",
+      "leaseEnd": "Bitiş",
+      "spouse": "Eş",
+      "children": "Çocuk",
+      "roommate": "Oda Ark."
+    },
+    "financial": {
+      "monthlyRent": "Aylık Kira",
+      "nebenkosten": "Aylık Aidat",
+      "total": "Toplam (Kira + Aidat)",
+      "deposit": "Depozito",
+      "iban": "IBAN",
+      "ibanNotSet": "IBAN belirtilmemiş"
+    },
+    "lease": {
+      "lastApartment": "Son daire: {{apt}}",
+      "daysLate": "{{n}} gün geçti",
+      "endsToday": "Bugün bitiyor",
+      "daysLeft": "{{n}} gün kaldı",
+      "monthsLeft": "~{{n}} ay kaldı"
+    },
+    "notesEmpty": "Not eklenmemiş",
+    "rentCalc": {
+      "tufeLabel": "TÜFE Oranı (%)",
+      "tufePh": "Ör: 44.38",
+      "currentRent": "Mevcut Kira",
+      "increaseAmount": "Artış Tutarı (%{{pct}})",
+      "newRent": "Yeni Kira"
+    },
+    "paymentStats": {
+      "paid": "Ödenen",
+      "overdue": "Geciken",
+      "success": "Başarı",
+      "paymentCount": "{{n}} ödeme",
+      "successRate": "ödeme oranı"
+    },
+    "paymentHistory": {
+      "last12": "(Son 12 ay)",
+      "loading": "Yükleniyor...",
+      "empty": "Henüz ödeme kaydı bulunmuyor",
+      "thDueDate": "Vade Tarihi",
+      "thPaidDate": "Ödeme Tarihi",
+      "thAmount": "Tutar",
+      "thStatus": "Durum",
+      "paid": "Ödendi",
+      "overdue": "Gecikti",
+      "pending": "Bekliyor"
+    },
+    "toasts": {
+      "updated": "Kiracı bilgileri güncellendi.",
+      "errorPrefix": "Hata: {{msg}}",
+      "pdfDownloaded": "Sözleşme PDF olarak indirildi."
+    },
+    "contract": {
+      "brand": "KiraciYonet",
+      "title": "Kira Sözleşmesi",
+      "subtitle": "Konut Kira Sözleşmesi",
+      "contractNo": "Sözleşme No",
+      "issued": "Düzenlenme: {{date}}",
+      "parties": "Taraflar",
+      "landlord": "Kiraya Veren (Mal Sahibi)",
+      "landlordName": "Mülk Sahibi",
+      "propertyLabel": "Mülk: {{apt}}",
+      "tenantLabel": "Kiracı",
+      "tcLabel": "TC: {{no}}",
+      "telLabel": "Tel: {{no}}",
+      "emailLabel": "E-posta: {{email}}",
+      "propertySection": "Kiralanan Taşınmaz",
+      "residentialUse": "Konut olarak kullanılmak üzere",
+      "duration": "Sözleşme Süresi",
+      "start": "Başlangıç",
+      "end": "Bitiş",
+      "financial": "Finansal Koşullar",
+      "monthlyRent": "Aylık Kira Bedeli",
+      "monthlyDues": "Aylık Aidat",
+      "totalMonthly": "Toplam Aylık Ödeme",
+      "deposit": "Depozito",
+      "ibanRowLabel": "Kiracı IBAN",
+      "householdSection": "Birlikte Yaşayanlar",
+      "spouseCount": "Eş: {{n}}",
+      "childrenCount": "Çocuk: {{n}}",
+      "roommateCount": "Oda Ark.: {{n}}",
+      "signatureLandlord": "Kiraya Veren",
+      "signatureTenant": "Kiracı",
+      "nameSignature": "Ad Soyad / İmza",
+      "dateLine": "Tarih: ___/___/______",
+      "footer": "Bu belge KiraciYonet sistemi tarafından oluşturulmuştur.",
+      "fileName": "Kira_Sozlesmesi"
+    }
+  },
+  "rentPayments": {
+    "titleRent": "Kira Ödemeleri",
+    "titleAidat": "Aidat Ödemeleri",
+    "subtitle": "Ödeme takibi ve tahsilat yönetimi",
+    "tabs": {
+      "rent": "Kira",
+      "aidat": "Aidat"
+    },
+    "kpi": {
+      "collected": "Tahsilat",
+      "thisMonth": "Bu Ay",
+      "pending": "Bekleyen",
+      "overdue": "Geciken",
+      "overdueUnit": "ödeme",
+      "totalCollected": "Toplam Tahsilat"
+    },
+    "searchPh": "Kiracı veya daire ara...",
+    "filters": {
+      "all": "Tümü",
+      "pending": "Bekleyen",
+      "overdue": "Geciken",
+      "paid": "Ödenen"
+    },
+    "table": {
+      "tenant": "Kiracı",
+      "apartment": "Daire",
+      "amount": "Tutar",
+      "status": "Durum",
+      "remaining": "Kalan",
+      "action": "Aksiyon"
+    },
+    "status": {
+      "overdue": "Gecikti",
+      "pending": "Bekliyor",
+      "paid": "Ödendi"
+    },
+    "dayLabel": {
+      "overdue": "{{n}} gün gecikti",
+      "today": "Bugün",
+      "tomorrow": "Yarın",
+      "daysLeft": "{{n}} gün kaldı"
+    },
+    "actions": {
+      "markPaid": "Ödendi",
+      "reminderTitle": "Hatırlatma maili gönder",
+      "remind": "Hatırla",
+      "undo": "Geri Al"
+    },
+    "overdueHeader": "Geciken Ödemeler",
+    "overdueTable": {
+      "dueDate": "Vade Tarihi",
+      "amount": "Tutar",
+      "delay": "Gecikme"
+    },
+    "overdueDelay": "{{n}} gün gecikti",
+    "historyHeader": "Ödeme Geçmişi ({{n}})",
+    "historyTable": {
+      "dueDate": "Vade Tarihi",
+      "amount": "Tutar",
+      "status": "Durum",
+      "paidDate": "Ödeme Tarihi"
+    },
+    "historyStatus": {
+      "late": "Geç Ödendi",
+      "onTime": "Zamanında"
+    },
+    "noHistory": "Henüz ödeme geçmişi yok.",
+    "pastSection": "Eski Kiracı Ödemeleri",
+    "pastTable": {
+      "tenant": "Kiracı",
+      "apartment": "Daire",
+      "totalPaid": "Toplam Ödeme",
+      "records": "Kayıt"
+    },
+    "paymentCount": "{{n}} ödeme",
+    "empty": {
+      "filtered": "Bu filtreye uygun ödeme bulunamadı.",
+      "none": "Henüz ödeme kaydı yok."
+    },
+    "errorPrefix": "Hata: {{msg}}",
+    "toasts": {
+      "emailNotFound": "Kiracının e-posta adresi bulunamadı.",
+      "emailSent": "Mail gönderildi: {{email}}",
+      "emailFailed": "Mail gönderilemedi: {{msg}}",
+      "emailUnknownError": "Bilinmeyen hata",
+      "paymentSaved": "Ödeme kaydedildi.",
+      "paymentReverted": "Ödeme geri alındı.",
+      "errorPrefix": "Hata: {{msg}}"
+    },
+    "emailSubject": {
+      "reminder": "Kira Hatırlatması",
+      "overdue": "Geciken Ödeme",
+      "paid": "Ödeme Onayı"
+    },
+    "landlordDefault": "Mülk Sahibi"
+  },
+  "paymentHistory": {
+    "stats": {
+      "totalCollected": "Toplam Tahsilat",
+      "thisMonth": "Bu Ay Tahsilat",
+      "totalCount": "Toplam Ödeme",
+      "uniqueTenants": "Ödeme Yapan Kiracı"
+    },
+    "searchPh": "Kiracı veya bina ara...",
+    "allMonths": "Tüm Aylar",
+    "table": {
+      "tenant": "Kiracı",
+      "apartment": "Daire",
+      "dueDate": "Vade Tarihi",
+      "paidDate": "Ödeme Tarihi",
+      "amount": "Tutar",
+      "status": "Durum"
+    },
+    "status": {
+      "late": "Geç Ödendi",
+      "onTime": "Zamanında"
+    },
+    "loading": "Yükleniyor...",
+    "errorPrefix": "Hata: {{msg}}",
+    "emptyFiltered": "Filtreyle eşleşen ödeme bulunamadı.",
+    "emptyNone": "Henüz ödenmiş ödeme yok."
+  },
+  "distributionKeys": {
+    "equal": { "label": "Eşit Pay", "short": "Eşit" },
+    "area": { "label": "Konut Alanı (m²)", "short": "m²" },
+    "persons": { "label": "Kişi Sayısı", "short": "Kişi" },
+    "units": { "label": "Daire Sayısı", "short": "Daire" }
+  },
+  "expenses": {
+    "title": "Gider Yönetimi",
+    "subtitle": "Yan gider takibi & hesap kesimi",
+    "actions": {
+      "abrechnung": "Hesap Kesimi",
+      "categories": "Kategoriler",
+      "addExpense": "Gider Ekle"
+    },
+    "kpi": {
+      "total": "Toplam",
+      "totalAll": "Tümü",
+      "thisMonth": "Bu Ay",
+      "billable": "Yansıtılabilir",
+      "billableSub": "Kiracıya",
+      "nonBillable": "Yansıtılamaz",
+      "nonBillableSub": "Ev Sahibi"
+    },
+    "filters": {
+      "searchPh": "Ara...",
+      "allBuildings": "Tüm Binalar",
+      "allApartments": "Tüm Daireler",
+      "allCategories": "Tüm Kategoriler",
+      "allMonths": "Tüm Aylar"
+    },
+    "apartmentLabel": {
+      "withFloor": "Kat {{floor}} Daire {{unit}}",
+      "noFloor": "Daire {{unit}}"
+    },
+    "list": {
+      "empty": "Henüz gider kaydı yok.",
+      "emptyFiltered": "Seçili filtrelere uygun sonuç bulunamadı.",
+      "recordCount": "{{n}} kayıt",
+      "aptCount": "{{n}} daire",
+      "buildingScopeCount": "{{n}} bina geneli",
+      "addMonthly": "Ay Gideri",
+      "buildingScopeHeader": "Bina Geneli Giderler",
+      "billableShort": "Yansıt.",
+      "nonBillableShort": "Yansıtılmaz",
+      "emptyApt": "— boş —",
+      "footerCounts": "{{records}} kayıt · {{buildings}} bina",
+      "footerTotal": "Toplam"
+    },
+    "sidebar": {
+      "title": "Gider Dağılımı",
+      "subtitle": "Kategoriye Göre",
+      "empty": "Veri yok"
+    },
+    "expenseModal": {
+      "titleEdit": "Gider Düzenle",
+      "titleNew": "Yeni Gider",
+      "scope": "Kapsam",
+      "scopeBuilding": "Tüm Bina",
+      "scopeApartment": "Tek Daire",
+      "buildingLabel": "Bina *",
+      "buildingPlaceholder": "Bina seçin...",
+      "buildingOption": "{{name}} ({{count}} daire)",
+      "apartmentLabel": "Mülk *",
+      "apartmentPlaceholder": "Mülk seçin...",
+      "categoryLabel": "Kategori *",
+      "categoryPlaceholder": "Kategori seçin...",
+      "billableTag": " (yansıtılabilir)",
+      "distKeyLabel": "Dağıtım Anahtarı",
+      "distKeyApartmentNote": "(daire kapsamı · bilgilendirici)",
+      "amount": "Tutar",
+      "amountPlaceholder": "0,00",
+      "sharePreview": "{{count}} daireye {{keyLabel}} üzerinden paylaştırılacak",
+      "date": "Tarih",
+      "periodMonth": "Dönem Ayı",
+      "periodYear": "Dönem Yılı",
+      "billableToggle": "Kiracıya yansıtılabilir",
+      "notes": "Notlar",
+      "notesPlaceholder": "İsteğe bağlı notlar...",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "add": "Ekle",
+      "toasts": {
+        "required": "Kategori ve tutar zorunludur.",
+        "selectBuilding": "Bina seçin.",
+        "selectApartment": "Mülk seçin.",
+        "updated": "Gider güncellendi.",
+        "added": "Gider eklendi."
+      }
+    },
+    "categoryModal": {
+      "title": "Gider Kategorileri",
+      "tagBillable": "Yansıtılabilir",
+      "tagRecurring": "Aylık",
+      "formTitleEdit": "Kategori Düzenle",
+      "formTitleNew": "Yeni Kategori",
+      "name": "Ad",
+      "namePlaceholder": "ör: Emlak Vergisi",
+      "icon": "İkon",
+      "color": "Renk",
+      "toggleBillable": "Yansıtılabilir",
+      "toggleRecurring": "Aylık",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "add": "Ekle",
+      "toasts": {
+        "required": "Kategori adı zorunludur.",
+        "updated": "Kategori güncellendi.",
+        "added": "Kategori eklendi.",
+        "deleted": "Kategori silindi."
+      }
+    },
+    "abrechnung": {
+      "title": "Yan Gider Hesap Kesimi",
+      "subtitle": "Dönemsel gider raporu oluştur",
+      "invoice": "Fatura Çıkar",
+      "scope": "Kapsam",
+      "scopeBuilding": "Tüm Bina",
+      "scopeApartment": "Tek Daire",
+      "apartmentLabel": "Mülk",
+      "buildingLabel": "Bina",
+      "selectPlaceholder": "Seçin...",
+      "aptEmptySuffix": " — Boş",
+      "buildingOption": "{{name}} ({{count}} daire)",
+      "start": "Başlangıç",
+      "end": "Bitiş",
+      "info": {
+        "building": "Bina",
+        "aptCount": "Daire Sayısı",
+        "period": "Dönem",
+        "periodMonths": "{{n}} Ay",
+        "apartment": "Mülk",
+        "tenant": "Kiracı",
+        "noActiveTenant": "Aktif kiracı yok"
+      },
+      "distByApt": {
+        "title": "Daire Bazlı Dağılım",
+        "colApt": "Daire",
+        "colTenant": "Kiracı",
+        "colBillable": "Yansıtılabilir",
+        "colAidat": "Aidat",
+        "colDiff": "Fark",
+        "emptyApt": "— boş —",
+        "buildingTotal": "Bina Toplamı"
+      },
+      "billable": {
+        "title": "Kiracıya Yansıtılabilir Giderler",
+        "colItem": "Kalem",
+        "colKey": "Anahtar",
+        "colKeyScope": "Anahtar · Dağıtım",
+        "colTotal": "Toplam",
+        "colShare": "Sizin Payınız",
+        "empty": "Bu dönemde yansıtılabilir gider bulunamadı",
+        "apartmentScope": "Daire Özel",
+        "buildingScope": "Bina Geneli",
+        "totalShare": "Toplam Pay",
+        "totalBillable": "Toplam Yansıtılabilir"
+      },
+      "aidat": {
+        "buildingTitle": "Bina Toplam Aidat",
+        "monthlyTitle": "Aylık Aidat",
+        "buildingSub": "{{apts}} daireden {{months}} aylık dönem",
+        "monthlySub": "{{months}} ay × {{amount}}/ay"
+      },
+      "diff": {
+        "payTitle": "Ek Ödeme Gerekli",
+        "paySub": "Kiracı ek ödeme yapmalı",
+        "refundTitle": "Kiracıya İade",
+        "refundSub": "Kiracıya geri ödeme yapılmalı",
+        "balancedTitle": "Dengede",
+        "balancedSub": "Fark yok — tam dengelenmiş"
+      },
+      "nonBillable": {
+        "title": "Yansıtılamaz Giderler (Referans)",
+        "total": "Toplam yansıtılamaz"
+      },
+      "empty": {
+        "building": "Rapor oluşturmak için bir bina seçin.",
+        "apartment": "Rapor oluşturmak için bir mülk seçin."
+      },
+      "fallbackCategory": "Diğer"
+    },
+    "confirmDelete": {
+      "title": "Silme Onayı",
+      "subtitle": "Bu işlem geri alınamaz",
+      "expenseMsg": "Bu gideri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+      "categoryMsg": "Bu kategoriyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+      "cancel": "Vazgeç",
+      "confirm": "Evet, Sil",
+      "deleted": "Gider silindi."
+    },
+    "unknownBuilding": "Bilinmeyen Bina"
+  },
+  "buildingExpenseSheet": {
+    "fallbackBuilding": "Bina",
+    "subtitle": "Aylık bina gider tablosu · {{count}} daire",
+    "subtitleUnknownCount": "Aylık bina gider tablosu · — daire",
+    "period": "Dönem",
+    "loadingExisting": "Mevcut kayıtlar yükleniyor...",
+    "tableHeader": {
+      "category": "Kategori",
+      "amount": "Tutar",
+      "distKey": "Dağıtım Anahtarı",
+      "billable": "Yansıtılır"
+    },
+    "billableOn": "Yansıtılır",
+    "billableOff": "Yansıtılmaz",
+    "summary": "Özet",
+    "summaryLine": "{{count}} kalem · {{total}}",
+    "cancel": "İptal",
+    "saving": "Kaydediliyor...",
+    "saveAll": "Tümünü Kaydet",
+    "saveAllCount": "Tümünü Kaydet ({{count}})",
+    "toasts": {
+      "saved": "{{saved}} kalem kaydedildi.",
+      "savedWithDeletes": "{{saved}} kalem kaydedildi, {{deleted}} silindi.",
+      "saveError": "Kaydetme sırasında hata."
+    }
+  },
+  "invoice": {
+    "titlePrefix": "Yan Giderler",
+    "titleEm": "Hesabı",
+    "toolbar": {
+      "edit": "Düzenle",
+      "print": "Yazdır / PDF Kaydet",
+      "close": "Kapat"
+    },
+    "top": {
+      "period": "Hesap Dönemi",
+      "no": "No.",
+      "invoicePrefix": "NKA"
+    },
+    "parties": {
+      "tenant": "Kiracı",
+      "noActiveTenant": "Aktif kiracı yok",
+      "buildingTenants": "{{apts}} daire / {{active}} aktif kiracı"
+    },
+    "propertyApt": {
+      "title": "Kiralık Mülk",
+      "area": "Konut Alanı",
+      "persons": "Kişi Sayısı"
+    },
+    "propertyBld": {
+      "building": "Bina",
+      "aptCount": "Daire Sayısı",
+      "duration": "Hesap Süresi",
+      "months": "{{n}} Ay"
+    },
+    "apartmentLabel": {
+      "withFloor": "Kat {{floor}} · Daire {{unit}}",
+      "noFloor": "Daire {{unit}}"
+    },
+    "tableApt": {
+      "item": "Kalem",
+      "key": "Anahtar",
+      "total": "Toplam",
+      "share": "Sizin Payınız",
+      "empty": "Bu dönemde yansıtılabilir gider bulunamadı.",
+      "apartmentScope": "Daire Özel"
+    },
+    "totalsApt": {
+      "totalBillable": "Toplam Yan Gideriniz",
+      "deductPrepay": "Ödenmiş peşin ödemeler düşülür",
+      "resultPay": "Ek Ödeme",
+      "resultRefund": "Alacak (Kiracı Lehine)",
+      "resultBalanced": "Denk"
+    },
+    "section": {
+      "categoryTotalsPrefix": "Kategori",
+      "categoryTotalsEm": "Toplamları",
+      "distByAptPrefix": "Daire Bazlı",
+      "distByAptEm": "Dağılım"
+    },
+    "tableBld": {
+      "item": "Kalem",
+      "key": "Anahtar",
+      "total": "Toplam",
+      "empty": "Bu dönemde yansıtılabilir gider bulunamadı.",
+      "apt": "Daire",
+      "tenant": "Kiracı",
+      "billable": "Yansıtılabilir",
+      "aidat": "Aidat",
+      "diff": "Fark",
+      "emptyApt": "— boş —"
+    },
+    "totalsBld": {
+      "totalBillable": "Bina Toplam Yansıtılabilir",
+      "deductPrepay": "Toplanmış aidat ödemeleri düşülür",
+      "resultPay": "Açık (Bina Lehine)",
+      "resultRefund": "Fazlalık (Kiracılar Lehine)",
+      "resultBalanced": "Denk"
+    },
+    "footer": {
+      "explanationLabel": "Açıklama:",
+      "explanation": "Bu hesap, kiracı ile mutabık kalınan dağıtım anahtarlarına göre düzenlenmiştir. Belirtilen giderler, hesap döneminde fiilen gerçekleşen işletme giderlerine karşılık gelmektedir.",
+      "payNoticePre": "Lütfen ",
+      "payNoticeStrong": "{{amount}} tutarındaki ek ödeme bedelini",
+      "payNoticePost": ", bu hesabın tarafınıza ulaşmasından itibaren 30 gün içinde havale ediniz.",
+      "refundNoticePre": "",
+      "refundNoticeStrong": "{{amount}}",
+      "refundNoticePost": " tutarındaki alacağınız 30 gün içinde tarafınıza iade edilecek veya bir sonraki kira ödemenizden mahsup edilecektir.",
+      "balancedNotice": "Peşin ödemeleriniz yan giderleri tam olarak karşılamaktadır.",
+      "objectionNotice": "Hesaba yapılacak itirazların, hesabın tarafınıza ulaşmasından itibaren 12 ay içinde yazılı olarak bildirilmesi gerekmektedir. Belgeler randevu ile incelenebilir.",
+      "issueDate": "Düzenleme Tarihi: {{date}} · KiraciYonet"
+    }
+  }
+}
