@@ -53,7 +53,11 @@
     "settings": "Ayarlar",
     "help": "Yardım",
     "support": "Destek",
-    "language": "Dil"
+    "language": "Dil",
+    "floor": "Kat {{n}}",
+    "unit": "Daire {{n}}",
+    "floorAndUnit": "Kat {{floor}} Daire {{unit}}",
+    "buildingSlashLocation": "{{building}} / {{location}}"
   },
   "sidebar": {
     "sectionGeneral": "GENEL",

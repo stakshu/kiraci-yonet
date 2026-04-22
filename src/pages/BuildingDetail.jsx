@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
-import { unitLabel } from '../lib/apartmentLabel'
+import { unitLabel, floorOnlyLabel } from '../lib/apartmentLabel'
 import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
@@ -500,7 +500,11 @@ export default function BuildingDetail() {
             const tenant = apt.tenants?.[0]
             const isOccupied = !!tenant
             const nextPay = tenant ? getNextPayment(tenant.id) : null
-            const label = singleUnit ? t(`buildingTypes.${building.building_type || 'apartman'}`) : unitLabel(apt)
+            // Kiracı adı sağ kolonda zaten görünür — kiracılı satırlarda sadece
+            // kat yazıyor ki "Kat X Daire Y" tekrarı olmasın. Boş satırlarda
+            // kiracı adı olmadığı için tam "Kat X Daire Y" etiketi kalır.
+            const fullLabel = singleUnit ? t(`buildingTypes.${building.building_type || 'apartman'}`) : unitLabel(apt)
+            const label = singleUnit ? fullLabel : (isOccupied ? floorOnlyLabel(apt) : fullLabel)
 
             return (
               <motion.div key={apt.id}
