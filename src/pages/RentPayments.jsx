@@ -93,10 +93,17 @@ export default function RentPayments() {
     const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
     const newPayments = []
 
+    // DE Warmmiete: kiracı her ay kira + Nebenkosten-Vorauszahlung'ı birleşik ödüyor.
+    // Tek 'rent' kaydı ile takip ediyoruz, amount = ikisinin toplamı.
+    const pendingSyncTargets = []  // amount güncellenmesi gereken kiracılar
+
     for (const ten of tenants) {
       if (!ten.apartment_id) continue
       const startDate = ten.lease_start ? new Date(ten.lease_start) : new Date()
-      const rentAmount = Number(ten.rent) || 0
+      const monthlyAmount = (Number(ten.rent) || 0) + (Number(ten.nebenkosten_vorauszahlung) || 0)
+      if (monthlyAmount <= 0) continue
+
+      pendingSyncTargets.push({ tenantId: ten.id, amount: monthlyAmount })
 
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
@@ -104,18 +111,31 @@ export default function RentPayments() {
         const month = dueDate.toISOString().slice(0, 7)
         const dueDateStr = dueDate.toISOString().split('T')[0]
 
-        if (rentAmount > 0) {
-          const rentKey = `${ten.id}_${month}_rent`
-          if (!existingKeys.has(rentKey)) {
-            newPayments.push({
-              user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
-              due_date: dueDateStr, amount: rentAmount, status: 'pending', type: 'rent'
-            })
-          }
+        const rentKey = `${ten.id}_${month}_rent`
+        if (!existingKeys.has(rentKey)) {
+          newPayments.push({
+            user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
+            due_date: dueDateStr, amount: monthlyAmount, status: 'pending', type: 'rent'
+          })
         }
       }
     }
+
+    // Eski bekleyen kayıtları kira+aidat toplamına senkronize et — kiracının
+    // rent veya nebenkosten_vorauszahlung'u sonradan değişirse de güncel kalır.
+    // .neq amount filtresi gereksiz yazımları engeller.
+    for (const sync of pendingSyncTargets) {
+      await supabase
+        .from('rent_payments')
+        .update({ amount: sync.amount })
+        .eq('tenant_id', sync.tenantId)
+        .eq('type', 'rent')
+        .eq('status', 'pending')
+        .neq('amount', sync.amount)
+    }
+
     if (newPayments.length > 0) { await supabase.from('rent_payments').insert(newPayments); loadPayments() }
+    else if (pendingSyncTargets.length > 0) loadPayments()
   }
 
   const loadPayments = async () => {
