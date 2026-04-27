@@ -400,7 +400,10 @@ export default function Expenses() {
       is_tenant_billable: categoryForm.is_tenant_billable,
       is_recurring: categoryForm.is_recurring,
       description: categoryForm.description,
-      sort_order: editingCategory?.sort_order || categories.length + 1
+      sort_order: editingCategory?.sort_order || categories.length + 1,
+      // 015 migration sonrası DB default'u hâlâ 'equal' olabilir; alanı açıkça
+      // gönderiyoruz ki yeni check constraint ihlal edilmesin.
+      default_distribution_key: categoryForm.default_distribution_key || editingCategory?.default_distribution_key || 'units'
     }
 
     let err
