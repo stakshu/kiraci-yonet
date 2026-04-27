@@ -11,7 +11,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { createClient } from '@supabase/supabase-js'
 import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
@@ -201,20 +200,26 @@ export default function Settings() {
 
     setPwSaving(true)
 
-    // 1) Mevcut şifreyi DOĞRULA — ayrı, kalıcı olmayan bir client'la.
-    //    Ana supabase client'ında signIn yaparsak session AAL1'e düşer ve
-    //    MFA aktifken updateUser bloklanır. İzole client ile sadece
-    //    "şifre doğru mu?" sorusunu sorar, sonra atarız.
-    const verifyClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    })
-    const { error: signErr } = await verifyClient.auth.signInWithPassword({
-      email: user.email, password: pwCurrent,
-    })
-    // Verify client'ından sign out — session ucu açık kalmasın
-    try { await verifyClient.auth.signOut() } catch { /* ignore */ }
+    // 1) Mevcut şifreyi DOĞRULA — ayrı bir Supabase client'ı kurmak BroadcastChannel
+    //    üzerinden ana session'ı tetikleyebiliyor. Onun yerine doğrudan auth REST
+    //    endpoint'ine fetch atıyoruz — hiçbir client, event veya storage devrede değil.
+    //    Sadece "şu e-posta + şifre kombinasyonu geçerli mi?" sorusunu cevaplar.
+    let verifyOk = false
+    try {
+      const resp = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: user.email, password: pwCurrent }),
+      })
+      verifyOk = resp.ok
+    } catch {
+      verifyOk = false
+    }
 
-    if (signErr) {
+    if (!verifyOk) {
       setPwSaving(false)
       setPwError(t('settings.password.errors.wrongCurrent'))
       return
