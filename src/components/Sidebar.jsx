@@ -186,7 +186,7 @@ export default function Sidebar() {
                 type="button"
                 className={`sb-user-logout${currentPath === '/settings' ? ' active' : ''}`}
                 onClick={() => goTo('/settings')}
-                whileHover={{ scale: 1.06, rotate: 30 }}
+                whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.94 }}
                 title={t('sidebar.settingsTitle')}
                 aria-label={t('sidebar.settingsTitle')}
