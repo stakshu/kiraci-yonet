@@ -16,9 +16,23 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Konsola tam stack — kullanıcı F12 console'da görsün diye.
     // eslint-disable-next-line no-console
     console.error('[KiraciYonet] Unhandled render error:', error, info)
+
+    // Yeni deploy sonrası eski chunk hash'i isteyen bir lazy import patladıysa
+    // tek seferlik otomatik reload — sessionStorage ile sonsuz döngü engelli.
+    const msg = String(error?.message || '')
+    const looksLikeStaleChunk =
+      /Failed to fetch dynamically imported module/i.test(msg) ||
+      /Loading chunk \d+ failed/i.test(msg) ||
+      /Importing a module script failed/i.test(msg)
+    if (looksLikeStaleChunk) {
+      const k = '__kys_chunk_reload__'
+      if (!sessionStorage.getItem(k)) {
+        sessionStorage.setItem(k, '1')
+        window.location.reload()
+      }
+    }
   }
 
   handleReset = () => {

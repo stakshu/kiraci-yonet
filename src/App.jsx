@@ -13,20 +13,46 @@ import AuthOverlay from './components/AuthOverlay'
 import MfaChallenge from './components/MfaChallenge'
 import ErrorBoundary from './components/ErrorBoundary'
 
-const Dashboard         = lazy(() => import('./pages/Dashboard'))
-const Properties        = lazy(() => import('./pages/Properties'))
-const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'))
-const BuildingDetail    = lazy(() => import('./pages/BuildingDetail'))
-const TenantsList       = lazy(() => import('./pages/TenantsList'))
-const TenantDetail      = lazy(() => import('./pages/TenantDetail'))
-const RentPayments      = lazy(() => import('./pages/RentPayments'))
-const OverduePayments   = lazy(() => import('./pages/OverduePayments'))
-const PaymentHistory    = lazy(() => import('./pages/PaymentHistory'))
-const Expenses          = lazy(() => import('./pages/Expenses'))
-const MaintenanceIssues = lazy(() => import('./pages/MaintenanceIssues'))
-const Accounting        = lazy(() => import('./pages/Accounting'))
-const Settings          = lazy(() => import('./pages/Settings'))
-const EmptyPage         = lazy(() => import('./pages/EmptyPage'))
+/* Yeni deploy sonrası eski tarayıcı tab'ı eski chunk hash'lerini ister
+ * (örn. Accounting-OLD.js) ama Vercel'de artık YENI hash var → 404 → import
+ * fail. Tek seferlik bir reload yeni bundle'ı çeker; bunu otomatik yapıyoruz.
+ * sessionStorage flag'i ile sonsuz döngü engelleniyor. */
+const lazyWithReload = (importFn) => lazy(async () => {
+  try {
+    return await importFn()
+  } catch (err) {
+    const msg = String(err?.message || err)
+    const looksLikeStaleChunk =
+      /Failed to fetch dynamically imported module/i.test(msg) ||
+      /Loading chunk \d+ failed/i.test(msg) ||
+      /Importing a module script failed/i.test(msg)
+    if (looksLikeStaleChunk) {
+      const k = '__kys_chunk_reload__'
+      if (!sessionStorage.getItem(k)) {
+        sessionStorage.setItem(k, '1')
+        window.location.reload()
+        // Reload tetikleniyor — React'a hiçbir şey döndürme
+        return { default: () => null }
+      }
+    }
+    throw err
+  }
+})
+
+const Dashboard         = lazyWithReload(() => import('./pages/Dashboard'))
+const Properties        = lazyWithReload(() => import('./pages/Properties'))
+const PropertyDetail    = lazyWithReload(() => import('./pages/PropertyDetail'))
+const BuildingDetail    = lazyWithReload(() => import('./pages/BuildingDetail'))
+const TenantsList       = lazyWithReload(() => import('./pages/TenantsList'))
+const TenantDetail      = lazyWithReload(() => import('./pages/TenantDetail'))
+const RentPayments      = lazyWithReload(() => import('./pages/RentPayments'))
+const OverduePayments   = lazyWithReload(() => import('./pages/OverduePayments'))
+const PaymentHistory    = lazyWithReload(() => import('./pages/PaymentHistory'))
+const Expenses          = lazyWithReload(() => import('./pages/Expenses'))
+const MaintenanceIssues = lazyWithReload(() => import('./pages/MaintenanceIssues'))
+const Accounting        = lazyWithReload(() => import('./pages/Accounting'))
+const Settings          = lazyWithReload(() => import('./pages/Settings'))
+const EmptyPage         = lazyWithReload(() => import('./pages/EmptyPage'))
 
 const Spinner = () => (
   <div style={{
