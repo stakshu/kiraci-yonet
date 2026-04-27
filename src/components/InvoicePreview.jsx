@@ -71,59 +71,28 @@ export default function InvoicePreview({
 
   if (!data) return null
 
-  const isApt = data.mode !== 'building'
-
-  // Period
+  // Period — apt ve building modunda ortak
   const startDate = useMemo(() => (start instanceof Date ? start : new Date(start)), [start])
   const endDate   = useMemo(() => (end   instanceof Date ? end   : new Date(end)),   [end])
   const periodDays = daysBetween(startDate, endDate)
-
-  // Tenancy days within period
-  const tenant = isApt ? data.tenant : null
-  const apt    = isApt ? data.apt    : null
-  const effStart = data.effectiveStart instanceof Date ? data.effectiveStart : (data.effectiveStart ? new Date(data.effectiveStart) : startDate)
-  const effEnd   = data.effectiveEnd   instanceof Date ? data.effectiveEnd   : (data.effectiveEnd   ? new Date(data.effectiveEnd)   : endDate)
-  const tenancyDays = daysBetween(effStart, effEnd)
-
   const periodLabel = `${formatDate(startDate)} – ${formatDate(endDate)}`
   const issueDate   = formatDate(new Date())
   const yearLabel   = startDate.getFullYear()
 
-  // Building info
-  const buildingName    = apt?.buildings?.name || data.building?.name || '—'
-  const buildingAddress = apt?.buildings?.address || data.building?.address || ''
-  const buildingCity    = apt?.buildings?.city || data.building?.city || ''
-  const buildingDistr   = apt?.buildings?.district || data.building?.district || ''
-
-  // Apartment label e.g. "DG links", "1.OG · 3"
-  const aptLabelText = useMemo(() => {
-    if (!apt) return ''
-    const f = apt.floor_no, u = apt.unit_no
-    if (f && u) return `${f} · ${u}`
-    return f || u || ''
-  }, [apt])
-
-  // Tenant display name
-  const tenantNames = isApt
-    ? (tenant?.full_name ? [tenant.full_name] : [])
-    : (data.apartmentRows || []).filter(r => r.tenant?.full_name).map(r => r.tenant.full_name)
+  // Bina için tek bir fatura yok — her kiracı ayrı 2-sayfalık fatura alır.
+  // Apartment mode'da `data` zaten tek-kiracı rollup'ı.
+  // Building mode'da `data.apartmentRows`'ta her satır tek-kiracı rollup'ı.
+  const invoices = data.mode === 'building'
+    ? (data.apartmentRows || []).filter(r => r.tenant)
+    : [data]
 
   const handlePrint = () => window.print()
-
-  const isNach = data.difference > 0.005
-  const isGut  = data.difference < -0.005
-
-  const resultLabel = isNach
-    ? t('invoice.cover.resultNachzahlung')
-    : isGut ? t('invoice.cover.resultGuthaben') : t('invoice.cover.resultBalanced')
 
   const saveSender = () => {
     setSender(draftSender)
     saveSenderToStorage(draftSender)
     setEditingSender(false)
   }
-
-  const senderHasContent = sender.name || sender.addressLines.some(Boolean) || sender.phone || sender.iban
 
   // ─── Render ───
   return (
@@ -438,45 +407,37 @@ export default function InvoicePreview({
           </div>
         </div>
 
-        {/* Paper — 2 sayfa */}
+        {/* Paper — Apartment mode: 1 kiracı × 2 sayfa.
+                     Building mode: N kiracı × 2 sayfa, ardı ardına. */}
         <motion.div
           className="nka-paper"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
         >
-          {/* ═══ SAYFA 1: ANSCHREIBEN ═══ */}
-          <CoverPage
-            t={t}
-            sender={sender}
-            tenantNames={tenantNames}
-            buildingName={buildingName}
-            buildingAddress={buildingAddress}
-            buildingCity={buildingCity}
-            buildingDistr={buildingDistr}
-            aptLabelText={aptLabelText}
-            issueDate={issueDate}
-            yearLabel={yearLabel}
-            data={data}
-            isNach={isNach}
-            isGut={isGut}
-            resultLabel={resultLabel}
-          />
-
-          {/* ═══ SAYFA 2: BERECHNUNG ═══ */}
-          <CalculationPage
-            t={t}
-            sender={sender}
-            data={data}
-            isApt={isApt}
-            startDate={startDate}
-            endDate={endDate}
-            periodDays={periodDays}
-            tenancyDays={tenancyDays}
-            periodLabel={periodLabel}
-            isNach={isNach}
-            isGut={isGut}
-          />
+          {invoices.length === 0 ? (
+            <div style={{
+              padding: '60px 30px', textAlign: 'center', color: '#666',
+              fontFamily: "'Inter', system-ui, sans-serif",
+            }}>
+              {t('invoice.noTenantInvoices')}
+            </div>
+          ) : (
+            invoices.map((inv, idx) => (
+              <SingleTenantInvoice
+                key={inv.apt?.id || idx}
+                t={t}
+                sender={sender}
+                data={inv}
+                startDate={startDate}
+                endDate={endDate}
+                periodDays={periodDays}
+                periodLabel={periodLabel}
+                issueDate={issueDate}
+                yearLabel={yearLabel}
+              />
+            ))
+          )}
         </motion.div>
       </motion.div>
 
@@ -582,6 +543,70 @@ function SenderField({ label, value, onChange }) {
         }}
       />
     </div>
+  )
+}
+
+/* ─── Tek bir kiracının iki sayfalık faturası ─── */
+function SingleTenantInvoice({ t, sender, data, startDate, endDate, periodDays, periodLabel, issueDate, yearLabel }) {
+  const apt    = data.apt
+  const tenant = data.tenant
+
+  const effStart = data.effectiveStart instanceof Date ? data.effectiveStart : (data.effectiveStart ? new Date(data.effectiveStart) : startDate)
+  const effEnd   = data.effectiveEnd   instanceof Date ? data.effectiveEnd   : (data.effectiveEnd   ? new Date(data.effectiveEnd)   : endDate)
+  const tenancyDays = daysBetween(effStart, effEnd)
+
+  const buildingName    = apt?.buildings?.name || '—'
+  const buildingAddress = apt?.buildings?.address || ''
+  const buildingCity    = apt?.buildings?.city || ''
+  const buildingDistr   = apt?.buildings?.district || ''
+
+  const aptLabelText = (() => {
+    if (!apt) return ''
+    const f = apt.floor_no, u = apt.unit_no
+    if (f && u) return `${f} · ${u}`
+    return f || u || ''
+  })()
+
+  const tenantNames = tenant?.full_name ? [tenant.full_name] : []
+
+  const isNach = data.difference > 0.005
+  const isGut  = data.difference < -0.005
+  const resultLabel = isNach
+    ? t('invoice.cover.resultNachzahlung')
+    : isGut ? t('invoice.cover.resultGuthaben') : t('invoice.cover.resultBalanced')
+
+  return (
+    <>
+      <CoverPage
+        t={t}
+        sender={sender}
+        tenantNames={tenantNames}
+        buildingName={buildingName}
+        buildingAddress={buildingAddress}
+        buildingCity={buildingCity}
+        buildingDistr={buildingDistr}
+        aptLabelText={aptLabelText}
+        issueDate={issueDate}
+        yearLabel={yearLabel}
+        data={data}
+        isNach={isNach}
+        isGut={isGut}
+        resultLabel={resultLabel}
+      />
+      <CalculationPage
+        t={t}
+        sender={sender}
+        data={data}
+        isApt={true}
+        startDate={startDate}
+        endDate={endDate}
+        periodDays={periodDays}
+        tenancyDays={tenancyDays}
+        periodLabel={periodLabel}
+        isNach={isNach}
+        isGut={isGut}
+      />
+    </>
   )
 }
 
