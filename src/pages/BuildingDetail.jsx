@@ -199,7 +199,7 @@ export default function BuildingDetail() {
   const loadInactiveTenants = async () => {
     const { data } = await supabase
       .from('tenants')
-      .select('id, full_name, phone, email, tc_no, rent, deposit, lease_start, lease_end')
+      .select('id, full_name, phone, email, tc_no, rent, deposit, lease_start, lease_end, nebenkosten_vorauszahlung')
       .eq('status', 'inactive')
       .order('full_name', { ascending: true })
     setInactiveTenants(data || [])
@@ -233,25 +233,26 @@ export default function BuildingDetail() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { showToast(t('buildingDetail.toasts.sessionExpired'), 'error'); setSavingTenant(false); return }
 
-    const rentAmount = parseFloat(tenantForm.rent) || 0
-    const leaseStart = tenantForm.lease_start || null
-    const leaseEnd = tenantForm.lease_end || null
-
     if (!existingTenantId) {
       showToast(t('buildingDetail.toasts.selectInactiveRequired'), 'error')
       setSavingTenant(false)
       return
     }
+
+    // Atama sırasında kiracının mevcut sözleşme/kira/depozito bilgilerine
+    // dokunmuyoruz — bu alanlar Kiracılar sayfasında girilmiş olmalı. Burada
+    // yalnızca apartment_id ve status'u güncellemek yeterli; aylık kira
+    // kayıtlarını seed ederken de tenant.rent + nebenkosten_vorauszahlung'u
+    // okuyoruz.
+    const selectedTenant = inactiveTenants.find(x => x.id === existingTenantId)
+    const rentAmount = Number(selectedTenant?.rent) || 0
+    const aidatAmount = Number(selectedTenant?.nebenkosten_vorauszahlung) || 0
+    const monthlyAmount = rentAmount + aidatAmount
+    const leaseStart = selectedTenant?.lease_start || null
+
     const { error: updErr } = await supabase
       .from('tenants')
-      .update({
-        apartment_id: tenantAptId,
-        lease_start: leaseStart,
-        lease_end: leaseEnd,
-        rent: rentAmount,
-        deposit: parseFloat(tenantForm.deposit) || 0,
-        status: 'active'
-      })
+      .update({ apartment_id: tenantAptId, status: 'active' })
       .eq('id', existingTenantId)
     if (updErr) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: updErr.message }), 'error'); setSavingTenant(false); return }
     const tenantId = existingTenantId
@@ -259,8 +260,8 @@ export default function BuildingDetail() {
     // Daireyi dolu isaretle
     await supabase.from('apartments').update({ status: 'occupied' }).eq('id', tenantAptId)
 
-    // 120 aylik bekleyen kira kayitlarini seed et
-    if (tenantId && rentAmount > 0) {
+    // 120 aylik bekleyen kira kayitlarini seed et — Warmmiete: kira + aidat
+    if (tenantId && monthlyAmount > 0) {
       const paymentRecords = []
       const startDate = leaseStart ? new Date(leaseStart) : new Date()
       const now = new Date()
@@ -270,7 +271,7 @@ export default function BuildingDetail() {
         if (dueDate > endOfNextMonth) break
         paymentRecords.push({
           user_id: session.user.id, tenant_id: tenantId, apartment_id: tenantAptId,
-          due_date: dueDate.toISOString().split('T')[0], amount: rentAmount, status: 'pending'
+          due_date: dueDate.toISOString().split('T')[0], amount: monthlyAmount, status: 'pending', type: 'rent'
         })
       }
       if (paymentRecords.length > 0) await supabase.from('rent_payments').insert(paymentRecords)
@@ -1002,43 +1003,6 @@ export default function BuildingDetail() {
                     </>
                   )}
 
-                  {/* Atama alanları yalnızca mevcut kiracı varsa göster */}
-                  {inactiveTenants.length > 0 && (
-                    <>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.leaseStart')}</label>
-                          <input style={inputStyle} type="date"
-                            value={tenantForm.lease_start} onChange={e => updateTenantForm('lease_start', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.leaseEnd')}</label>
-                          <input style={inputStyle} type="date"
-                            value={tenantForm.lease_end} onChange={e => updateTenantForm('lease_end', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.monthlyRent')}</label>
-                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
-                            value={tenantForm.rent} onChange={e => updateTenantForm('rent', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.deposit')}</label>
-                          <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
-                            value={tenantForm.deposit} onChange={e => updateTenantForm('deposit', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </div>
 
                 <div style={{
