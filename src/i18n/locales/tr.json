@@ -74,6 +74,7 @@
     "online": "Çevrimiçi",
     "notLoggedIn": "Giriş yapılmadı",
     "user": "Kullanıcı",
+    "settingsTitle": "Ayarlar",
     "logoutTitle": "Çıkış yap",
     "logoutSuccess": "Başarıyla çıkış yapıldı.",
     "logoutError": "Çıkış hatası: {{msg}}"
@@ -1358,6 +1359,55 @@
       "message": "Bu arıza kaydını silmek istediğinize emin misiniz?",
       "cancel": "Vazgeç",
       "confirm": "Evet, Sil"
+    }
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "subtitle": "Hesap ve güvenlik tercihleri",
+    "toasts": {
+      "errorPrefix": "Hata: {{msg}}"
+    },
+    "security": {
+      "title": "Güvenlik"
+    },
+    "mfa": {
+      "label": "İki Adımlı Doğrulama (Authenticator)",
+      "enabledDesc": "Authenticator app'inden gelen 6 haneli kod her girişte istenir.",
+      "disabledDesc": "Hesabınızı şifre + telefonunuzdaki authenticator app'i ile koruyun.",
+      "statusActive": "Aktif",
+      "enable": "Authenticator Ekle",
+      "disable": "Kaldır",
+      "helper": "Google Authenticator, Authy, 1Password, Microsoft Authenticator, Bitwarden — TOTP destekleyen tüm uygulamalar çalışır.",
+      "setupTitle": "Authenticator Kurulumu",
+      "preparing": "Hazırlanıyor...",
+      "step1Title": "1. Adım — QR Kodu Tarayın",
+      "step1Desc": "Authenticator app'inizi açın, \"+\" butonuna basın ve aşağıdaki QR kodu okutun. QR taranamıyorsa sağdaki anahtarı manuel girin.",
+      "manualLabel": "Manuel Anahtar",
+      "copy": "Kopyala",
+      "step2Title": "2. Adım — 6 Haneli Kodu Girin",
+      "step2Desc": "App'iniz bir kod gösterecek. Kodu aşağıya yazın.",
+      "verify": "Onayla",
+      "verifying": "Doğrulanıyor...",
+      "cancel": "İptal",
+      "disableTitle": "Authenticator'ı Kaldır",
+      "disableMessage": "Authenticator'ı kaldırırsanız hesabınız sadece şifreyle korunur. Devam etmek istiyor musunuz?",
+      "confirmDisable": "Evet, Kaldır",
+      "disabling": "Kaldırılıyor...",
+      "toasts": {
+        "enabled": "İki adımlı doğrulama aktif edildi.",
+        "disabled": "İki adımlı doğrulama kaldırıldı.",
+        "codeWrong": "Kod yanlış. Tekrar deneyin.",
+        "secretCopied": "Anahtar kopyalandı."
+      }
+    },
+    "challenge": {
+      "title": "İki Adımlı Doğrulama",
+      "subtitle": "Authenticator uygulamanızdaki 6 haneli kodu girin",
+      "codeLabel": "Doğrulama Kodu",
+      "verify": "Doğrula",
+      "verifying": "Doğrulanıyor...",
+      "logout": "Vazgeç",
+      "wrongCode": "Kod yanlış veya süresi dolmuş. Yeni bir kod deneyin."
     }
   }
 }

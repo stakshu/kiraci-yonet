@@ -74,6 +74,7 @@
     "online": "Online",
     "notLoggedIn": "Nicht angemeldet",
     "user": "Benutzer",
+    "settingsTitle": "Einstellungen",
     "logoutTitle": "Abmelden",
     "logoutSuccess": "Erfolgreich abgemeldet.",
     "logoutError": "Abmeldefehler: {{msg}}"
@@ -1361,6 +1362,55 @@
       "message": "Möchten Sie diesen Fall wirklich löschen?",
       "cancel": "Abbrechen",
       "confirm": "Ja, löschen"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Konto- und Sicherheitseinstellungen",
+    "toasts": {
+      "errorPrefix": "Fehler: {{msg}}"
+    },
+    "security": {
+      "title": "Sicherheit"
+    },
+    "mfa": {
+      "label": "Zwei-Faktor-Authentifizierung (Authenticator)",
+      "enabledDesc": "Ein 6-stelliger Code aus Ihrer Authenticator-App wird bei jeder Anmeldung benötigt.",
+      "disabledDesc": "Schützen Sie Ihr Konto mit Passwort plus Code aus Ihrer Smartphone-App.",
+      "statusActive": "Aktiv",
+      "enable": "Authenticator hinzufügen",
+      "disable": "Entfernen",
+      "helper": "Google Authenticator, Authy, 1Password, Microsoft Authenticator, Bitwarden — jede TOTP-fähige App funktioniert.",
+      "setupTitle": "Authenticator einrichten",
+      "preparing": "Wird vorbereitet...",
+      "step1Title": "Schritt 1 — QR-Code scannen",
+      "step1Desc": "Öffnen Sie Ihre Authenticator-App, tippen Sie auf \"+\" und scannen Sie den unten stehenden QR-Code. Falls das Scannen nicht möglich ist, geben Sie den manuellen Schlüssel ein.",
+      "manualLabel": "Manueller Schlüssel",
+      "copy": "Kopieren",
+      "step2Title": "Schritt 2 — 6-stelligen Code eingeben",
+      "step2Desc": "Ihre App zeigt einen Code an. Geben Sie diesen unten ein, um die Verknüpfung zu bestätigen.",
+      "verify": "Bestätigen",
+      "verifying": "Wird überprüft...",
+      "cancel": "Abbrechen",
+      "disableTitle": "Authenticator entfernen",
+      "disableMessage": "Wenn Sie den Authenticator entfernen, ist Ihr Konto nur noch durch das Passwort geschützt. Fortfahren?",
+      "confirmDisable": "Ja, entfernen",
+      "disabling": "Wird entfernt...",
+      "toasts": {
+        "enabled": "Zwei-Faktor-Authentifizierung aktiviert.",
+        "disabled": "Zwei-Faktor-Authentifizierung entfernt.",
+        "codeWrong": "Falscher Code. Bitte erneut versuchen.",
+        "secretCopied": "Schlüssel kopiert."
+      }
+    },
+    "challenge": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "subtitle": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein",
+      "codeLabel": "Bestätigungscode",
+      "verify": "Bestätigen",
+      "verifying": "Wird überprüft...",
+      "logout": "Abbrechen",
+      "wrongCode": "Der Code ist falsch oder abgelaufen. Bitte einen neuen verwenden."
     }
   }
 }

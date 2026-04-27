@@ -9,7 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, HelpCircle,
-  Home, ChevronDown, LogOut, Wrench
+  Home, ChevronDown, LogOut, Wrench, Settings
 } from 'lucide-react'
 
 const ICON_MAP = {
@@ -181,17 +181,31 @@ export default function Sidebar() {
             </div>
           </div>
           {user && (
-            <motion.button
-              type="button"
-              className="sb-user-logout"
-              onClick={handleLogout}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.94 }}
-              title={t('sidebar.logoutTitle')}
-              aria-label={t('sidebar.logoutTitle')}
-            >
-              <LogOut className="w-[16px] h-[16px]" />
-            </motion.button>
+            <>
+              <motion.button
+                type="button"
+                className={`sb-user-logout${currentPath === '/settings' ? ' active' : ''}`}
+                onClick={() => goTo('/settings')}
+                whileHover={{ scale: 1.06, rotate: 30 }}
+                whileTap={{ scale: 0.94 }}
+                title={t('sidebar.settingsTitle')}
+                aria-label={t('sidebar.settingsTitle')}
+                style={{ marginRight: 6 }}
+              >
+                <Settings className="w-[16px] h-[16px]" />
+              </motion.button>
+              <motion.button
+                type="button"
+                className="sb-user-logout"
+                onClick={handleLogout}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                title={t('sidebar.logoutTitle')}
+                aria-label={t('sidebar.logoutTitle')}
+              >
+                <LogOut className="w-[16px] h-[16px]" />
+              </motion.button>
+            </>
           )}
         </div>
       </div>

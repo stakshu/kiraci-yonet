@@ -1,5 +1,11 @@
-/* ── KiraciYonet — Auth Context ── */
-import { createContext, useContext, useState, useEffect } from 'react'
+/* ── KiraciYonet — Auth Context ──
+ *
+ * Kullanıcının session'ı + AAL (Authenticator Assurance Level) takibi.
+ * MFA (TOTP) etkinse: signIn sonrası currentLevel='aal1' kalır,
+ * uygulama kullanıcıyı AAL2'ye yükseltmek için 6 haneli kod ister.
+ * AAL2'ye ulaşana kadar `mfaPending=true` ve korumalı sayfalar açılmaz.
+ */
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
@@ -7,26 +13,44 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  // 'aal1' | 'aal2' | null — kullanıcının şu an ulaştığı seviye
+  const [currentAal, setCurrentAal] = useState(null)
+  // 'aal1' | 'aal2' | null — bu hesap için gerekli minimum seviye
+  const [nextAal, setNextAal] = useState(null)
+
+  const refreshAal = useCallback(async () => {
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (error) {
+      setCurrentAal(null); setNextAal(null)
+      return
+    }
+    setCurrentAal(data?.currentLevel || null)
+    setNextAal(data?.nextLevel || null)
+  }, [])
 
   useEffect(() => {
     /* Mevcut oturumu kontrol et */
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null)
+      if (session?.user) await refreshAal()
       setLoading(false)
     })
 
     /* Auth degisikliklerini dinle */
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) await refreshAal()
+      else { setCurrentAal(null); setNextAal(null) }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [refreshAal])
 
   /* Giris */
   const signIn = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    await refreshAal()
     return data
   }
 
@@ -49,8 +73,14 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  // MFA bekleniyor mu? — kullanıcı authenticated ama AAL2'ye yükselmesi gerekiyor
+  const mfaPending = !!user && currentAal === 'aal1' && nextAal === 'aal2'
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, resetPassword }}>
+    <AuthContext.Provider value={{
+      user, loading, currentAal, nextAal, mfaPending,
+      signIn, signUp, signOut, resetPassword, refreshAal,
+    }}>
       {children}
     </AuthContext.Provider>
   )

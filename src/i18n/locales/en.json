@@ -74,6 +74,7 @@
     "online": "Online",
     "notLoggedIn": "Not signed in",
     "user": "User",
+    "settingsTitle": "Settings",
     "logoutTitle": "Sign out",
     "logoutSuccess": "Signed out successfully.",
     "logoutError": "Sign-out error: {{msg}}"
@@ -1361,6 +1362,55 @@
       "message": "Are you sure you want to delete this issue?",
       "cancel": "Cancel",
       "confirm": "Yes, Delete"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Account and security preferences",
+    "toasts": {
+      "errorPrefix": "Error: {{msg}}"
+    },
+    "security": {
+      "title": "Security"
+    },
+    "mfa": {
+      "label": "Two-factor authentication (Authenticator)",
+      "enabledDesc": "A 6-digit code from your authenticator app is required at every sign-in.",
+      "disabledDesc": "Protect your account with a password plus a code from your phone.",
+      "statusActive": "Active",
+      "enable": "Add authenticator",
+      "disable": "Remove",
+      "helper": "Google Authenticator, Authy, 1Password, Microsoft Authenticator, Bitwarden — any TOTP-compatible app works.",
+      "setupTitle": "Authenticator setup",
+      "preparing": "Preparing...",
+      "step1Title": "Step 1 — Scan the QR code",
+      "step1Desc": "Open your authenticator app, tap \"+\" and scan the QR code below. If scanning isn't possible, enter the manual key shown next to it.",
+      "manualLabel": "Manual key",
+      "copy": "Copy",
+      "step2Title": "Step 2 — Enter the 6-digit code",
+      "step2Desc": "Your app will show a code. Type it below to confirm the link.",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "cancel": "Cancel",
+      "disableTitle": "Remove authenticator",
+      "disableMessage": "Removing the authenticator means your account is only protected by your password. Continue?",
+      "confirmDisable": "Yes, remove",
+      "disabling": "Removing...",
+      "toasts": {
+        "enabled": "Two-factor authentication enabled.",
+        "disabled": "Two-factor authentication removed.",
+        "codeWrong": "Wrong code. Try again.",
+        "secretCopied": "Key copied."
+      }
+    },
+    "challenge": {
+      "title": "Two-factor authentication",
+      "subtitle": "Enter the 6-digit code from your authenticator app",
+      "codeLabel": "Verification code",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "logout": "Cancel",
+      "wrongCode": "The code is wrong or expired. Try a fresh one."
     }
   }
 }
