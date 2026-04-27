@@ -1075,6 +1075,7 @@
     "subtitleUnknownCount": "Monatliche Kostentabelle · — Whg",
     "freeTitle": "Sammelerfassung Kosten",
     "freeSubtitle": "Gebäude oder Wohnung wählen, alle Kategorien auf einmal speichern",
+    "scopeHeader": "Bereich",
     "scopeBuilding": "Gesamtes Gebäude",
     "scopeApartment": "Einzelne Wohnung",
     "buildingLabel": "Gebäude",

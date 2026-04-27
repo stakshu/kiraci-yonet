@@ -1072,6 +1072,7 @@
     "subtitleUnknownCount": "Aylık bina gider tablosu · — daire",
     "freeTitle": "Toplu Gider Girişi",
     "freeSubtitle": "Bina veya daire seç, tüm kategorileri tek seferde kaydet",
+    "scopeHeader": "Kapsam",
     "scopeBuilding": "Tüm Bina",
     "scopeApartment": "Tek Daire",
     "buildingLabel": "Bina",

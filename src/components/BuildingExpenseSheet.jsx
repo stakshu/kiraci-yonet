@@ -53,6 +53,11 @@ const inputStyle = {
   width: '100%', boxSizing: 'border-box',
 }
 
+const labelSmall = {
+  display: 'block', fontSize: 11, fontWeight: 700, color: C.textMuted,
+  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
+}
+
 const aptShortLabel = (a) => {
   if (!a) return '—'
   const f = a.floor_no, u = a.unit_no
@@ -406,82 +411,92 @@ export default function BuildingExpenseSheet({
             </motion.button>
           </div>
 
-          {/* Free mode: scope + hedef picker'ları */}
+          {/* Free mode: scope + hedef picker'ları — tek satır, simetrik dağılım */}
           {showPickers && (
             <div style={{
               padding: '18px 28px', borderBottom: `1px solid ${C.borderLight}`,
-              background: '#FAFBFC', display: 'flex', flexDirection: 'column', gap: 14,
+              background: '#FAFBFC',
+              display: 'grid',
+              gridTemplateColumns: scope === 'apartment'
+                ? '300px 1fr 1fr'
+                : '300px 1fr',
+              gap: 16, alignItems: 'end',
             }}>
-              {/* Scope toggle */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
-                background: '#fff', border: `1.5px solid ${C.border}`,
-                borderRadius: 10, padding: 4, maxWidth: 380,
-              }}>
-                {[
-                  { key: 'building', label: t('buildingExpenseSheet.scopeBuilding'), Icon: Building2 },
-                  { key: 'apartment', label: t('buildingExpenseSheet.scopeApartment'), Icon: Home },
-                ].map(opt => {
-                  const active = scope === opt.key
-                  const Icon = opt.Icon
-                  return (
-                    <motion.button
-                      key={opt.key} type="button"
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { setScope(opt.key); setApartmentId(null) }}
-                      style={{
-                        fontFamily: font, fontSize: 12, fontWeight: 700,
-                        padding: '8px 12px', borderRadius: 8, border: 'none',
-                        cursor: 'pointer',
-                        background: active ? C.teal : 'transparent',
-                        color: active ? '#fff' : C.textMuted,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <Icon size={14} />
-                      {opt.label}
-                    </motion.button>
-                  )
-                })}
+              {/* Kapsam toggle */}
+              <div>
+                <label style={labelSmall}>
+                  {t('buildingExpenseSheet.scopeHeader')}
+                </label>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
+                  background: '#fff', border: `1.5px solid ${C.border}`,
+                  borderRadius: 10, padding: 4,
+                }}>
+                  {[
+                    { key: 'building', label: t('buildingExpenseSheet.scopeBuilding'), Icon: Building2 },
+                    { key: 'apartment', label: t('buildingExpenseSheet.scopeApartment'), Icon: Home },
+                  ].map(opt => {
+                    const active = scope === opt.key
+                    const Icon = opt.Icon
+                    return (
+                      <motion.button
+                        key={opt.key} type="button"
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => { setScope(opt.key); setApartmentId(null) }}
+                        style={{
+                          fontFamily: font, fontSize: 12, fontWeight: 700,
+                          padding: '8px 12px', borderRadius: 8, border: 'none',
+                          cursor: 'pointer',
+                          background: active ? C.teal : 'transparent',
+                          color: active ? '#fff' : C.textMuted,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <Icon size={14} />
+                        {opt.label}
+                      </motion.button>
+                    )
+                  })}
+                </div>
               </div>
 
-              {/* Hedef seçici */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              {/* Bina */}
+              <div>
+                <label style={labelSmall}>
+                  {t('buildingExpenseSheet.buildingLabel')}
+                </label>
+                <select
+                  value={buildingId || ''}
+                  onChange={e => setBuildingId(e.target.value || null)}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                >
+                  <option value="">{t('buildingExpenseSheet.selectPlaceholder')}</option>
+                  {buildings.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Daire — sadece apartment scope'ta */}
+              {scope === 'apartment' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-                    {t('buildingExpenseSheet.buildingLabel')}
+                  <label style={labelSmall}>
+                    {t('buildingExpenseSheet.apartmentLabel')}
                   </label>
                   <select
-                    value={buildingId || ''}
-                    onChange={e => setBuildingId(e.target.value || null)}
-                    style={{ ...inputStyle, cursor: 'pointer' }}
+                    value={apartmentId || ''}
+                    onChange={e => setApartmentId(e.target.value || null)}
+                    disabled={!buildingId}
+                    style={{ ...inputStyle, cursor: buildingId ? 'pointer' : 'not-allowed', opacity: buildingId ? 1 : 0.6 }}
                   >
                     <option value="">{t('buildingExpenseSheet.selectPlaceholder')}</option>
-                    {buildings.map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
+                    {aptOptions.map(a => (
+                      <option key={a.id} value={a.id}>{aptShortLabel(a)}</option>
                     ))}
                   </select>
                 </div>
-                {scope === 'apartment' && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-                      {t('buildingExpenseSheet.apartmentLabel')}
-                    </label>
-                    <select
-                      value={apartmentId || ''}
-                      onChange={e => setApartmentId(e.target.value || null)}
-                      disabled={!buildingId}
-                      style={{ ...inputStyle, cursor: buildingId ? 'pointer' : 'not-allowed', opacity: buildingId ? 1 : 0.6 }}
-                    >
-                      <option value="">{t('buildingExpenseSheet.selectPlaceholder')}</option>
-                      {aptOptions.map(a => (
-                        <option key={a.id} value={a.id}>{aptShortLabel(a)}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           )}
 

@@ -1075,6 +1075,7 @@
     "subtitleUnknownCount": "Monthly building expense sheet · — apts",
     "freeTitle": "Bulk Expense Entry",
     "freeSubtitle": "Pick a building or unit, save all categories in one go",
+    "scopeHeader": "Scope",
     "scopeBuilding": "Whole Building",
     "scopeApartment": "Single Unit",
     "buildingLabel": "Building",
