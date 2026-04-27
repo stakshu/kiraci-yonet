@@ -18,18 +18,22 @@ export function AuthProvider({ children }) {
   // 'aal1' | 'aal2' | null — bu hesap için gerekli minimum seviye
   const [nextAal, setNextAal] = useState(null)
 
+  // MFA AAL çağrısı bazen pending'de takılabiliyor (Supabase'in iç kilit
+  // mekanizması veya yavaş response). Hanging olduğunda loading=true kalmasın
+  // diye 4 sn timeout ile sarıyoruz; timeout olursa AAL "bilinmez" sayılır.
   const refreshAal = useCallback(async () => {
-    // MFA API çağrısı bazı durumlarda atomik olarak fırlatabilir (örn. eski
-    // refresh token + sunucu MFA ayarı uyumsuzluğu). Render'ı kilitlememesi
-    // için tüm akışı try/catch ile sar — hata durumunda AAL bilinmez kabul.
     try {
-      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-      if (error) {
+      const result = await Promise.race([
+        supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+        new Promise(resolve => setTimeout(() => resolve({ data: null, error: { message: 'aal_timeout' } }), 4000)),
+      ])
+      const { data, error } = result || {}
+      if (error || !data) {
         setCurrentAal(null); setNextAal(null)
         return
       }
-      setCurrentAal(data?.currentLevel || null)
-      setNextAal(data?.nextLevel || null)
+      setCurrentAal(data.currentLevel || null)
+      setNextAal(data.nextLevel || null)
     } catch {
       setCurrentAal(null); setNextAal(null)
     }
@@ -38,27 +42,28 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false
 
-    /* Mevcut oturumu kontrol et — herhangi bir hata olursa loading'i kapat,
-       yoksa uygulama sonsuz "loading" durumunda kalır → beyaz ekran. */
+    /* Mevcut oturumu kontrol et — loading state'i MFA çağrısından bağımsız.
+       Session belirlenir belirlenmez setLoading(false); refreshAal arka planda
+       koşar, AAL state'i geldiğinde mfaPending re-render tetikler. */
     ;(async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (cancelled) return
         setUser(session?.user ?? null)
-        if (session?.user) await refreshAal()
+        setLoading(false)
+        if (session?.user) refreshAal()  // arka planda, await değil
       } catch {
         if (cancelled) return
         setUser(null)
-      } finally {
-        if (!cancelled) setLoading(false)
+        setLoading(false)
       }
     })()
 
     /* Auth değişikliklerini dinle */
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return
       setUser(session?.user ?? null)
-      if (session?.user) await refreshAal()
+      if (session?.user) refreshAal()
       else { setCurrentAal(null); setNextAal(null) }
     })
 
