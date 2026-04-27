@@ -69,6 +69,7 @@ export default function BuildingDetail() {
   // Bu modal yalnızca mevcut (status='inactive') kiracıları daireye atar.
   // Yeni kiracı oluşturma akışı Kiracılar sayfasında.
   const [inactiveTenants, setInactiveTenants] = useState([])
+  const [loadingInactive, setLoadingInactive] = useState(false)
   const [existingTenantId, setExistingTenantId] = useState('')
 
   useEffect(() => { loadData() }, [id])
@@ -197,12 +198,14 @@ export default function BuildingDetail() {
   }
 
   const loadInactiveTenants = async () => {
+    setLoadingInactive(true)
     const { data } = await supabase
       .from('tenants')
       .select('id, full_name, phone, email, tc_no, rent, deposit, lease_start, lease_end, nebenkosten_vorauszahlung')
       .eq('status', 'inactive')
       .order('full_name', { ascending: true })
     setInactiveTenants(data || [])
+    setLoadingInactive(false)
   }
 
   const openTenantAdd = (e, aptId, aptName) => {
@@ -211,6 +214,8 @@ export default function BuildingDetail() {
     setTenantAptName(aptName)
     setTenantForm({ full_name: '', email: '', phone: '', tc_no: '', lease_start: '', lease_end: '', rent: '', deposit: '' })
     setExistingTenantId('')
+    // Eski liste kalıntıları yeni atama açıldığında flash etmesin diye sıfırla.
+    setInactiveTenants([])
     loadInactiveTenants()
     setShowTenantPopup(true)
   }
@@ -952,7 +957,23 @@ export default function BuildingDetail() {
 
               <form onSubmit={handleTenantSave}>
                 <div style={{ padding: '20px 28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {inactiveTenants.length === 0 ? (
+                  {loadingInactive ? (
+                    <div style={{
+                      padding: '40px 16px', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', gap: 10,
+                      color: C.textFaint, fontSize: 13,
+                    }}>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        style={{
+                          width: 18, height: 18, borderRadius: '50%',
+                          border: `2px solid ${C.teal}`, borderTopColor: 'transparent',
+                        }}
+                      />
+                      <span>{t('common.loading')}</span>
+                    </div>
+                  ) : inactiveTenants.length === 0 ? (
                     <div style={{
                       padding: '32px 16px', textAlign: 'center',
                       background: '#FEF3C7', borderRadius: 12, border: '1px solid #FDE68A'
