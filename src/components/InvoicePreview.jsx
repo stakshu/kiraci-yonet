@@ -913,8 +913,7 @@ function CalculationRow({ r, t, periodDays, tenancyDays }) {
         <td>{r.name}</td>
         <td className="num">{fmt2(r.totalCost)}</td>
         <td className="calc-cell">
-          <span className="num-blue">{fmt2(r.totalCost)}</span>
-          <span> &nbsp;:&nbsp; </span>
+          <span style={{ color: '#555' }}>:&nbsp; </span>
           <span>{fmt2(tot)} {unit}</span>
           <span> &nbsp;x&nbsp; </span>
           <span>{fmt2(a)} {unit}</span>
@@ -923,9 +922,8 @@ function CalculationRow({ r, t, periodDays, tenancyDays }) {
       </tr>
       <tr className="calc-row-2">
         <td />
-        <td />
+        <td className="num" style={{ color: '#555' }}>=</td>
         <td className="calc-cell" style={{ paddingTop: 0 }}>
-          <span>= </span>
           <span className="num-blue">{fmt2(subShare)}</span>
           <span> {euroLbl} &nbsp;:&nbsp; {periodDays} &nbsp;x&nbsp; {tenancyDays} {tageLbl}</span>
         </td>
