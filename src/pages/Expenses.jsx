@@ -260,10 +260,18 @@ export default function Expenses() {
   }
 
   /* ── Expense CRUD ── */
+  // "Gider Ekle" artık tek-tek modal yerine BuildingExpenseSheet'i free mode'da açar:
+  // bina/daire scope seçilebilir, dağıtım anahtarları ve sayaç okumaları
+  // satır içinde girilir. Tek-gider modal'ı sadece düzenleme akışında kullanılır.
   const openAddExpense = () => {
-    setEditingExpense(null)
-    setExpenseForm(EMPTY_EXPENSE)
-    setShowExpenseModal(true)
+    setSheetCtx({
+      freeMode: true,
+      building: null,
+      apartmentCount: null,
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
+    })
+    setSheetOpen(true)
   }
 
   const openEditExpense = (expense) => {
@@ -575,6 +583,7 @@ export default function Expenses() {
 
   const openBuildingSheet = (building, apartmentCount) => {
     setSheetCtx({
+      freeMode: false,
       building,
       apartmentCount,
       month: filterMonth ? Number(filterMonth) : (new Date().getMonth() + 1),
@@ -2513,6 +2522,9 @@ export default function Expenses() {
         onSaved={() => { setSheetOpen(false); loadExpenses() }}
         building={sheetCtx.building}
         apartmentCount={sheetCtx.apartmentCount}
+        freeMode={!!sheetCtx.freeMode}
+        buildings={buildings}
+        allApartments={apartments}
         categories={categories}
         initialMonth={sheetCtx.month}
         initialYear={sheetCtx.year}
