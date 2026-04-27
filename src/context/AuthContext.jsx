@@ -19,31 +19,50 @@ export function AuthProvider({ children }) {
   const [nextAal, setNextAal] = useState(null)
 
   const refreshAal = useCallback(async () => {
-    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (error) {
+    // MFA API çağrısı bazı durumlarda atomik olarak fırlatabilir (örn. eski
+    // refresh token + sunucu MFA ayarı uyumsuzluğu). Render'ı kilitlememesi
+    // için tüm akışı try/catch ile sar — hata durumunda AAL bilinmez kabul.
+    try {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (error) {
+        setCurrentAal(null); setNextAal(null)
+        return
+      }
+      setCurrentAal(data?.currentLevel || null)
+      setNextAal(data?.nextLevel || null)
+    } catch {
       setCurrentAal(null); setNextAal(null)
-      return
     }
-    setCurrentAal(data?.currentLevel || null)
-    setNextAal(data?.nextLevel || null)
   }, [])
 
   useEffect(() => {
-    /* Mevcut oturumu kontrol et */
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) await refreshAal()
-      setLoading(false)
-    })
+    let cancelled = false
 
-    /* Auth degisikliklerini dinle */
+    /* Mevcut oturumu kontrol et — herhangi bir hata olursa loading'i kapat,
+       yoksa uygulama sonsuz "loading" durumunda kalır → beyaz ekran. */
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (cancelled) return
+        setUser(session?.user ?? null)
+        if (session?.user) await refreshAal()
+      } catch {
+        if (cancelled) return
+        setUser(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+
+    /* Auth değişikliklerini dinle */
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return
       setUser(session?.user ?? null)
       if (session?.user) await refreshAal()
       else { setCurrentAal(null); setNextAal(null) }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { cancelled = true; subscription.unsubscribe() }
   }, [refreshAal])
 
   /* Giris */
