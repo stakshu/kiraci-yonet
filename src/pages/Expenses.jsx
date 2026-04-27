@@ -234,13 +234,13 @@ export default function Expenses() {
   const loadApartments = async () => {
     const { data } = await supabase
       .from('apartments')
-      .select('id, unit_no, floor_no, m2_net, m2_gross, building_id, buildings(name)')
+      .select('id, unit_no, floor_no, m2_net, m2_gross, building_id, buildings(id, name, address, city, district, utilities)')
       .order('unit_no')
     setApartments(data || [])
   }
 
   const loadBuildings = async () => {
-    const { data } = await supabase.from('buildings').select('id, name').order('name')
+    const { data } = await supabase.from('buildings').select('id, name, address, city, district, utilities').order('name')
     setBuildings(data || [])
   }
 

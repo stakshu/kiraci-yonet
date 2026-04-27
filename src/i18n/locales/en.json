@@ -1126,90 +1126,66 @@
     }
   },
   "invoice": {
-    "titlePrefix": "Service Charge",
-    "titleEm": "Statement",
+    "docTitle": "Service Charge Statement",
     "toolbar": {
       "edit": "Edit",
+      "editSender": "Edit my details",
       "print": "Print / Save as PDF",
       "close": "Close"
     },
-    "top": {
-      "period": "Billing Period",
-      "no": "No.",
-      "invoicePrefix": "SCS"
+    "cover": {
+      "metaIhreZeichen": "Your reference, your message dated",
+      "metaUnsereZeichen": "Our reference",
+      "metaPhone": "Phone",
+      "metaDate": "Date",
+      "subjectKurz": "Service charges {{year}}",
+      "subjectLine": "Settlement of service charges",
+      "salutation": "Dear tenant,",
+      "intro": "I have prepared the costs incurred during the past billing period. The detailed breakdown is provided on the following page of this letter.",
+      "colCostType": "Cost type",
+      "colCosts": "Costs (EUR)",
+      "colVorauszahlung": "Prepayment (EUR)",
+      "colResult": "Settlement result (EUR)",
+      "summaryRow": "Service charges",
+      "totalLabel": "Overall result",
+      "resultNachzahlung": "Additional payment",
+      "resultGuthaben": "Credit",
+      "resultBalanced": "Balanced",
+      "payInstructionNach": "Please remit the additional payment of {{amount}} EUR within 30 days of receipt of this statement.",
+      "payInstructionGut": "The credit of {{amount}} EUR will be refunded within 30 days or offset against the next rent payment.",
+      "payInstructionBalanced": "Your prepayments fully cover the service charges.",
+      "regards": "Kind regards",
+      "machineNote": "This document was generated automatically and is valid without a signature.",
+      "bankLabel": "Bank",
+      "bankPlaceholder": "Use \"Edit my details\" in the toolbar to add your bank information."
     },
-    "parties": {
-      "tenant": "Tenant",
-      "noActiveTenant": "No active tenant",
-      "buildingTenants": "{{apts}} units / {{active}} active tenants"
-    },
-    "propertyApt": {
-      "title": "Rental Property",
-      "area": "Living Area",
-      "persons": "Occupants"
-    },
-    "propertyBld": {
-      "building": "Building",
-      "aptCount": "Number of Units",
-      "duration": "Billing Period",
-      "months": "{{n}} Months"
-    },
-    "apartmentLabel": {
-      "withFloor": "Floor {{floor}} · Unit {{unit}}",
-      "noFloor": "Unit {{unit}}"
-    },
-    "tableApt": {
-      "item": "Item",
-      "key": "Allocation Key",
-      "total": "Total",
-      "share": "Your Share",
+    "calc": {
+      "title": "Service Charge Calculation",
+      "periodLine": "(Billing period {{period}})",
+      "colCostType": "Cost type",
+      "colAccrued": "Accrued cost",
+      "colCalcOfShare": "Calculation of your share",
+      "colYourShare": "Your share",
+      "gesamt": "Total amount",
+      "vorauszahlung": "Agreed prepayment",
+      "nachzahlung": "Additional payment",
+      "guthaben": "Credit",
+      "balanced": "Balanced",
       "empty": "No billable expenses found in this period.",
-      "apartmentScope": "Unit-specific"
+      "tage": "days",
+      "aptScope": "Direct share"
     },
-    "totalsApt": {
-      "totalBillable": "Total Service Charges",
-      "deductPrepay": "Less prepayments made",
-      "resultPay": "Additional Payment Due",
-      "resultRefund": "Credit (in tenant's favour)",
-      "resultBalanced": "Balanced"
-    },
-    "section": {
-      "categoryTotalsPrefix": "Category",
-      "categoryTotalsEm": "Totals",
-      "distByAptPrefix": "Per-Unit",
-      "distByAptEm": "Allocation"
-    },
-    "tableBld": {
-      "item": "Item",
-      "key": "Allocation Key",
-      "total": "Total",
-      "empty": "No billable expenses found in this period.",
-      "apt": "Unit",
-      "tenant": "Tenant",
-      "billable": "Billable",
-      "aidat": "Prepayment",
-      "diff": "Difference",
-      "emptyApt": "— vacant —"
-    },
-    "totalsBld": {
-      "totalBillable": "Building Total Billable",
-      "deductPrepay": "Less prepayments collected",
-      "resultPay": "Outstanding (in landlord's favour)",
-      "resultRefund": "Surplus (in tenants' favour)",
-      "resultBalanced": "Balanced"
-    },
-    "footer": {
-      "explanationLabel": "Note:",
-      "explanation": "This statement has been prepared in accordance with the allocation keys agreed with the tenant. The expenses listed correspond to the operating costs actually incurred during the billing period.",
-      "payNoticePre": "Please remit the ",
-      "payNoticeStrong": "additional payment of {{amount}}",
-      "payNoticePost": " within 30 days of receipt of this statement.",
-      "refundNoticePre": "The credit of ",
-      "refundNoticeStrong": "{{amount}}",
-      "refundNoticePost": " will be refunded to you within 30 days or offset against your next rent payment.",
-      "balancedNotice": "Your prepayments fully cover the service charges.",
-      "objectionNotice": "Any objections to this statement must be submitted in writing within 12 months of receipt. Supporting documents are available for inspection by appointment.",
-      "issueDate": "Issued: {{date}} · KiraciYonet"
+    "senderModal": {
+      "title": "Edit your statement details",
+      "name": "Full name",
+      "addressLine1": "Address line 1",
+      "addressLine2": "Address line 2 (postcode / city)",
+      "addressLine3": "Address line 3 (optional)",
+      "phone": "Phone",
+      "bank": "Bank",
+      "iban": "IBAN",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "overdue": {

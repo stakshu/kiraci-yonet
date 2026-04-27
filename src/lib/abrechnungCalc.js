@@ -20,10 +20,13 @@ const fmt2 = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits:
 //
 // meterReadings: { [apartmentId]: number } — yalnızca kwh / m³ anahtarları için
 // kullanılır; gider kaydının `expense_meter_readings` alt-satırlarından türetilir.
+//
+// Çıktıdaki aptValue/totalValue/unit ham sayısal değerler — invoice PDF'inde
+// "X / Y Pers." gibi parçalı format için kullanılır.
 export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt = {}, meterReadings = null }) {
   const total = nz(totalCost)
   const n = apartments?.length || 0
-  if (!apt || n === 0) return { share: 0, keyLabel: '—' }
+  if (!apt || n === 0) return { share: 0, keyLabel: '—', aptValue: 0, totalValue: 0, unit: '' }
 
   if (key === 'area') {
     const a = aptArea(apt)
@@ -32,9 +35,10 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
       return {
         share: round2(total * (a / totalA)),
         keyLabel: `${fmt2(a)} / ${fmt2(totalA)} m²`,
+        aptValue: a, totalValue: totalA, unit: 'm²',
       }
     }
-    return { share: round2(total / n), keyLabel: `1 / ${n}` }
+    return { share: round2(total / n), keyLabel: `1 / ${n}`, aptValue: 1, totalValue: n, unit: '' }
   }
 
   if (key === 'persons') {
@@ -44,9 +48,10 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
       return {
         share: round2(total * (p / totalP)),
         keyLabel: `${p} / ${totalP}`,
+        aptValue: p, totalValue: totalP, unit: 'Pers.',
       }
     }
-    return { share: round2(total / n), keyLabel: `1 / ${n}` }
+    return { share: round2(total / n), keyLabel: `1 / ${n}`, aptValue: 1, totalValue: n, unit: '' }
   }
 
   if (key === 'kwh' || key === 'm3') {
@@ -57,16 +62,16 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
       return {
         share: round2(total * (r / totalR)),
         keyLabel: `${fmt2(r)} / ${fmt2(totalR)} ${unit}`,
+        aptValue: r, totalValue: totalR, unit,
       }
     }
-    // Sayaç verisi eksikse eşit fallback — kullanıcı readings'i sonra tamamlayabilir.
-    return { share: round2(total / n), keyLabel: `1 / ${n}` }
+    return { share: round2(total / n), keyLabel: `1 / ${n}`, aptValue: 1, totalValue: n, unit: '' }
   }
 
-  // 'units' (ve eski 'equal') — eşit pay
   return {
     share: round2(total / n),
     keyLabel: `1 / ${n}`,
+    aptValue: 1, totalValue: n, unit: '',
   }
 }
 
@@ -100,17 +105,13 @@ export function computeApartmentRollup({
     withinPeriod(e)
   )
 
-  const addRow = (map, name, icon, color, distKey, keyLabel, totalCost, share, isBuildingScope) => {
-    const k = `${name}__${keyLabel}`
+  const addRow = (map, payload) => {
+    const k = `${payload.name}__${payload.keyLabel}`
     if (!map[k]) {
-      map[k] = {
-        name, icon, color, distKey, keyLabel,
-        totalCost: 0, share: 0,
-        isBuildingScope,
-      }
+      map[k] = { ...payload, totalCost: 0, share: 0 }
     }
-    map[k].totalCost += totalCost
-    map[k].share += share
+    map[k].totalCost += payload.totalCost
+    map[k].share += payload.share
   }
 
   const billableMap = {}
@@ -118,29 +119,28 @@ export function computeApartmentRollup({
 
   aptExp.forEach(e => {
     const target = e.is_tenant_billed ? billableMap : nonBillableMap
-    addRow(
-      target,
-      e.expense_categories?.name || '',
-      e.expense_categories?.icon,
-      e.expense_categories?.color,
-      'units',
-      '',
-      nz(e.amount),
-      nz(e.amount),
-      false,
-    )
+    addRow(target, {
+      name: e.expense_categories?.name || '',
+      icon: e.expense_categories?.icon,
+      color: e.expense_categories?.color,
+      distKey: 'units',
+      keyLabel: '',
+      aptValue: 0, totalValue: 0, unit: '',
+      totalCost: nz(e.amount),
+      share: nz(e.amount),
+      isBuildingScope: false,
+    })
   })
 
   bldExp.forEach(e => {
     const distKey = e.distribution_key || 'units'
-    // Tüketim anahtarları için ham okumaları { [aptId]: reading } formuna indirgeriz.
     const meterReadings = Array.isArray(e.expense_meter_readings)
       ? e.expense_meter_readings.reduce((acc, r) => {
           acc[r.apartment_id] = nz(r.reading)
           return acc
         }, {})
       : null
-    const { share, keyLabel } = apartmentShare({
+    const { share, keyLabel, aptValue, totalValue, unit } = apartmentShare({
       totalCost: nz(e.amount),
       key: distKey,
       apt,
@@ -149,17 +149,17 @@ export function computeApartmentRollup({
       meterReadings,
     })
     const target = e.is_tenant_billed ? billableMap : nonBillableMap
-    addRow(
-      target,
-      e.expense_categories?.name || '',
-      e.expense_categories?.icon,
-      e.expense_categories?.color,
+    addRow(target, {
+      name: e.expense_categories?.name || '',
+      icon: e.expense_categories?.icon,
+      color: e.expense_categories?.color,
       distKey,
       keyLabel,
-      nz(e.amount),
+      aptValue, totalValue, unit,
+      totalCost: nz(e.amount),
       share,
-      true,
-    )
+      isBuildingScope: true,
+    })
   })
 
   const byCategory = Object.values(billableMap).map(r => ({

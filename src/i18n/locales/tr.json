@@ -1123,90 +1123,66 @@
     }
   },
   "invoice": {
-    "titlePrefix": "Yan Giderler",
-    "titleEm": "Hesabı",
+    "docTitle": "Yan Gider Hesabı",
     "toolbar": {
       "edit": "Düzenle",
+      "editSender": "Bilgilerimi Düzenle",
       "print": "Yazdır / PDF Kaydet",
       "close": "Kapat"
     },
-    "top": {
-      "period": "Hesap Dönemi",
-      "no": "No.",
-      "invoicePrefix": "NKA"
+    "cover": {
+      "metaIhreZeichen": "Sizin Referansınız",
+      "metaUnsereZeichen": "Bizim Referansımız",
+      "metaPhone": "Telefon",
+      "metaDate": "Tarih",
+      "subjectKurz": "Yan Giderler {{year}}",
+      "subjectLine": "Yan Gider Hesabının Mahsubu",
+      "salutation": "Sayın Kiracı,",
+      "intro": "Geçen dönemde tahakkuk eden giderlerin hesabını çıkardım. Detaylı dökümü bu yazının arkasındaki sayfada bulabilirsiniz.",
+      "colCostType": "Kalem",
+      "colCosts": "Tutar (EUR)",
+      "colVorauszahlung": "Avans (EUR)",
+      "colResult": "Hesap Sonucu (EUR)",
+      "summaryRow": "Yan Giderler",
+      "totalLabel": "Genel Toplam",
+      "resultNachzahlung": "Ek Ödeme",
+      "resultGuthaben": "Alacak",
+      "resultBalanced": "Denk",
+      "payInstructionNach": "Lütfen {{amount}} EUR tutarındaki ek ödeme bedelini bu hesabın tarafınıza ulaşmasından itibaren 30 gün içinde havale ediniz.",
+      "payInstructionGut": "{{amount}} EUR tutarındaki alacağınız 30 gün içinde tarafınıza iade edilecek veya bir sonraki kira ödemesinden mahsup edilecektir.",
+      "payInstructionBalanced": "Avans ödemeleriniz yan giderleri tam olarak karşılamaktadır.",
+      "regards": "Saygılarımızla",
+      "machineNote": "Bu yazı otomatik olarak oluşturulmuştur ve imzasız geçerlidir.",
+      "bankLabel": "Banka",
+      "bankPlaceholder": "Banka bilgilerinizi eklemek için sağ üstteki \"Bilgilerimi Düzenle\" butonunu kullanın."
     },
-    "parties": {
-      "tenant": "Kiracı",
-      "noActiveTenant": "Aktif kiracı yok",
-      "buildingTenants": "{{apts}} daire / {{active}} aktif kiracı"
-    },
-    "propertyApt": {
-      "title": "Kiralık Mülk",
-      "area": "Konut Alanı",
-      "persons": "Kişi Sayısı"
-    },
-    "propertyBld": {
-      "building": "Bina",
-      "aptCount": "Daire Sayısı",
-      "duration": "Hesap Süresi",
-      "months": "{{n}} Ay"
-    },
-    "apartmentLabel": {
-      "withFloor": "Kat {{floor}} · Daire {{unit}}",
-      "noFloor": "Daire {{unit}}"
-    },
-    "tableApt": {
-      "item": "Kalem",
-      "key": "Anahtar",
-      "total": "Toplam",
-      "share": "Sizin Payınız",
+    "calc": {
+      "title": "Yan Gider Hesabı (Berechnung der Umlagen)",
+      "periodLine": "(Hesap Dönemi {{period}})",
+      "colCostType": "Kalem (Kostenart)",
+      "colAccrued": "Tahakkuk Eden",
+      "colCalcOfShare": "Pay Hesabı (Berechnung Ihres Anteils)",
+      "colYourShare": "Sizin Payınız",
+      "gesamt": "Genel Toplam (Gesamtbetrag)",
+      "vorauszahlung": "Avans Ödeme (vereinb. Vorauszahlung)",
+      "nachzahlung": "Ek Ödeme (Nachzahlung)",
+      "guthaben": "Alacak (Guthaben)",
+      "balanced": "Denk",
       "empty": "Bu dönemde yansıtılabilir gider bulunamadı.",
-      "apartmentScope": "Daire Özel"
+      "tage": "gün",
+      "aptScope": "Doğrudan Pay"
     },
-    "totalsApt": {
-      "totalBillable": "Toplam Yan Gideriniz",
-      "deductPrepay": "Ödenmiş peşin ödemeler düşülür",
-      "resultPay": "Ek Ödeme",
-      "resultRefund": "Alacak (Kiracı Lehine)",
-      "resultBalanced": "Denk"
-    },
-    "section": {
-      "categoryTotalsPrefix": "Kategori",
-      "categoryTotalsEm": "Toplamları",
-      "distByAptPrefix": "Daire Bazlı",
-      "distByAptEm": "Dağılım"
-    },
-    "tableBld": {
-      "item": "Kalem",
-      "key": "Anahtar",
-      "total": "Toplam",
-      "empty": "Bu dönemde yansıtılabilir gider bulunamadı.",
-      "apt": "Daire",
-      "tenant": "Kiracı",
-      "billable": "Yansıtılabilir",
-      "aidat": "Aidat",
-      "diff": "Fark",
-      "emptyApt": "— boş —"
-    },
-    "totalsBld": {
-      "totalBillable": "Bina Toplam Yansıtılabilir",
-      "deductPrepay": "Toplanmış aidat ödemeleri düşülür",
-      "resultPay": "Açık (Bina Lehine)",
-      "resultRefund": "Fazlalık (Kiracılar Lehine)",
-      "resultBalanced": "Denk"
-    },
-    "footer": {
-      "explanationLabel": "Açıklama:",
-      "explanation": "Bu hesap, kiracı ile mutabık kalınan dağıtım anahtarlarına göre düzenlenmiştir. Belirtilen giderler, hesap döneminde fiilen gerçekleşen işletme giderlerine karşılık gelmektedir.",
-      "payNoticePre": "Lütfen ",
-      "payNoticeStrong": "{{amount}} tutarındaki ek ödeme bedelini",
-      "payNoticePost": ", bu hesabın tarafınıza ulaşmasından itibaren 30 gün içinde havale ediniz.",
-      "refundNoticePre": "",
-      "refundNoticeStrong": "{{amount}}",
-      "refundNoticePost": " tutarındaki alacağınız 30 gün içinde tarafınıza iade edilecek veya bir sonraki kira ödemenizden mahsup edilecektir.",
-      "balancedNotice": "Peşin ödemeleriniz yan giderleri tam olarak karşılamaktadır.",
-      "objectionNotice": "Hesaba yapılacak itirazların, hesabın tarafınıza ulaşmasından itibaren 12 ay içinde yazılı olarak bildirilmesi gerekmektedir. Belgeler randevu ile incelenebilir.",
-      "issueDate": "Düzenleme Tarihi: {{date}} · KiraciYonet"
+    "senderModal": {
+      "title": "Fatura Bilgilerinizi Düzenleyin",
+      "name": "Ad Soyad",
+      "addressLine1": "Adres Satırı 1",
+      "addressLine2": "Adres Satırı 2 (Posta Kodu / Şehir)",
+      "addressLine3": "Adres Satırı 3 (opsiyonel)",
+      "phone": "Telefon",
+      "bank": "Banka",
+      "iban": "IBAN",
+      "cancel": "İptal",
+      "save": "Kaydet"
     }
   },
   "overdue": {

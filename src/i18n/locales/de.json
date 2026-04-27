@@ -1126,90 +1126,66 @@
     }
   },
   "invoice": {
-    "titlePrefix": "Nebenkosten-",
-    "titleEm": "abrechnung",
+    "docTitle": "Nebenkostenabrechnung",
     "toolbar": {
       "edit": "Bearbeiten",
+      "editSender": "Meine Daten bearbeiten",
       "print": "Drucken / als PDF speichern",
       "close": "Schließen"
     },
-    "top": {
-      "period": "Abrechnungszeitraum",
-      "no": "Nr.",
-      "invoicePrefix": "NKA"
+    "cover": {
+      "metaIhreZeichen": "Ihre Zeichen, Ihre Nachricht vom",
+      "metaUnsereZeichen": "Unsere Zeichen",
+      "metaPhone": "Telefon",
+      "metaDate": "Datum",
+      "subjectKurz": "Nebenkosten {{year}}",
+      "subjectLine": "Abrechnung der Umlagen",
+      "salutation": "Sehr geehrte Damen und Herren,",
+      "intro": "ich habe die Kosten, die im vergangenen Abrechnungszeitraum angefallen sind, abgerechnet. Die Abrechnung ist auf der folgenden Seite dieses Schreibens im Einzelnen wiedergegeben.",
+      "colCostType": "Kostenart",
+      "colCosts": "Kosten (EUR)",
+      "colVorauszahlung": "Vorauszahlung (EUR)",
+      "colResult": "Abrechnungsergebnis (EUR)",
+      "summaryRow": "Betriebskosten-Uml.",
+      "totalLabel": "Gesamtergebnis",
+      "resultNachzahlung": "Nachzahlung",
+      "resultGuthaben": "Guthaben",
+      "resultBalanced": "Ausgeglichen",
+      "payInstructionNach": "Bitte überweisen Sie den Nachzahlungsbetrag von {{amount}} EUR innerhalb von 30 Tagen nach Erhalt dieser Abrechnung.",
+      "payInstructionGut": "Das Guthaben in Höhe von {{amount}} EUR wird Ihnen innerhalb von 30 Tagen erstattet oder mit der nächsten Mietzahlung verrechnet.",
+      "payInstructionBalanced": "Ihre Vorauszahlungen decken die Nebenkosten vollständig ab.",
+      "regards": "Mit freundlichen Grüßen",
+      "machineNote": "Dieses Schreiben ist maschinell erstellt und ohne Unterschrift gültig.",
+      "bankLabel": "Bankverbindung",
+      "bankPlaceholder": "Über \"Meine Daten bearbeiten\" oben rechts können Sie Ihre Bankverbindung hinterlegen."
     },
-    "parties": {
-      "tenant": "Mieter",
-      "noActiveTenant": "Kein aktiver Mieter",
-      "buildingTenants": "{{apts}} Wohnungen / {{active}} aktive Mieter"
-    },
-    "propertyApt": {
-      "title": "Mietobjekt",
-      "area": "Wohnfläche",
-      "persons": "Bewohnerzahl"
-    },
-    "propertyBld": {
-      "building": "Gebäude",
-      "aptCount": "Anzahl Wohnungen",
-      "duration": "Abrechnungszeitraum",
-      "months": "{{n}} Monate"
-    },
-    "apartmentLabel": {
-      "withFloor": "Etage {{floor}} · Wohnung {{unit}}",
-      "noFloor": "Wohnung {{unit}}"
-    },
-    "tableApt": {
-      "item": "Position",
-      "key": "Verteilerschlüssel",
-      "total": "Gesamt",
-      "share": "Ihr Anteil",
+    "calc": {
+      "title": "Berechnung der Umlagen für Betriebskosten",
+      "periodLine": "(Abrechnungsperiode {{period}})",
+      "colCostType": "Kostenart",
+      "colAccrued": "angefallene Kosten",
+      "colCalcOfShare": "Berechnung Ihres Anteils",
+      "colYourShare": "Ihr Anteil",
+      "gesamt": "Gesamtbetrag",
+      "vorauszahlung": "vereinb. Vorauszahlung",
+      "nachzahlung": "Nachzahlung",
+      "guthaben": "Guthaben",
+      "balanced": "Ausgeglichen",
       "empty": "In diesem Zeitraum sind keine umlagefähigen Kosten angefallen.",
-      "apartmentScope": "Wohnungsspezifisch"
+      "tage": "Tage",
+      "aptScope": "Direkter Anteil"
     },
-    "totalsApt": {
-      "totalBillable": "Gesamte Nebenkosten",
-      "deductPrepay": "Geleistete Vorauszahlungen abzgl.",
-      "resultPay": "Nachzahlung",
-      "resultRefund": "Guthaben (zugunsten des Mieters)",
-      "resultBalanced": "Ausgeglichen"
-    },
-    "section": {
-      "categoryTotalsPrefix": "Kategorie-",
-      "categoryTotalsEm": "summen",
-      "distByAptPrefix": "Verteilung nach",
-      "distByAptEm": "Wohnungen"
-    },
-    "tableBld": {
-      "item": "Position",
-      "key": "Verteilerschlüssel",
-      "total": "Gesamt",
-      "empty": "In diesem Zeitraum sind keine umlagefähigen Kosten angefallen.",
-      "apt": "Wohnung",
-      "tenant": "Mieter",
-      "billable": "Umlagefähig",
-      "aidat": "Vorauszahlung",
-      "diff": "Differenz",
-      "emptyApt": "— leer —"
-    },
-    "totalsBld": {
-      "totalBillable": "Gebäude umlagefähig gesamt",
-      "deductPrepay": "Eingegangene Vorauszahlungen abzgl.",
-      "resultPay": "Offen (zugunsten des Vermieters)",
-      "resultRefund": "Überschuss (zugunsten der Mieter)",
-      "resultBalanced": "Ausgeglichen"
-    },
-    "footer": {
-      "explanationLabel": "Hinweis:",
-      "explanation": "Diese Abrechnung wurde nach den mit dem Mieter vereinbarten Verteilerschlüsseln erstellt. Die ausgewiesenen Kosten entsprechen den im Abrechnungszeitraum tatsächlich angefallenen Betriebskosten.",
-      "payNoticePre": "Bitte überweisen Sie den ",
-      "payNoticeStrong": "Nachzahlungsbetrag von {{amount}}",
-      "payNoticePost": " innerhalb von 30 Tagen nach Erhalt dieser Abrechnung.",
-      "refundNoticePre": "Das Guthaben in Höhe von ",
-      "refundNoticeStrong": "{{amount}}",
-      "refundNoticePost": " wird Ihnen innerhalb von 30 Tagen erstattet oder mit der nächsten Mietzahlung verrechnet.",
-      "balancedNotice": "Ihre Vorauszahlungen decken die Nebenkosten vollständig ab.",
-      "objectionNotice": "Einwendungen gegen diese Abrechnung sind innerhalb von 12 Monaten nach Zugang schriftlich mitzuteilen. Belege können nach Vereinbarung eingesehen werden.",
-      "issueDate": "Ausgestellt am: {{date}} · KiraciYonet"
+    "senderModal": {
+      "title": "Ihre Abrechnungsdaten bearbeiten",
+      "name": "Name",
+      "addressLine1": "Adresszeile 1",
+      "addressLine2": "Adresszeile 2 (PLZ / Ort)",
+      "addressLine3": "Adresszeile 3 (optional)",
+      "phone": "Telefon",
+      "bank": "Bank",
+      "iban": "IBAN",
+      "cancel": "Abbrechen",
+      "save": "Speichern"
     }
   },
   "overdue": {
