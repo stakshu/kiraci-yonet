@@ -67,6 +67,7 @@
     "tenants": "Kiracılar",
     "payments": "Ödemeler",
     "expenses": "Giderler",
+    "maintenance": "Arıza Kaydı",
     "accounting": "Muhasebe",
     "documents": "Belgeler",
     "helpSupport": "Yardım & Destek",
@@ -1273,5 +1274,87 @@
     },
     "phase": "Faz {{n}}",
     "description": "Bu modül {{phase}}'te aktif olacak. Geliştirme sürecinde adım adım eklenmektedir."
+  },
+  "maintenance": {
+    "title": "Arıza Kayıtları",
+    "subtitle": "Bina ve daire arızalarını takip et",
+    "newIssue": "Yeni Arıza",
+    "status": {
+      "all": "Tüm Durumlar",
+      "open": "Açık",
+      "in_progress": "Devam Ediyor",
+      "resolved": "Çözüldü",
+      "cancelled": "İptal"
+    },
+    "priority": {
+      "all": "Tüm Öncelikler",
+      "low": "Düşük",
+      "normal": "Normal",
+      "high": "Yüksek",
+      "urgent": "Acil"
+    },
+    "kpi": {
+      "open": "Açık",
+      "inProgress": "Devam Eden",
+      "resolvedThisMonth": "Bu Ay Çözülen",
+      "totalCost": "Toplam Maliyet"
+    },
+    "filters": {
+      "searchPh": "Başlık veya açıklama ara...",
+      "allBuildings": "Tüm Binalar"
+    },
+    "list": {
+      "loading": "Yükleniyor...",
+      "empty": "Henüz arıza kaydı yok. \"Yeni Arıza\" ile başlayın.",
+      "emptyFiltered": "Bu filtrelere uygun arıza bulunamadı.",
+      "reportedOn": "Bildirildi",
+      "resolvedOn": "Çözüldü",
+      "assignee": "Sorumlu",
+      "costLabel": "Maliyet",
+      "noCost": "—",
+      "wholeBuilding": "Tüm Bina",
+      "advance": "İleri Taşı",
+      "edit": "Düzenle",
+      "delete": "Sil"
+    },
+    "modal": {
+      "titleNew": "Yeni Arıza Kaydı",
+      "titleEdit": "Arıza Düzenle",
+      "building": "Bina *",
+      "buildingPlaceholder": "Bina seçin...",
+      "apartment": "Daire",
+      "apartmentPlaceholder": "Tüm Bina (opsiyonel)",
+      "issueTitle": "Başlık *",
+      "issueTitlePh": "ör. Kaloriferden ses geliyor",
+      "priority": "Öncelik",
+      "status": "Durum",
+      "reportedAt": "Bildirim Tarihi",
+      "resolvedAt": "Çözüm Tarihi",
+      "cost": "Maliyet",
+      "costPh": "0,00",
+      "assignee": "Sorumlu / Usta",
+      "assigneePh": "ör. Mehmet Usta",
+      "description": "Açıklama",
+      "descriptionPh": "Arızanın detayı...",
+      "notes": "Notlar",
+      "notesPh": "Dahili notlar...",
+      "save": "Kaydet",
+      "cancel": "İptal",
+      "toasts": {
+        "saved": "Arıza eklendi.",
+        "updated": "Arıza güncellendi.",
+        "deleted": "Arıza silindi.",
+        "errorPrefix": "Hata: {{msg}}",
+        "titleRequired": "Başlık zorunlu.",
+        "buildingRequired": "Bina seçin."
+      }
+    },
+    "confirmDelete": {
+      "title": "Silme Onayı",
+      "subtitle": "Bu işlem geri alınamaz",
+      "message": "Bu arıza kaydını silmek istediğinize emin misiniz?",
+      "cancel": "Vazgeç",
+      "confirm": "Evet, Sil"
+    }
   }
 }

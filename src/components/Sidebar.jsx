@@ -9,7 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import {
   LayoutDashboard, Building2, Users, CreditCard,
   DollarSign, BarChart3, FileText, HelpCircle,
-  Home, ChevronDown, LogOut
+  Home, ChevronDown, LogOut, Wrench
 } from 'lucide-react'
 
 const ICON_MAP = {
@@ -21,7 +21,8 @@ const ICON_MAP = {
   chart: BarChart3,
   file: FileText,
   help: HelpCircle,
-  home: Home
+  home: Home,
+  wrench: Wrench
 }
 
 function Icon({ name, className }) {
@@ -51,9 +52,10 @@ export default function Sidebar() {
     {
       label: t('sidebar.sectionManagement'),
       items: [
-        { text: t('sidebar.expenses'),   icon: 'dollar', route: '/expenses' },
-        { text: t('sidebar.accounting'), icon: 'chart',  route: '/accounting' },
-        { text: t('sidebar.documents'),  icon: 'file',   route: '/documents' }
+        { text: t('sidebar.expenses'),    icon: 'dollar', route: '/expenses' },
+        { text: t('sidebar.maintenance'), icon: 'wrench', route: '/maintenance' },
+        { text: t('sidebar.accounting'),  icon: 'chart',  route: '/accounting' },
+        { text: t('sidebar.documents'),   icon: 'file',   route: '/documents' }
       ]
     }
   ]

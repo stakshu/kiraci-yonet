@@ -67,6 +67,7 @@
     "tenants": "Mieter",
     "payments": "Zahlungen",
     "expenses": "Nebenkosten",
+    "maintenance": "Wartung",
     "accounting": "Buchhaltung",
     "documents": "Dokumente",
     "helpSupport": "Hilfe & Support",
@@ -1276,5 +1277,87 @@
     },
     "phase": "Phase {{n}}",
     "description": "Dieses Modul wird in {{phase}} aktiv. Es wird schrittweise während der Entwicklung eingeführt."
+  },
+  "maintenance": {
+    "title": "Wartungsfälle",
+    "subtitle": "Reparaturen und Schäden im Gebäude verfolgen",
+    "newIssue": "Neuer Fall",
+    "status": {
+      "all": "Alle Status",
+      "open": "Offen",
+      "in_progress": "In Bearbeitung",
+      "resolved": "Erledigt",
+      "cancelled": "Abgebrochen"
+    },
+    "priority": {
+      "all": "Alle Prioritäten",
+      "low": "Niedrig",
+      "normal": "Normal",
+      "high": "Hoch",
+      "urgent": "Dringend"
+    },
+    "kpi": {
+      "open": "Offen",
+      "inProgress": "In Bearbeitung",
+      "resolvedThisMonth": "Diesen Monat erledigt",
+      "totalCost": "Gesamtkosten"
+    },
+    "filters": {
+      "searchPh": "Titel oder Beschreibung suchen...",
+      "allBuildings": "Alle Gebäude"
+    },
+    "list": {
+      "loading": "Wird geladen...",
+      "empty": "Noch keine Wartungsfälle. Klicken Sie auf \"Neuer Fall\".",
+      "emptyFiltered": "Keine Fälle entsprechen diesen Filtern.",
+      "reportedOn": "Gemeldet",
+      "resolvedOn": "Erledigt",
+      "assignee": "Zuständig",
+      "costLabel": "Kosten",
+      "noCost": "—",
+      "wholeBuilding": "Gesamtes Gebäude",
+      "advance": "Weiter",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "modal": {
+      "titleNew": "Neuer Wartungsfall",
+      "titleEdit": "Fall bearbeiten",
+      "building": "Gebäude *",
+      "buildingPlaceholder": "Gebäude auswählen...",
+      "apartment": "Wohnung",
+      "apartmentPlaceholder": "Gesamtes Gebäude (optional)",
+      "issueTitle": "Titel *",
+      "issueTitlePh": "z.B. Heizung macht Geräusche",
+      "priority": "Priorität",
+      "status": "Status",
+      "reportedAt": "Gemeldet am",
+      "resolvedAt": "Erledigt am",
+      "cost": "Kosten",
+      "costPh": "0,00",
+      "assignee": "Zuständig / Handwerker",
+      "assigneePh": "z.B. Herr Schmidt",
+      "description": "Beschreibung",
+      "descriptionPh": "Details zum Fall...",
+      "notes": "Notizen",
+      "notesPh": "Interne Notizen...",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "toasts": {
+        "saved": "Fall angelegt.",
+        "updated": "Fall aktualisiert.",
+        "deleted": "Fall gelöscht.",
+        "errorPrefix": "Fehler: {{msg}}",
+        "titleRequired": "Titel ist erforderlich.",
+        "buildingRequired": "Gebäude auswählen."
+      }
+    },
+    "confirmDelete": {
+      "title": "Löschen bestätigen",
+      "subtitle": "Diese Aktion kann nicht rückgängig gemacht werden",
+      "message": "Möchten Sie diesen Fall wirklich löschen?",
+      "cancel": "Abbrechen",
+      "confirm": "Ja, löschen"
+    }
   }
 }

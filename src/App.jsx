@@ -14,6 +14,7 @@ import OverduePayments from './pages/OverduePayments'
 import PaymentHistory from './pages/PaymentHistory'
 import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
+import MaintenanceIssues from './pages/MaintenanceIssues'
 import Accounting from './pages/Accounting'
 import EmptyPage from './pages/EmptyPage'
 
@@ -40,6 +41,7 @@ function ProtectedApp() {
         <Route path="/payments/overdue" element={<OverduePayments />} />
         <Route path="/payments/history" element={<PaymentHistory />} />
         <Route path="/expenses" element={<Expenses />} />
+        <Route path="/maintenance" element={<MaintenanceIssues />} />
         <Route path="/accounting" element={<Accounting />} />
         <Route path="/documents" element={<EmptyPage path="/documents" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

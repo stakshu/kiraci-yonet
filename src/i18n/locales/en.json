@@ -67,6 +67,7 @@
     "tenants": "Tenants",
     "payments": "Payments",
     "expenses": "Expenses",
+    "maintenance": "Maintenance",
     "accounting": "Accounting",
     "documents": "Documents",
     "helpSupport": "Help & Support",
@@ -1276,5 +1277,87 @@
     },
     "phase": "Phase {{n}}",
     "description": "This module will become active in {{phase}}. It is being rolled out incrementally during development."
+  },
+  "maintenance": {
+    "title": "Maintenance Issues",
+    "subtitle": "Track building and unit issues",
+    "newIssue": "New Issue",
+    "status": {
+      "all": "All Statuses",
+      "open": "Open",
+      "in_progress": "In Progress",
+      "resolved": "Resolved",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "all": "All Priorities",
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "kpi": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "resolvedThisMonth": "Resolved This Month",
+      "totalCost": "Total Cost"
+    },
+    "filters": {
+      "searchPh": "Search title or description...",
+      "allBuildings": "All Buildings"
+    },
+    "list": {
+      "loading": "Loading...",
+      "empty": "No maintenance issues yet. Click \"New Issue\" to start.",
+      "emptyFiltered": "No issues match these filters.",
+      "reportedOn": "Reported",
+      "resolvedOn": "Resolved",
+      "assignee": "Assignee",
+      "costLabel": "Cost",
+      "noCost": "—",
+      "wholeBuilding": "Whole building",
+      "advance": "Advance",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "modal": {
+      "titleNew": "New Maintenance Issue",
+      "titleEdit": "Edit Issue",
+      "building": "Building *",
+      "buildingPlaceholder": "Select building...",
+      "apartment": "Unit",
+      "apartmentPlaceholder": "Whole building (optional)",
+      "issueTitle": "Title *",
+      "issueTitlePh": "e.g. Heating making noise",
+      "priority": "Priority",
+      "status": "Status",
+      "reportedAt": "Reported on",
+      "resolvedAt": "Resolved on",
+      "cost": "Cost",
+      "costPh": "0.00",
+      "assignee": "Assignee / Technician",
+      "assigneePh": "e.g. John Smith",
+      "description": "Description",
+      "descriptionPh": "Issue details...",
+      "notes": "Notes",
+      "notesPh": "Internal notes...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "toasts": {
+        "saved": "Issue created.",
+        "updated": "Issue updated.",
+        "deleted": "Issue deleted.",
+        "errorPrefix": "Error: {{msg}}",
+        "titleRequired": "Title is required.",
+        "buildingRequired": "Select a building."
+      }
+    },
+    "confirmDelete": {
+      "title": "Confirm Delete",
+      "subtitle": "This action cannot be undone",
+      "message": "Are you sure you want to delete this issue?",
+      "cancel": "Cancel",
+      "confirm": "Yes, Delete"
+    }
   }
 }
