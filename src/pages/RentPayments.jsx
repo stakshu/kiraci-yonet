@@ -58,7 +58,6 @@ export default function RentPayments() {
   const [expandedTenant, setExpandedTenant] = useState(null)
   const [expandedPast, setExpandedPast] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('rent')
   // { mode: 'mark'|'edit', paymentId, date } — açıkken modal görünür
   const [paidDateModal, setPaidDateModal] = useState(null)
   const [savingPaidDate, setSavingPaidDate] = useState(false)
@@ -98,7 +97,6 @@ export default function RentPayments() {
       if (!ten.apartment_id) continue
       const startDate = ten.lease_start ? new Date(ten.lease_start) : new Date()
       const rentAmount = Number(ten.rent) || 0
-      const aidatAmount = Number(ten.nebenkosten_vorauszahlung) || 0
 
       for (let i = 0; i < 120; i++) {
         const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, startDate.getDate())
@@ -112,16 +110,6 @@ export default function RentPayments() {
             newPayments.push({
               user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
               due_date: dueDateStr, amount: rentAmount, status: 'pending', type: 'rent'
-            })
-          }
-        }
-
-        if (aidatAmount > 0) {
-          const aidatKey = `${ten.id}_${month}_aidat`
-          if (!existingKeys.has(aidatKey)) {
-            newPayments.push({
-              user_id: session.user.id, tenant_id: ten.id, apartment_id: ten.apartment_id,
-              due_date: dueDateStr, amount: aidatAmount, status: 'pending', type: 'aidat'
             })
           }
         }
@@ -189,8 +177,9 @@ export default function RentPayments() {
     return Object.values(groups)
   }
 
-  const tabPayments = payments.filter(p => (p.type || 'rent') === activeTab)
-  const tabAllPayments = allPayments.filter(p => (p.type || 'rent') === activeTab)
+  // Aidat takibi bu sayfada gösterilmiyor — sadece kira ödemeleri.
+  const tabPayments = payments.filter(p => (p.type || 'rent') === 'rent')
+  const tabAllPayments = allPayments.filter(p => (p.type || 'rent') === 'rent')
 
   const tenantGroups = loading ? [] : getTenantGroups()
   const pastTenantGroups = loading ? [] : getPastTenantGroups()
@@ -322,36 +311,13 @@ export default function RentPayments() {
       style={{ display: 'flex', flexDirection: 'column', gap: 24, fontFamily: font }}>
 
       {/* ═══ HEADER ═══ */}
-      <motion.div variants={fadeItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
-            {activeTab === 'rent' ? t('rentPayments.titleRent') : t('rentPayments.titleAidat')}
-          </h1>
-          <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
-            {monthLabel} — {t('rentPayments.subtitle')}
-          </p>
-        </div>
-
-        {/* Tab buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F1F5F9', borderRadius: 12, padding: 4 }}>
-          {[
-            { key: 'rent', label: t('rentPayments.tabs.rent') },
-            { key: 'aidat', label: t('rentPayments.tabs.aidat') }
-          ].map(tab => (
-            <motion.button key={tab.key} whileTap={{ scale: 0.96 }}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: '8px 20px', borderRadius: 10,
-                fontSize: 13, fontWeight: 700, fontFamily: font,
-                cursor: 'pointer', border: 'none', transition: 'all 0.2s',
-                background: activeTab === tab.key ? C.teal : 'transparent',
-                color: activeTab === tab.key ? '#FFFFFF' : C.textMuted,
-                boxShadow: activeTab === tab.key ? '0 2px 8px rgba(2,88,100,0.25)' : 'none'
-              }}>
-              {tab.label}
-            </motion.button>
-          ))}
-        </div>
+      <motion.div variants={fadeItem}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', margin: 0 }}>
+          {t('rentPayments.titleRent')}
+        </h1>
+        <p style={{ fontSize: 13, color: C.textFaint, marginTop: 3 }}>
+          {monthLabel} — {t('rentPayments.subtitle')}
+        </p>
       </motion.div>
 
       {/* ═══ KPI CARDS ═══ */}
