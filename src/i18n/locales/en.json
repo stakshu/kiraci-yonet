@@ -1094,6 +1094,7 @@
     "billableOn": "Billable",
     "billableOff": "Non-billable",
     "addCategory": "Add category",
+    "pickCategoryPlaceholder": "Pick a category...",
     "removeCategory": "Remove from list",
     "allCategoriesAdded": "All categories already added.",
     "meterReadingsLabel": "Meter Readings ({{unit}})",

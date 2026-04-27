@@ -1091,6 +1091,7 @@
     "billableOn": "Yansıtılır",
     "billableOff": "Yansıtılmaz",
     "addCategory": "Kategori Ekle",
+    "pickCategoryPlaceholder": "Kategori seçin...",
     "removeCategory": "Listeden çıkar",
     "allCategoriesAdded": "Tüm kategoriler eklendi.",
     "meterReadingsLabel": "Sayaç Okumaları ({{unit}})",

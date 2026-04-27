@@ -19,7 +19,7 @@ import {
 } from '../lib/distributionKeys'
 import { formatMoney, formatMonthYear } from '../i18n/formatters'
 import {
-  X, Check, Building2, Home, Calendar, Layers, Plus,
+  X, Check, Building2, Home, Calendar, Layers,
   Receipt, Landmark, Droplets, Waves, Flame, Thermometer,
   ArrowUpDown, Trash2, Trash, SprayCan, TreePine, Lightbulb,
   Wind, ShieldCheck, UserCheck, Tv, MoreHorizontal, Wrench,
@@ -103,10 +103,10 @@ export default function BuildingExpenseSheet({
 
   // rows: { [categoryId]: { amount, distKey, isBillable, existingId, meterReadings } }
   const [rows, setRows] = useState({})
-  // Aktif (görünür) kategoriler — boşken liste boş, kullanıcı "+ Kategori Ekle"
-  // ile satır ekler. Mevcut DB kayıtları otomatik aktif edilir.
-  const [activeCatIds, setActiveCatIds] = useState(() => new Set())
-  const [showAddPicker, setShowAddPicker] = useState(false)
+  // Sıralı aktif kategori listesi. Render'da sona bir "boş slot" eklenir
+  // (henüz eklenebilir kategori varsa). Boş slot doldurulunca yeni satır
+  // alta düşer.
+  const [activeOrder, setActiveOrder] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -173,7 +173,7 @@ export default function BuildingExpenseSheet({
           meterReadings: {},
         }
       })
-      const active = new Set()
+      const order = []
       ;(data || []).forEach(r => {
         const readings = (r.expense_meter_readings || []).reduce((acc, x) => {
           acc[x.apartment_id] = x.reading
@@ -187,13 +187,12 @@ export default function BuildingExpenseSheet({
             existingId: r.id,
             meterReadings: readings,
           }
-          active.add(r.category_id)
+          order.push(r.category_id)
         }
       })
 
       setRows(init)
-      setActiveCatIds(active)
-      setShowAddPicker(false)
+      setActiveOrder(order)
       setLoading(false)
     }
 
@@ -216,44 +215,32 @@ export default function BuildingExpenseSheet({
   }
 
   const summary = useMemo(() => {
-    // Yalnızca aktif kategoriler özetlenir — kullanıcının görmediği satırı sayma.
-    const filled = Object.entries(rows).filter(([id, r]) =>
-      r && activeCatIds.has(id) && r.amount !== '' && Number(r.amount) > 0
-    )
+    const filled = activeOrder
+      .map(id => [id, rows[id]])
+      .filter(([, r]) => r && r.amount !== '' && Number(r.amount) > 0)
     const total = filled.reduce((s, [, r]) => s + Number(r.amount), 0)
     return { count: filled.length, total }
-  }, [rows, activeCatIds])
+  }, [rows, activeOrder])
 
-  // Aktif olmayan ama eklenebilir kategoriler — picker'ı dolduruyor
-  const availableToAdd = useMemo(
-    () => categories.filter(c => !activeCatIds.has(c.id)),
-    [categories, activeCatIds]
-  )
+  // Henüz eklenmemiş — boş slot dropdown'ı bunları gösteriyor.
+  const availableToAdd = useMemo(() => {
+    const taken = new Set(activeOrder)
+    return categories.filter(c => !taken.has(c.id))
+  }, [categories, activeOrder])
 
-  const addCategory = (catId) => {
-    setActiveCatIds(prev => {
-      const n = new Set(prev)
-      n.add(catId)
-      return n
-    })
-    setShowAddPicker(false)
+  const pickCategory = (catId) => {
+    if (!catId) return
+    setActiveOrder(prev => (prev.includes(catId) ? prev : [...prev, catId]))
   }
 
   const removeCategory = (catId) => {
-    // Mevcut DB kaydı varsa kaldırma → save'de delete'e dönüşür (amount sıfırlanmış sayılır)
-    setActiveCatIds(prev => {
-      const n = new Set(prev)
-      n.delete(catId)
-      return n
-    })
-    // Yerel state'i de sıfırla — yeni eklenirse default'tan başlasın
+    setActiveOrder(prev => prev.filter(id => id !== catId))
+    // Mevcut DB kaydı varsa amount'u sıfırla → save'de delete'e dönüşür.
+    // Yeni eklenenlerde state'i de sıfırla, sonra tekrar eklenirse default'tan başlasın.
     setRows(prev => {
       const r = prev[catId]
       if (!r) return prev
-      // Mevcut kayıt varsa amount'u sıfırla (save delete tetikler), aksi halde tamamen reset
-      if (r.existingId) {
-        return { ...prev, [catId]: { ...r, amount: '' } }
-      }
+      if (r.existingId) return { ...prev, [catId]: { ...r, amount: '' } }
       const cat = categories.find(c => c.id === catId)
       return {
         ...prev,
@@ -602,26 +589,26 @@ export default function BuildingExpenseSheet({
             </div>
           ) : (
             <div style={{ flex: 1, overflow: 'auto', padding: '0 28px' }}>
-              {activeCatIds.size > 0 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: scope === 'building'
-                    ? '1.6fr 1fr 1.2fr 110px 28px'
-                    : '1.6fr 1fr 110px 28px',
-                  padding: '12px 0', borderBottom: `1px solid ${C.borderLight}`,
-                  fontSize: 10, fontWeight: 700, color: C.textFaint,
-                  textTransform: 'uppercase', letterSpacing: '0.6px',
-                  position: 'sticky', top: 0, background: '#fff', zIndex: 1, gap: 6,
-                }}>
-                  <div>{t('buildingExpenseSheet.tableHeader.category')}</div>
-                  <div style={{ textAlign: 'right' }}>{t('buildingExpenseSheet.tableHeader.amount')}</div>
-                  {scope === 'building' && <div>{t('buildingExpenseSheet.tableHeader.distKey')}</div>}
-                  <div style={{ textAlign: 'center' }}>{t('buildingExpenseSheet.tableHeader.billable')}</div>
-                  <div />
-                </div>
-              )}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: scope === 'building'
+                  ? '1.6fr 1fr 1.2fr 110px 28px'
+                  : '1.6fr 1fr 110px 28px',
+                padding: '12px 0', borderBottom: `1px solid ${C.borderLight}`,
+                fontSize: 10, fontWeight: 700, color: C.textFaint,
+                textTransform: 'uppercase', letterSpacing: '0.6px',
+                position: 'sticky', top: 0, background: '#fff', zIndex: 1, gap: 6,
+              }}>
+                <div>{t('buildingExpenseSheet.tableHeader.category')}</div>
+                <div style={{ textAlign: 'right' }}>{t('buildingExpenseSheet.tableHeader.amount')}</div>
+                {scope === 'building' && <div>{t('buildingExpenseSheet.tableHeader.distKey')}</div>}
+                <div style={{ textAlign: 'center' }}>{t('buildingExpenseSheet.tableHeader.billable')}</div>
+                <div />
+              </div>
 
-              {categories.filter(cat => activeCatIds.has(cat.id)).map(cat => {
+              {activeOrder.map(catId => {
+                const cat = categories.find(c => c.id === catId)
+                if (!cat) return null
                 const row = rows[cat.id] || { amount: '', distKey: 'units', isBillable: false, meterReadings: {} }
                 const keyInfo = getDistributionKey(row.distKey)
                 const hasAmount = row.amount !== '' && Number(row.amount) > 0
@@ -807,91 +794,51 @@ export default function BuildingExpenseSheet({
                 )
               })}
 
-              {/* "+ Kategori Ekle" — boş listede ortalı, dolu listede alt-sol */}
-              <div style={{
-                padding: activeCatIds.size === 0 ? '60px 0' : '20px 0',
-                display: 'flex',
-                justifyContent: activeCatIds.size === 0 ? 'center' : 'flex-start',
-                position: 'relative',
-              }}>
-                {availableToAdd.length === 0 ? (
-                  <span style={{ fontSize: 12, color: C.textFaint, fontStyle: 'italic' }}>
-                    {t('buildingExpenseSheet.allCategoriesAdded')}
-                  </span>
-                ) : (
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                      type="button"
-                      onClick={() => setShowAddPicker(prev => !prev)}
+              {/* Boş slot — kategori dropdown'ı; seçim yapılınca yeni boş satır altta belirir.
+                  availableToAdd boşsa (tüm kategoriler eklendi) bu satır gizlenir. */}
+              {availableToAdd.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: scope === 'building'
+                    ? '1.6fr 1fr 1.2fr 110px 28px'
+                    : '1.6fr 1fr 110px 28px',
+                  padding: '10px 0', alignItems: 'center', gap: 6,
+                  borderBottom: `1px solid ${C.borderLight}`,
+                  borderTop: activeOrder.length === 0 ? 'none' : `1px dashed ${C.border}`,
+                  background: 'rgba(2,88,100,0.02)',
+                }}>
+                  <div>
+                    <select
+                      value=""
+                      onChange={e => pickCategory(e.target.value)}
                       style={{
-                        fontFamily: font, fontSize: 13, fontWeight: 700,
-                        padding: '10px 18px', borderRadius: 10,
-                        background: activeCatIds.size === 0 ? C.teal : '#fff',
-                        color: activeCatIds.size === 0 ? '#fff' : C.teal,
-                        border: `1.5px ${activeCatIds.size === 0 ? 'solid' : 'dashed'} ${C.teal}`,
-                        cursor: 'pointer',
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        boxShadow: activeCatIds.size === 0 ? '0 4px 12px rgba(2,88,100,0.18)' : 'none',
+                        ...inputStyle, cursor: 'pointer',
+                        fontWeight: 600, color: C.teal,
+                        border: `1.5px dashed ${C.teal}`,
+                        background: 'rgba(2,88,100,0.04)',
                       }}
                     >
-                      <Plus size={15} />
-                      {t('buildingExpenseSheet.addCategory')}
-                      <span style={{ fontSize: 11, color: activeCatIds.size === 0 ? 'rgba(255,255,255,0.7)' : C.textFaint, fontWeight: 600 }}>
-                        ({availableToAdd.length})
-                      </span>
-                    </motion.button>
-
-                    {showAddPicker && (
-                      <>
-                        {/* Click-away overlay */}
-                        <div
-                          onClick={() => setShowAddPicker(false)}
-                          style={{ position: 'fixed', inset: 0, zIndex: 5 }}
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                          style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 6px)',
-                            left: 0,
-                            background: '#fff', borderRadius: 12,
-                            border: `1px solid ${C.border}`,
-                            boxShadow: '0 12px 32px rgba(15,23,42,0.18)',
-                            padding: 6, minWidth: 240, maxHeight: 320, overflowY: 'auto',
-                            zIndex: 10,
-                          }}
-                        >
-                          {availableToAdd.map(c => (
-                            <button
-                              key={c.id} type="button"
-                              onClick={() => addCategory(c.id)}
-                              style={{
-                                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '8px 10px', borderRadius: 8, border: 'none',
-                                background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                                fontFamily: font, fontSize: 13, color: C.text,
-                                transition: 'background 0.12s',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#F1F5F9'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <div style={{
-                                width: 26, height: 26, borderRadius: 7,
-                                background: `${c.color}18`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                              }}>
-                                <CatIcon name={c.icon} size={13} color={c.color} />
-                              </div>
-                              <span style={{ fontWeight: 600 }}>{c.name}</span>
-                            </button>
-                          ))}
-                        </motion.div>
-                      </>
-                    )}
+                      <option value="">{t('buildingExpenseSheet.pickCategoryPlaceholder')}</option>
+                      {availableToAdd.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
-              </div>
+                  <div />
+                  {scope === 'building' && <div />}
+                  <div />
+                  <div />
+                </div>
+              )}
+
+              {availableToAdd.length === 0 && activeOrder.length > 0 && (
+                <div style={{
+                  padding: '14px 0', textAlign: 'center',
+                  fontSize: 12, color: C.textFaint, fontStyle: 'italic',
+                }}>
+                  {t('buildingExpenseSheet.allCategoriesAdded')}
+                </div>
+              )}
             </div>
           )}
 

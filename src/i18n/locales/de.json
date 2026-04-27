@@ -1094,6 +1094,7 @@
     "billableOn": "Umlegbar",
     "billableOff": "Nicht umlegbar",
     "addCategory": "Kategorie hinzufügen",
+    "pickCategoryPlaceholder": "Kategorie auswählen...",
     "removeCategory": "Aus Liste entfernen",
     "allCategoriesAdded": "Alle Kategorien sind bereits hinzugefügt.",
     "meterReadingsLabel": "Zählerstände ({{unit}})",
