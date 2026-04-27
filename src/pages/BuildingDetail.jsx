@@ -9,7 +9,7 @@ import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
-  ArrowLeft, AlertCircle, UserPlus, Home
+  ArrowLeft, AlertCircle, UserPlus, Home, Zap, Droplets
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -25,7 +25,10 @@ const EMPTY_APT_FORM = {
 
 const EMPTY_BLD_FORM = {
   name: '', city: '', district: '', address: '',
-  building_age: '', notes: ''
+  building_age: '', notes: '',
+  // Utility info — sadece görsel; hesaplara dahil değil.
+  electricity_provider: '', electricity_unit_price: '',
+  water_provider: '', water_unit_price: '',
 }
 
 const C = {
@@ -98,10 +101,15 @@ export default function BuildingDetail() {
   }
 
   const openBldEdit = () => {
+    const u = building.utilities || {}
     setBldForm({
       name: building.name || '', city: building.city || '',
       district: building.district || '', address: building.address || '',
-      building_age: building.building_age ?? '', notes: building.notes || ''
+      building_age: building.building_age ?? '', notes: building.notes || '',
+      electricity_provider: u.electricity?.provider || '',
+      electricity_unit_price: u.electricity?.unit_price ?? '',
+      water_provider: u.water?.provider || '',
+      water_unit_price: u.water?.unit_price ?? '',
     })
     setShowBldPopup(true)
   }
@@ -114,7 +122,17 @@ export default function BuildingDetail() {
       district: bldForm.district.trim(),
       address: bldForm.address.trim(),
       building_age: bldForm.building_age === '' ? null : parseInt(bldForm.building_age),
-      notes: bldForm.notes.trim()
+      notes: bldForm.notes.trim(),
+      utilities: {
+        electricity: {
+          provider: bldForm.electricity_provider.trim() || null,
+          unit_price: bldForm.electricity_unit_price === '' ? null : Number(bldForm.electricity_unit_price),
+        },
+        water: {
+          provider: bldForm.water_provider.trim() || null,
+          unit_price: bldForm.water_unit_price === '' ? null : Number(bldForm.water_unit_price),
+        },
+      },
     }
     const { error: err } = await supabase.from('buildings').update(record).eq('id', id)
     setSavingBld(false)
@@ -446,6 +464,97 @@ export default function BuildingDetail() {
         ))}
       </div>
 
+      {/* Utility info kartı — bilgi amaçlı, hesaplara dahil değil */}
+      {(() => {
+        const u = building.utilities || {}
+        const elec = u.electricity || {}
+        const water = u.water || {}
+        const elecHas = elec.provider || (elec.unit_price != null && elec.unit_price !== '')
+        const waterHas = water.provider || (water.unit_price != null && water.unit_price !== '')
+        const fmtPrice = (p, unit) => p == null || p === ''
+          ? null
+          : `${formatMoney(p)} / ${unit}`
+        const elecPriceLabel = fmtPrice(elec.unit_price, 'kWh')
+        const waterPriceLabel = fmtPrice(water.unit_price, 'm³')
+        return (
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+          }}>
+            {/* Elektrik */}
+            <div style={{
+              background: 'white', borderRadius: 12, padding: '14px 18px',
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 2px 8px rgba(15,23,42,0.04)',
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: 'rgba(217,119,6,0.10)', color: '#D97706',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Zap style={{ width: 20, height: 20 }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  {t('buildingDetail.utilities.electricity')}
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 4,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: elecHas ? C.text : C.textFaint }}>
+                    {elec.provider || t('buildingDetail.utilities.notSet')}
+                  </span>
+                  {elecPriceLabel && (
+                    <span style={{ fontSize: 12, color: C.textMuted, fontVariantNumeric: 'tabular-nums' }}>
+                      · {elecPriceLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Su */}
+            <div style={{
+              background: 'white', borderRadius: 12, padding: '14px 18px',
+              boxShadow: '0 0 0 1px rgba(15,23,42,0.05), 0 2px 8px rgba(15,23,42,0.04)',
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: 'rgba(14,165,233,0.10)', color: '#0EA5E9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Droplets style={{ width: 20, height: 20 }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 700, color: C.textFaint,
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  {t('buildingDetail.utilities.water')}
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 4,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: waterHas ? C.text : C.textFaint }}>
+                    {water.provider || t('buildingDetail.utilities.notSet')}
+                  </span>
+                  {waterPriceLabel && (
+                    <span style={{ fontSize: 12, color: C.textMuted, fontVariantNumeric: 'tabular-nums' }}>
+                      · {waterPriceLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* + Daire Ekle — sadece apartman tipinde gosterilir */}
       {!singleUnit && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -697,6 +806,59 @@ export default function BuildingDetail() {
                         value={bldForm.notes} onChange={e => updateBldForm('notes', e.target.value)}
                         onFocus={e => e.target.style.borderColor = C.teal}
                         onBlur={e => e.target.style.borderColor = C.border} />
+                    </div>
+                  </div>
+
+                  {/* Utility info — info amaçlı, hesaplara dahil değil */}
+                  <div style={{
+                    borderTop: `1px solid ${C.borderLight}`, paddingTop: 14, marginTop: 4,
+                  }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 700, color: C.teal, marginBottom: 12,
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      <Zap style={{ width: 13, height: 13 }} />
+                      {t('buildingDetail.bldModal.utilitiesTitle')}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.textFaint, marginBottom: 12, fontStyle: 'italic' }}>
+                      {t('buildingDetail.bldModal.utilitiesNote')}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 10 }}>
+                      <div>
+                        <label style={labelStyle}>{t('buildingDetail.bldModal.electricityProvider')}</label>
+                        <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.electricityProviderPh')}
+                          value={bldForm.electricity_provider}
+                          onChange={e => updateBldForm('electricity_provider', e.target.value)}
+                          onFocus={e => e.target.style.borderColor = C.teal}
+                          onBlur={e => e.target.style.borderColor = C.border} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>{t('buildingDetail.bldModal.electricityUnitPrice')}</label>
+                        <input style={inputStyle} type="number" min="0" step="0.0001" placeholder="0.00"
+                          value={bldForm.electricity_unit_price}
+                          onChange={e => updateBldForm('electricity_unit_price', e.target.value)}
+                          onFocus={e => e.target.style.borderColor = C.teal}
+                          onBlur={e => e.target.style.borderColor = C.border} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                      <div>
+                        <label style={labelStyle}>{t('buildingDetail.bldModal.waterProvider')}</label>
+                        <input style={inputStyle} type="text" placeholder={t('buildingDetail.bldModal.waterProviderPh')}
+                          value={bldForm.water_provider}
+                          onChange={e => updateBldForm('water_provider', e.target.value)}
+                          onFocus={e => e.target.style.borderColor = C.teal}
+                          onBlur={e => e.target.style.borderColor = C.border} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>{t('buildingDetail.bldModal.waterUnitPrice')}</label>
+                        <input style={inputStyle} type="number" min="0" step="0.0001" placeholder="0.00"
+                          value={bldForm.water_unit_price}
+                          onChange={e => updateBldForm('water_unit_price', e.target.value)}
+                          onFocus={e => e.target.style.borderColor = C.teal}
+                          onBlur={e => e.target.style.borderColor = C.border} />
+                      </div>
                     </div>
                   </div>
                 </div>

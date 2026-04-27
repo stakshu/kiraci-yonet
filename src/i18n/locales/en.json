@@ -213,7 +213,20 @@
       "addressPh": "Neighborhood, street, no.",
       "buildingAge": "Building age",
       "notes": "Notes",
-      "notesPh": "Optional"
+      "notesPh": "Optional",
+      "utilitiesTitle": "Utility Providers",
+      "utilitiesNote": "For reference only — not used in any calculation.",
+      "electricityProvider": "Electricity Provider",
+      "electricityProviderPh": "e.g. Yedaş",
+      "electricityUnitPrice": "Unit Price (kWh)",
+      "waterProvider": "Water Provider",
+      "waterProviderPh": "e.g. İski",
+      "waterUnitPrice": "Unit Price (m³)"
+    },
+    "utilities": {
+      "electricity": "Electricity",
+      "water": "Water",
+      "notSet": "Not set"
     },
     "aptModal": {
       "titleAdd": "Add new unit",

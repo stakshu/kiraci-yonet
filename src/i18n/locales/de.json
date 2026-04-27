@@ -213,7 +213,20 @@
       "addressPh": "Viertel, Straße, Nr.",
       "buildingAge": "Baujahr-Alter",
       "notes": "Notizen",
-      "notesPh": "Optional"
+      "notesPh": "Optional",
+      "utilitiesTitle": "Versorger-Informationen",
+      "utilitiesNote": "Nur zur Information — fließt in keine Berechnung ein.",
+      "electricityProvider": "Stromanbieter",
+      "electricityProviderPh": "z.B. Stadtwerke",
+      "electricityUnitPrice": "Arbeitspreis (kWh)",
+      "waterProvider": "Wasserversorger",
+      "waterProviderPh": "z.B. Stadtwerke",
+      "waterUnitPrice": "Arbeitspreis (m³)"
+    },
+    "utilities": {
+      "electricity": "Strom",
+      "water": "Wasser",
+      "notSet": "Nicht hinterlegt"
     },
     "aptModal": {
       "titleAdd": "Neue Einheit anlegen",

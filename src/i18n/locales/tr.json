@@ -213,7 +213,20 @@
       "addressPh": "Mahalle, Sokak, No",
       "buildingAge": "Bina Yaşı",
       "notes": "Notlar",
-      "notesPh": "Opsiyonel"
+      "notesPh": "Opsiyonel",
+      "utilitiesTitle": "Tedarikçi Bilgileri",
+      "utilitiesNote": "Sadece bilgi amaçlı — hesaplara dahil değil.",
+      "electricityProvider": "Elektrik Tedarikçisi",
+      "electricityProviderPh": "ör. Yedaş",
+      "electricityUnitPrice": "Birim Fiyat (kWh)",
+      "waterProvider": "Su Tedarikçisi",
+      "waterProviderPh": "ör. İski",
+      "waterUnitPrice": "Birim Fiyat (m³)"
+    },
+    "utilities": {
+      "electricity": "Elektrik",
+      "water": "Su",
+      "notSet": "Girilmedi"
     },
     "aptModal": {
       "titleAdd": "Yeni Daire Ekle",
