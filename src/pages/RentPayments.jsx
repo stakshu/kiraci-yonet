@@ -62,7 +62,11 @@ export default function RentPayments() {
   const [paidDateModal, setPaidDateModal] = useState(null)
   const [savingPaidDate, setSavingPaidDate] = useState(false)
 
-  useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
+  useEffect(() => {
+    cleanupOldAidatRecords()
+      .then(cleanupFuturePayments)
+      .then(() => { loadPayments(); checkMissingPayments() })
+  }, [])
 
   const cleanupFuturePayments = async () => {
     const now = new Date()
@@ -73,6 +77,13 @@ export default function RentPayments() {
       .delete()
       .gte('due_date', cutoff)
       .eq('status', 'pending')
+  }
+
+  // Aidat artık 'rent' kayıtlarına bundle ediliyor (Warmmiete). Eski type='aidat'
+  // satırları çift-sayıma yol açıyor; tek seferlik temizlik (sonraki çalışmalarda
+  // 0 satır siler — idempotent).
+  const cleanupOldAidatRecords = async () => {
+    await supabase.from('rent_payments').delete().eq('type', 'aidat')
   }
 
   const checkMissingPayments = async () => {

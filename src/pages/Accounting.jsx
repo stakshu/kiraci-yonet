@@ -173,18 +173,18 @@ export default function Accounting() {
 
   const categoryTotal = categoryData.reduce((s, c) => s + c.value, 0)
 
+  // Kira ve aidat tek "Warmmiete" kaydında birleşik geliyor — ayrı kolon yok.
   const propertyData = useMemo(() => {
     const map = {}
     apartments.forEach(a => {
       map[a.id] = {
         id: a.id, name: apartmentLabel(a),
-        rentIncome: 0, aidatIncome: 0, expense: 0
+        rentIncome: 0, expense: 0
       }
     })
     yearPayments.filter(p => p.status === 'paid').forEach(p => {
       if (!p.apartment_id || !map[p.apartment_id]) return
-      if ((p.type || 'rent') === 'aidat') map[p.apartment_id].aidatIncome += Number(p.amount)
-      else map[p.apartment_id].rentIncome += Number(p.amount)
+      map[p.apartment_id].rentIncome += Number(p.amount)
     })
     yearExpenses.forEach(e => {
       if (!e.apartment_id || !map[e.apartment_id]) return
@@ -193,10 +193,10 @@ export default function Accounting() {
     return Object.values(map)
       .map(p => ({
         ...p,
-        totalIncome: p.rentIncome + p.aidatIncome,
-        netProfit: p.rentIncome + p.aidatIncome - p.expense,
-        profitRate: (p.rentIncome + p.aidatIncome) > 0
-          ? Math.round(((p.rentIncome + p.aidatIncome - p.expense) / (p.rentIncome + p.aidatIncome)) * 100)
+        totalIncome: p.rentIncome,
+        netProfit: p.rentIncome - p.expense,
+        profitRate: p.rentIncome > 0
+          ? Math.round(((p.rentIncome - p.expense) / p.rentIncome) * 100)
           : 0
       }))
       .sort((a, b) => b.netProfit - a.netProfit)
@@ -506,14 +506,13 @@ export default function Accounting() {
         {/* Table header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 100px',
+          gridTemplateColumns: '1.5fr 1fr 1fr 1fr 100px',
           padding: '12px 24px', background: '#FAFBFC',
           borderBottom: `1px solid ${C.borderLight}`
         }}>
           {[
             t('accounting.property.colProperty'),
             t('accounting.property.colRentIncome'),
-            t('accounting.property.colAidatIncome'),
             t('accounting.property.colExpense'),
             t('accounting.property.colNetProfit'),
             t('accounting.property.colProfitRate'),
@@ -539,7 +538,7 @@ export default function Accounting() {
             whileHover={{ backgroundColor: '#F8FAFC' }}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 100px',
+              gridTemplateColumns: '1.5fr 1fr 1fr 1fr 100px',
               padding: '14px 24px', alignItems: 'center',
               borderBottom: `1px solid ${C.borderLight}`,
               transition: 'background 0.15s'
@@ -556,14 +555,9 @@ export default function Accounting() {
               <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{p.name}</span>
             </div>
 
-            {/* Kira Geliri */}
+            {/* Kira Geliri (kira+aidat birleşik) */}
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
               {p.rentIncome > 0 ? formatMoney(p.rentIncome) : '—'}
-            </div>
-
-            {/* Aidat Geliri */}
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              {p.aidatIncome > 0 ? formatMoney(p.aidatIncome) : '—'}
             </div>
 
             {/* Toplam Gider */}
@@ -609,16 +603,13 @@ export default function Accounting() {
         {propertyData.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 100px',
+            gridTemplateColumns: '1.5fr 1fr 1fr 1fr 100px',
             padding: '14px 24px', alignItems: 'center',
             background: '#F8FAFC', borderTop: `2px solid ${C.border}`
           }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.teal }}>{t('accounting.property.totalRow')}</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
               {formatMoney(propertyData.reduce((s, p) => s + p.rentIncome, 0))}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              {formatMoney(propertyData.reduce((s, p) => s + p.aidatIncome, 0))}
             </div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.red, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
               {formatMoney(totalExpense)}
