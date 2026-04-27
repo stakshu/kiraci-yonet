@@ -11,7 +11,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import {
@@ -199,16 +200,27 @@ export default function Settings() {
     }
 
     setPwSaving(true)
-    // 1) Mevcut şifreyi doğrula
-    const { error: signErr } = await supabase.auth.signInWithPassword({
+
+    // 1) Mevcut şifreyi DOĞRULA — ayrı, kalıcı olmayan bir client'la.
+    //    Ana supabase client'ında signIn yaparsak session AAL1'e düşer ve
+    //    MFA aktifken updateUser bloklanır. İzole client ile sadece
+    //    "şifre doğru mu?" sorusunu sorar, sonra atarız.
+    const verifyClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    })
+    const { error: signErr } = await verifyClient.auth.signInWithPassword({
       email: user.email, password: pwCurrent,
     })
+    // Verify client'ından sign out — session ucu açık kalmasın
+    try { await verifyClient.auth.signOut() } catch { /* ignore */ }
+
     if (signErr) {
       setPwSaving(false)
       setPwError(t('settings.password.errors.wrongCurrent'))
       return
     }
-    // 2) Yeni şifreyi yaz
+
+    // 2) Yeni şifreyi yaz — ana client ile, mevcut AAL2 session korunmuş halde.
     const { error: updErr } = await supabase.auth.updateUser({ password: pwNew })
     setPwSaving(false)
     if (updErr) {
