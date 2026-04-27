@@ -1,5 +1,5 @@
 /* ── KiraciYonet — Bina Detay + Daireler ── */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
@@ -1247,20 +1247,45 @@ export default function BuildingDetail() {
   )
 }
 
-/* ─── Daire satırında açık arıza uyarısı + hover info paneli ─── */
+/* ─── Daire satırında açık arıza uyarısı + hover info paneli ───
+ *
+ * Tooltip `position: fixed` — apartments listesinin overflow:hidden
+ * konteyneri ile kırpılmaz. Viewport'un altına taşmaması için yer
+ * yoksa yukarı doğru açılır.
+ */
 function MaintenanceBadge({ issues, t }) {
   const [hover, setHover] = useState(false)
+  const [pos, setPos] = useState(null)  // { top, left, placement: 'below'|'above' }
+  const anchorRef = useRef(null)
   const PRIORITY_COLOR = {
     urgent: '#DC2626', high: '#D97706', normal: '#64748B', low: '#94A3B8',
   }
   const count = issues.length
+  // Tooltip yüksekliği yaklaşık tahmin: header (24px) + her issue ~32px + padding ~22px
+  const estTooltipH = 22 + 24 + issues.length * 32
+
+  const onEnter = () => {
+    const r = anchorRef.current?.getBoundingClientRect()
+    if (!r) return
+    const spaceBelow = window.innerHeight - r.bottom
+    const placement = spaceBelow < estTooltipH + 16 ? 'above' : 'below'
+    setPos({
+      top: placement === 'below' ? r.bottom + 6 : r.top - 6,
+      left: r.left,
+      placement,
+    })
+    setHover(true)
+  }
+  const onLeave = () => setHover(false)
+
   return (
     <div
+      ref={anchorRef}
       onClick={(e) => e.stopPropagation()}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
       style={{
-        position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '3px 8px', borderRadius: 6,
         background: '#FEF2F2', color: '#DC2626',
         border: '1px solid #FCA5A5',
@@ -1272,21 +1297,24 @@ function MaintenanceBadge({ issues, t }) {
       <span>{count}</span>
 
       <AnimatePresence>
-        {hover && (
+        {hover && pos && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            initial={{ opacity: 0, y: pos.placement === 'below' ? -4 : 4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            exit={{ opacity: 0, y: pos.placement === 'below' ? -4 : 4, scale: 0.96 }}
             transition={{ duration: 0.15 }}
             style={{
-              position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+              position: 'fixed',
+              top: pos.top,
+              left: pos.left,
+              transform: pos.placement === 'above' ? 'translateY(-100%)' : 'none',
               minWidth: 280, maxWidth: 360,
               background: '#0F172A', color: '#fff',
               borderRadius: 10, padding: '10px 12px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
               fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
               fontSize: 12, lineHeight: 1.4,
-              zIndex: 50,
+              zIndex: 1200,
               cursor: 'default',
               pointerEvents: 'none',
             }}
