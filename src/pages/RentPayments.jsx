@@ -9,7 +9,7 @@ import { formatMoney, formatDate as fmtDate, formatMonthYear } from '../i18n/for
 import {
   Clock, CreditCard, Search,
   ChevronDown, Check, Mail, TrendingUp,
-  UserMinus, AlertTriangle, Undo2
+  UserMinus, AlertTriangle, Undo2, Calendar, Pencil, X
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -59,6 +59,9 @@ export default function RentPayments() {
   const [expandedPast, setExpandedPast] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('rent')
+  // { mode: 'mark'|'edit', paymentId, date } — açıkken modal görünür
+  const [paidDateModal, setPaidDateModal] = useState(null)
+  const [savingPaidDate, setSavingPaidDate] = useState(false)
 
   useEffect(() => { cleanupFuturePayments().then(() => { loadPayments(); checkMissingPayments() }) }, [])
 
@@ -251,14 +254,42 @@ export default function RentPayments() {
     await sendEmail(payment, realStatus(payment) === 'overdue' ? 'overdue' : 'reminder')
   }
 
-  const markAsPaid = async (e, id) => {
+  const markAsPaid = (e, id) => {
     e.stopPropagation()
     const today = new Date().toISOString().split('T')[0]
-    const { error: err } = await supabase.from('rent_payments').update({ status: 'paid', paid_date: today }).eq('id', id)
-    if (err) { showToast(t('rentPayments.toasts.errorPrefix', { msg: err.message }), 'error'); return }
+    setPaidDateModal({ mode: 'mark', paymentId: id, date: today })
+  }
+
+  const openEditPaidDate = (e, id, currentDate) => {
+    e.stopPropagation()
+    const fallback = new Date().toISOString().split('T')[0]
+    setPaidDateModal({ mode: 'edit', paymentId: id, date: currentDate || fallback })
+  }
+
+  const confirmPaidDate = async () => {
+    if (!paidDateModal) return
+    const { mode, paymentId, date } = paidDateModal
+    if (!date) return
+    // Geleceğe tarih atılıyorsa sor — yanlış girişe karşı koruma
+    if (date > new Date().toISOString().split('T')[0]) {
+      if (!confirm(t('rentPayments.paidDateModal.futureWarn'))) return
+    }
+    setSavingPaidDate(true)
+    const { error: err } = await supabase
+      .from('rent_payments')
+      .update({ status: 'paid', paid_date: date })
+      .eq('id', paymentId)
+    setSavingPaidDate(false)
+    if (err) {
+      showToast(t('rentPayments.toasts.errorPrefix', { msg: err.message }), 'error')
+      return
+    }
     showToast(t('rentPayments.toasts.paymentSaved'), 'success')
-    const payment = payments.find(p => p.id === id)
-    if (payment?.tenants?.email) sendEmail(payment, 'payment_received')
+    if (mode === 'mark') {
+      const payment = payments.find(p => p.id === paymentId)
+      if (payment?.tenants?.email) sendEmail(payment, 'payment_received')
+    }
+    setPaidDateModal(null)
     loadPayments()
   }
 
@@ -809,8 +840,20 @@ export default function RentPayments() {
                                   }}>
                                     {paidLate ? t('rentPayments.historyStatus.late') : t('rentPayments.historyStatus.onTime')}
                                   </span>
-                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
-                                    {p.paid_date ? fmtDate(p.paid_date) : ''}
+                                  <span
+                                    onClick={(e) => openEditPaidDate(e, p.id, p.paid_date)}
+                                    title={t('rentPayments.actions.editPaidDate')}
+                                    style={{
+                                      fontSize: 13, fontWeight: 500, color: C.textMuted,
+                                      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      padding: '2px 6px', borderRadius: 4, marginLeft: -6,
+                                      transition: 'background 0.15s, color 0.15s',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = C.teal }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textMuted }}
+                                  >
+                                    {p.paid_date ? fmtDate(p.paid_date) : '—'}
+                                    <Pencil style={{ width: 11, height: 11, opacity: 0.5 }} />
                                   </span>
                                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                     onClick={(e) => markAsUnpaid(e, p.id)}
@@ -971,8 +1014,20 @@ export default function RentPayments() {
                                   }}>
                                     {paidLate ? t('rentPayments.historyStatus.late') : t('rentPayments.historyStatus.onTime')}
                                   </span>
-                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.textMuted }}>
+                                  <span
+                                    onClick={(e) => openEditPaidDate(e, p.id, p.paid_date)}
+                                    title={t('rentPayments.actions.editPaidDate')}
+                                    style={{
+                                      fontSize: 13, fontWeight: 500, color: C.textMuted,
+                                      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      padding: '2px 6px', borderRadius: 4, marginLeft: -6,
+                                      transition: 'background 0.15s, color 0.15s',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = C.teal }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textMuted }}
+                                  >
                                     {p.paid_date ? fmtDate(p.paid_date) : '—'}
+                                    <Pencil style={{ width: 11, height: 11, opacity: 0.5 }} />
                                   </span>
                                 </div>
                               )
@@ -988,6 +1043,128 @@ export default function RentPayments() {
           </div>
         </motion.div>
       )}
+
+      {/* ═══ PAID DATE MODAL (mark + edit aynı modal) ═══ */}
+      <AnimatePresence>
+        {paidDateModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => !savingPaidDate && setPaidDateModal(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              paddingLeft: 'var(--sb-w)', zIndex: 1100, backdropFilter: 'blur(4px)',
+              fontFamily: font,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#FFFFFF', borderRadius: 16, width: 380,
+                boxShadow: '0 25px 60px rgba(0,0,0,0.25)', overflow: 'hidden',
+              }}
+            >
+              <div style={{
+                padding: '22px 26px 16px',
+                borderBottom: `1px solid ${C.borderLight}`,
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  background: '#F0FDFA', color: C.teal,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Calendar style={{ width: 18, height: 18 }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: '-0.01em' }}>
+                    {paidDateModal.mode === 'edit'
+                      ? t('rentPayments.paidDateModal.titleEdit')
+                      : t('rentPayments.paidDateModal.titleMark')}
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>
+                    {paidDateModal.mode === 'edit'
+                      ? t('rentPayments.paidDateModal.subtitleEdit')
+                      : t('rentPayments.paidDateModal.subtitleMark')}
+                  </p>
+                </div>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                  onClick={() => !savingPaidDate && setPaidDateModal(null)}
+                  style={{
+                    background: 'transparent', border: 'none', cursor: savingPaidDate ? 'not-allowed' : 'pointer',
+                    padding: 6, borderRadius: 8, color: C.textFaint, marginRight: -6, marginTop: -4,
+                  }}
+                >
+                  <X style={{ width: 18, height: 18 }} />
+                </motion.button>
+              </div>
+
+              <div style={{ padding: '20px 26px 22px' }}>
+                <label style={{
+                  display: 'block', fontSize: 11, fontWeight: 700,
+                  color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em',
+                  marginBottom: 8,
+                }}>
+                  {t('rentPayments.paidDateModal.label')}
+                </label>
+                <input
+                  type="date"
+                  value={paidDateModal.date}
+                  onChange={(e) => setPaidDateModal(m => m ? { ...m, date: e.target.value } : m)}
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '11px 14px', borderRadius: 10,
+                    border: `1.5px solid ${C.border}`, background: '#FAFBFC',
+                    fontSize: 14, fontWeight: 600, color: C.text, fontFamily: font,
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{
+                padding: '14px 26px 20px',
+                display: 'flex', justifyContent: 'flex-end', gap: 10,
+                borderTop: `1px solid ${C.borderLight}`, background: '#FAFBFC',
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => !savingPaidDate && setPaidDateModal(null)}
+                  disabled={savingPaidDate}
+                  style={{
+                    padding: '9px 18px', borderRadius: 10,
+                    border: `1.5px solid ${C.border}`, background: '#FFFFFF',
+                    cursor: savingPaidDate ? 'not-allowed' : 'pointer',
+                    fontSize: 13, fontWeight: 600, color: C.textMuted, fontFamily: font,
+                  }}
+                >
+                  {t('rentPayments.paidDateModal.cancel')}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: savingPaidDate ? 1 : 1.02 }}
+                  whileTap={{ scale: savingPaidDate ? 1 : 0.98 }}
+                  onClick={confirmPaidDate}
+                  disabled={savingPaidDate || !paidDateModal.date}
+                  style={{
+                    padding: '9px 20px', borderRadius: 10, border: 'none',
+                    background: `linear-gradient(135deg, ${C.teal}, ${C.darkTeal})`,
+                    color: '#FFFFFF', fontSize: 13, fontWeight: 700, fontFamily: font,
+                    cursor: savingPaidDate ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    opacity: savingPaidDate ? 0.7 : 1,
+                  }}
+                >
+                  <Check style={{ width: 14, height: 14 }} />
+                  {t('rentPayments.paidDateModal.confirm')}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

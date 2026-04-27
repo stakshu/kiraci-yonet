@@ -782,7 +782,18 @@
       "markPaid": "Ödendi",
       "reminderTitle": "Hatırlatma maili gönder",
       "remind": "Hatırla",
-      "undo": "Geri Al"
+      "undo": "Geri Al",
+      "editPaidDate": "Ödeme tarihini düzenle"
+    },
+    "paidDateModal": {
+      "titleMark": "Ödeme Tarihi",
+      "titleEdit": "Ödeme Tarihini Düzenle",
+      "subtitleMark": "Ödemenin yapıldığı tarihi seçin",
+      "subtitleEdit": "Bu ödeme için kayıtlı tarihi düzeltin",
+      "label": "Ödeme Tarihi",
+      "cancel": "İptal",
+      "confirm": "Onayla",
+      "futureWarn": "Gelecek tarih seçtiniz. Yine de kaydedeyim mi?"
     },
     "overdueHeader": "Geciken Ödemeler",
     "overdueTable": {

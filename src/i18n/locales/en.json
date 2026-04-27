@@ -785,7 +785,18 @@
       "markPaid": "Paid",
       "reminderTitle": "Send reminder email",
       "remind": "Remind",
-      "undo": "Undo"
+      "undo": "Undo",
+      "editPaidDate": "Edit payment date"
+    },
+    "paidDateModal": {
+      "titleMark": "Payment Date",
+      "titleEdit": "Edit Payment Date",
+      "subtitleMark": "Choose the date the payment was made",
+      "subtitleEdit": "Adjust the recorded date for this payment",
+      "label": "Payment Date",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "futureWarn": "You selected a future date. Save anyway?"
     },
     "overdueHeader": "Overdue payments",
     "overdueTable": {

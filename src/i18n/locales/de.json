@@ -785,7 +785,18 @@
       "markPaid": "Bezahlt",
       "reminderTitle": "Erinnerungs-E-Mail senden",
       "remind": "Erinnern",
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "editPaidDate": "Zahlungsdatum bearbeiten"
+    },
+    "paidDateModal": {
+      "titleMark": "Zahlungsdatum",
+      "titleEdit": "Zahlungsdatum bearbeiten",
+      "subtitleMark": "Datum auswählen, an dem die Zahlung erfolgte",
+      "subtitleEdit": "Hinterlegtes Zahlungsdatum anpassen",
+      "label": "Zahlungsdatum",
+      "cancel": "Abbrechen",
+      "confirm": "Bestätigen",
+      "futureWarn": "Sie haben ein zukünftiges Datum gewählt. Trotzdem speichern?"
     },
     "overdueHeader": "Überfällige Zahlungen",
     "overdueTable": {
