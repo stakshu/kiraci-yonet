@@ -77,8 +77,13 @@ export default function Settings() {
       await supabase.auth.mfa.unenroll({ factorId: s.id })
     }
 
+    // issuer: authenticator app'te görünen üst-başlık ("KiraciYonet").
+    // friendlyName: Supabase tarafında bu factor'ün dahili etiketi.
+    // issuer geçilmezse Supabase request origin'den türetiyor — localhost vs vercel
+    // gibi ortam-bağımlı yanlış isim görünmesini engellemek için açıkça veriyoruz.
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
+      issuer: 'KiraciYonet',
       friendlyName: 'KiraciYonet',
     })
     if (error) {
