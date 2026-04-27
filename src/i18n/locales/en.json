@@ -1411,6 +1411,29 @@
       "verifying": "Verifying...",
       "logout": "Cancel",
       "wrongCode": "The code is wrong or expired. Try a fresh one."
+    },
+    "password": {
+      "title": "Change Password",
+      "current": "Current Password",
+      "new": "New Password",
+      "newPh": "At least 8 characters",
+      "confirm": "Confirm New Password",
+      "hint": "Use a mix of letters, numbers and symbols for a stronger password.",
+      "show": "Show passwords",
+      "hide": "Hide passwords",
+      "save": "Change Password",
+      "saving": "Saving...",
+      "errors": {
+        "required": "All fields are required.",
+        "tooShort": "New password must be at least 8 characters.",
+        "mismatch": "New passwords do not match.",
+        "sameAsOld": "New password must differ from the old one.",
+        "wrongCurrent": "Current password is incorrect.",
+        "unknown": "Email address missing — refresh your session."
+      },
+      "toasts": {
+        "changed": "Password changed successfully."
+      }
     }
   }
 }

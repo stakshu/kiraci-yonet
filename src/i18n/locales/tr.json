@@ -1408,6 +1408,29 @@
       "verifying": "Doğrulanıyor...",
       "logout": "Vazgeç",
       "wrongCode": "Kod yanlış veya süresi dolmuş. Yeni bir kod deneyin."
+    },
+    "password": {
+      "title": "Şifre Değiştir",
+      "current": "Mevcut Şifre",
+      "new": "Yeni Şifre",
+      "newPh": "En az 8 karakter",
+      "confirm": "Yeni Şifre (Tekrar)",
+      "hint": "Güçlü şifre için harf + rakam + sembol karışımı kullanın.",
+      "show": "Şifreleri göster",
+      "hide": "Şifreleri gizle",
+      "save": "Şifreyi Değiştir",
+      "saving": "Kaydediliyor...",
+      "errors": {
+        "required": "Tüm alanlar doldurulmalı.",
+        "tooShort": "Yeni şifre en az 8 karakter olmalı.",
+        "mismatch": "Yeni şifreler eşleşmiyor.",
+        "sameAsOld": "Yeni şifre, eskisiyle aynı olamaz.",
+        "wrongCurrent": "Mevcut şifre hatalı.",
+        "unknown": "E-posta adresi bulunamadı, oturumu yenileyin."
+      },
+      "toasts": {
+        "changed": "Şifre başarıyla değiştirildi."
+      }
     }
   }
 }

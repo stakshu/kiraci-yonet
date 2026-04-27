@@ -1,20 +1,22 @@
 /* ── KiraciYonet — Ayarlar ──
  *
- * Şu an tek bölüm: Güvenlik / İki Adımlı Doğrulama (TOTP MFA).
- * Kullanıcı isterse Authenticator app (Google Authenticator,
- * Authy, 1Password vb.) bağlar; bağlarsa sonraki girişlerde
- * şifre sonrası 6 haneli kod istenir.
+ * Bölümler:
+ *   · Güvenlik → İki Adımlı Doğrulama (TOTP MFA)
+ *   · Güvenlik → Şifre Değiştirme
  *
- * Supabase Auth MFA API'si tüm secret üretimi/doğrulamayı yapıyor;
- * bu sayfa sadece UI sarmalı.
+ * MFA: Supabase Auth MFA API'si tüm secret üretimi/doğrulamayı yapar.
+ * Şifre: önce signInWithPassword ile mevcut şifre teyit edilir,
+ * sonra updateUser ile yeni şifre yazılır.
  */
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import {
   Shield, ShieldCheck, Smartphone, Copy, Check, X, AlertTriangle, Loader2,
+  KeyRound, Eye, EyeOff,
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -32,6 +34,7 @@ const cardBox = {
 
 export default function Settings() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const { showToast } = useToast()
 
   const [factors, setFactors] = useState([])
@@ -47,6 +50,14 @@ export default function Settings() {
   // Disable confirm
   const [confirmDisable, setConfirmDisable] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  // Password change state
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwShow, setPwShow] = useState(false)
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwError, setPwError] = useState('')
 
   useEffect(() => { loadFactors() }, [])
 
@@ -161,6 +172,53 @@ export default function Settings() {
     } catch { /* clipboard not available */ }
   }
 
+  // ── Password change ──
+  const handlePasswordChange = async (e) => {
+    e?.preventDefault()
+    setPwError('')
+
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      setPwError(t('settings.password.errors.required'))
+      return
+    }
+    if (pwNew.length < 8) {
+      setPwError(t('settings.password.errors.tooShort'))
+      return
+    }
+    if (pwNew !== pwConfirm) {
+      setPwError(t('settings.password.errors.mismatch'))
+      return
+    }
+    if (pwCurrent === pwNew) {
+      setPwError(t('settings.password.errors.sameAsOld'))
+      return
+    }
+    if (!user?.email) {
+      setPwError(t('settings.password.errors.unknown'))
+      return
+    }
+
+    setPwSaving(true)
+    // 1) Mevcut şifreyi doğrula
+    const { error: signErr } = await supabase.auth.signInWithPassword({
+      email: user.email, password: pwCurrent,
+    })
+    if (signErr) {
+      setPwSaving(false)
+      setPwError(t('settings.password.errors.wrongCurrent'))
+      return
+    }
+    // 2) Yeni şifreyi yaz
+    const { error: updErr } = await supabase.auth.updateUser({ password: pwNew })
+    setPwSaving(false)
+    if (updErr) {
+      setPwError(updErr.message)
+      return
+    }
+    setPwCurrent(''); setPwNew(''); setPwConfirm('')
+    showToast(t('settings.password.toasts.changed'), 'success')
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -268,6 +326,102 @@ export default function Settings() {
             {t('settings.mfa.helper')}
           </p>
         </div>
+      </div>
+
+      {/* ═══ Password change card ═══ */}
+      <div style={cardBox}>
+        <div style={{
+          padding: '16px 22px', borderBottom: `1px solid ${C.borderLight}`,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: '#FFFBEB', color: C.amber,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <KeyRound size={16} />
+          </div>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
+            {t('settings.password.title')}
+          </h2>
+        </div>
+
+        <form onSubmit={handlePasswordChange} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Current */}
+          <PwField
+            label={t('settings.password.current')}
+            value={pwCurrent}
+            onChange={setPwCurrent}
+            show={pwShow}
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+          {/* New */}
+          <PwField
+            label={t('settings.password.new')}
+            value={pwNew}
+            onChange={setPwNew}
+            show={pwShow}
+            placeholder={t('settings.password.newPh')}
+            autoComplete="new-password"
+            hint={t('settings.password.hint')}
+          />
+          {/* Confirm */}
+          <PwField
+            label={t('settings.password.confirm')}
+            value={pwConfirm}
+            onChange={setPwConfirm}
+            show={pwShow}
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+
+          {/* Show toggle */}
+          <label style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            fontSize: 12, color: C.textMuted, cursor: 'pointer', userSelect: 'none',
+          }}>
+            <input type="checkbox" checked={pwShow}
+              onChange={e => setPwShow(e.target.checked)}
+              style={{ accentColor: C.teal, width: 14, height: 14 }} />
+            {pwShow
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><EyeOff size={12} /> {t('settings.password.hide')}</span>
+              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Eye size={12} /> {t('settings.password.show')}</span>}
+          </label>
+
+          {pwError && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 9,
+              background: '#FEF2F2', border: '1px solid #FCA5A5',
+              fontSize: 12.5, color: C.red,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <AlertTriangle size={14} /> {pwError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+            <motion.button
+              whileHover={{ scale: pwSaving ? 1 : 1.02 }}
+              whileTap={{ scale: pwSaving ? 1 : 0.98 }}
+              type="submit" disabled={pwSaving}
+              style={{
+                padding: '10px 22px', borderRadius: 9, border: 'none',
+                background: pwSaving
+                  ? '#CBD5E1'
+                  : `linear-gradient(135deg, ${C.teal}, ${C.darkTeal})`,
+                color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: font,
+                cursor: pwSaving ? 'not-allowed' : 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                boxShadow: pwSaving ? 'none' : '0 4px 12px rgba(2,88,100,0.25)',
+              }}
+            >
+              {pwSaving
+                ? <><Loader2 size={14} className="animate-spin" /> {t('settings.password.saving')}</>
+                : <><Check size={14} /> {t('settings.password.save')}</>}
+            </motion.button>
+          </div>
+        </form>
       </div>
 
       {/* Setup modal */}
@@ -538,5 +692,38 @@ export default function Settings() {
         )}
       </AnimatePresence>
     </motion.div>
+  )
+}
+
+/* ─── Şifre input field helper ─── */
+function PwField({ label, value, onChange, show, placeholder, autoComplete, hint }) {
+  return (
+    <div>
+      <label style={{
+        display: 'block', fontSize: 11, fontWeight: 700, color: C.textMuted,
+        textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
+      }}>
+        {label}
+      </label>
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        style={{
+          width: '100%', padding: '10px 14px', borderRadius: 9,
+          border: `1.5px solid ${C.border}`, background: '#FAFBFC',
+          fontSize: 14, color: C.text, fontFamily: font,
+          outline: 'none', boxSizing: 'border-box',
+          letterSpacing: show ? 'normal' : '0.15em',
+        }}
+      />
+      {hint && (
+        <div style={{ marginTop: 5, fontSize: 11, color: C.textFaint }}>
+          {hint}
+        </div>
+      )}
+    </div>
   )
 }
