@@ -359,11 +359,71 @@ export default function InvoicePreview({
         .calc-totals .row.result.nach { color: #b91c1c; }
         .calc-totals .row.result.gut  { color: #15803d; }
 
+        /* ── Yan navigasyon (kiracı atlatıcı) ── */
+        .nka-sidenav {
+          position: fixed;
+          top: 88px;
+          left: calc(var(--sb-w) + 24px);
+          width: 220px;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+          background: rgba(40,40,40,.92);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(255,255,255,.12);
+          border-radius: 12px;
+          padding: 10px;
+          z-index: 4;
+          font-family: 'Inter', system-ui, sans-serif;
+          color: #fff;
+        }
+        @media (max-width: 1280px) { .nka-sidenav { display: none; } }
+        .nka-sidenav-title {
+          font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+          text-transform: uppercase; color: rgba(255,255,255,.55);
+          padding: 4px 8px 8px;
+        }
+        .nka-sidenav button {
+          width: 100%;
+          background: transparent; border: none; cursor: pointer;
+          padding: 8px 10px; border-radius: 8px;
+          display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+          font-family: inherit; color: #fff; text-align: left;
+          transition: background .12s;
+        }
+        .nka-sidenav button:hover { background: rgba(255,255,255,.06); }
+        .nka-sidenav button.is-active {
+          background: rgba(0,212,126,.16);
+          outline: 1px solid rgba(0,212,126,.45);
+        }
+        .nka-sidenav .item-main {
+          display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;
+        }
+        .nka-sidenav .item-title {
+          font-size: 12.5px; font-weight: 700; line-height: 1.2;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .nka-sidenav .item-sub {
+          font-size: 10.5px; color: rgba(255,255,255,.55);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .nka-sidenav .item-amount {
+          font-size: 10.5px; font-weight: 700;
+          padding: 2px 7px; border-radius: 5px;
+          font-variant-numeric: tabular-nums;
+          flex-shrink: 0; white-space: nowrap;
+          align-self: center;
+        }
+        .nka-sidenav .item-amount.nach { background: rgba(220,38,38,.18); color: #fda4af; }
+        .nka-sidenav .item-amount.gut  { background: rgba(0,212,126,.18); color: #6ee7b7; }
+        .nka-sidenav .item-amount.bal  { background: rgba(255,255,255,.08); color: rgba(255,255,255,.55); }
+
         @media print {
           @page { size: A4 portrait; margin: 0; }
           html, body { background: white !important; }
           body * { visibility: hidden !important; }
           .nka-paper, .nka-paper * { visibility: visible !important; }
+          .nka-sidenav { display: none !important; }
           .nka-paper {
             position: absolute !important;
             inset: 0 !important;
@@ -424,21 +484,27 @@ export default function InvoicePreview({
             </div>
           ) : (
             invoices.map((inv, idx) => (
-              <SingleTenantInvoice
-                key={inv.apt?.id || idx}
-                t={t}
-                sender={sender}
-                data={inv}
-                startDate={startDate}
-                endDate={endDate}
-                periodDays={periodDays}
-                periodLabel={periodLabel}
-                issueDate={issueDate}
-                yearLabel={yearLabel}
-              />
+              <div key={inv.apt?.id || idx} id={`nka-tenant-${inv.apt?.id || idx}`}>
+                <SingleTenantInvoice
+                  t={t}
+                  sender={sender}
+                  data={inv}
+                  startDate={startDate}
+                  endDate={endDate}
+                  periodDays={periodDays}
+                  periodLabel={periodLabel}
+                  issueDate={issueDate}
+                  yearLabel={yearLabel}
+                />
+              </div>
             ))
           )}
         </motion.div>
+
+        {/* Yan navigasyon — yalnızca birden fazla kiracı varken (building mode'da 2+). */}
+        {invoices.length > 1 && (
+          <TenantSideNav t={t} invoices={invoices} />
+        )}
       </motion.div>
 
       {/* Sender edit modal */}
@@ -866,5 +932,73 @@ function CalculationRow({ r, t, periodDays, tenancyDays }) {
         <td className="num">{fmt2(finalShare)}</td>
       </tr>
     </>
+  )
+}
+
+/* ─── Yan navigasyon: kiracı listesi, click ile o faturaya zıplama ─── */
+function TenantSideNav({ t, invoices }) {
+  const [activeId, setActiveId] = useState(null)
+
+  // Scroll-spy: hangi kiracı görünüyor?
+  useEffect(() => {
+    const ids = invoices.map((inv, idx) => `nka-tenant-${inv.apt?.id || idx}`)
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean)
+    if (els.length === 0) return
+    // Backdrop scroll container
+    const backdrop = document.querySelector('.nka-backdrop')
+    if (!backdrop) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        if (visible.length > 0) setActiveId(visible[0].target.id)
+      },
+      { root: backdrop, threshold: [0.15, 0.4, 0.7] }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [invoices])
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  return (
+    <div className="nka-sidenav" data-no-print>
+      <div className="nka-sidenav-title">
+        {t('invoice.sidenav.title', { count: invoices.length })}
+      </div>
+      {invoices.map((inv, idx) => {
+        const id = `nka-tenant-${inv.apt?.id || idx}`
+        const tenantName = inv.tenant?.full_name || '—'
+        const apt = inv.apt
+        const aptLabel = apt?.floor_no && apt?.unit_no
+          ? `${apt.floor_no} · ${apt.unit_no}`
+          : apt?.floor_no || apt?.unit_no || ''
+        const isNach = inv.difference > 0.005
+        const isGut  = inv.difference < -0.005
+        const amountClass = isNach ? 'nach' : isGut ? 'gut' : 'bal'
+        const amountSign = isNach ? '+' : isGut ? '−' : ''
+        const amountText = isNach || isGut
+          ? `${amountSign}${fmt2(Math.abs(inv.difference))} €`
+          : '0 €'
+        return (
+          <button
+            key={id} type="button"
+            className={activeId === id ? 'is-active' : ''}
+            onClick={() => scrollTo(id)}
+          >
+            <div className="item-main">
+              <div className="item-title">{tenantName}</div>
+              {aptLabel && <div className="item-sub">{aptLabel}</div>}
+            </div>
+            <div className={`item-amount ${amountClass}`}>{amountText}</div>
+          </button>
+        )
+      })}
+    </div>
   )
 }

@@ -1128,6 +1128,9 @@
   "invoice": {
     "docTitle": "Service Charge Statement",
     "noTenantInvoices": "No tenanted units found in this building — there is no recipient to issue an invoice to.",
+    "sidenav": {
+      "title": "Tenants ({{count}})"
+    },
     "toolbar": {
       "edit": "Edit",
       "editSender": "Edit my details",

@@ -1125,6 +1125,9 @@
   "invoice": {
     "docTitle": "Yan Gider Hesabı",
     "noTenantInvoices": "Bu binada aktif kiracısı olan daire bulunamadı — fatura çıkarılacak hedef yok.",
+    "sidenav": {
+      "title": "Kiracılar ({{count}})"
+    },
     "toolbar": {
       "edit": "Düzenle",
       "editSender": "Bilgilerimi Düzenle",

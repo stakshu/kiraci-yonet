@@ -1128,6 +1128,9 @@
   "invoice": {
     "docTitle": "Nebenkostenabrechnung",
     "noTenantInvoices": "In diesem Gebäude gibt es keine bewohnten Wohnungen — es kann keine Abrechnung erstellt werden.",
+    "sidenav": {
+      "title": "Mieter ({{count}})"
+    },
     "toolbar": {
       "edit": "Bearbeiten",
       "editSender": "Meine Daten bearbeiten",
