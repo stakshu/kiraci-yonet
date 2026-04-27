@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast'
 import Layout from './components/Layout'
 import AuthOverlay from './components/AuthOverlay'
 import MfaChallenge from './components/MfaChallenge'
+import ErrorBoundary from './components/ErrorBoundary'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
 import BuildingDetail from './pages/BuildingDetail'
@@ -24,7 +25,22 @@ import EmptyPage from './pages/EmptyPage'
 function ProtectedApp() {
   const { user, loading, mfaPending } = useAuth()
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#F0F2F5',
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%',
+          border: '3px solid #025864', borderTopColor: 'transparent',
+          animation: 'kysSpin 0.9s linear infinite',
+        }} />
+        <style>{`@keyframes kysSpin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
 
   if (!user) return <AuthOverlay />
   if (mfaPending) return <MfaChallenge />
@@ -56,12 +72,14 @@ function ProtectedApp() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <ProtectedApp />
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <ProtectedApp />
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
