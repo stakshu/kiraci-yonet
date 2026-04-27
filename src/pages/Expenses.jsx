@@ -8,7 +8,7 @@ import { useToast } from '../components/Toast'
 import { apartmentLabel } from '../lib/apartmentLabel'
 import BuildingExpenseSheet from '../components/BuildingExpenseSheet'
 import InvoicePreview from '../components/InvoicePreview'
-import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey } from '../lib/distributionKeys'
+import { DISTRIBUTION_KEYS, DISTRIBUTION_KEY_ORDER, getDistributionKey, isConsumptionKey } from '../lib/distributionKeys'
 import { computeApartmentRollup, computeBuildingRollup } from '../lib/abrechnungCalc'
 import { formatMoney, formatDate as fmtDate, formatMonthYear } from '../i18n/formatters'
 import {
@@ -86,16 +86,17 @@ const DEFAULT_CATEGORIES = [
   { name: 'Bina Sigortası', icon: 'ShieldCheck', color: '#6366F1', is_tenant_billable: true, is_recurring: false, sort_order: 13, default_distribution_key: 'area' },
   { name: 'Kapıcı / Görevli', icon: 'UserCheck', color: '#0D9488', is_tenant_billable: true, is_recurring: true, sort_order: 14, default_distribution_key: 'area' },
   { name: 'Kablo TV / Anten', icon: 'Tv', color: '#7C3AED', is_tenant_billable: true, is_recurring: true, sort_order: 15, default_distribution_key: 'units' },
-  { name: 'Diğer Giderler', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16, default_distribution_key: 'equal' },
-  { name: 'Tamirat / Onarım', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'equal' },
-  { name: 'Yönetim Giderleri', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'equal' },
+  { name: 'Diğer Giderler', icon: 'MoreHorizontal', color: '#94A3B8', is_tenant_billable: true, is_recurring: false, sort_order: 16, default_distribution_key: 'units' },
+  { name: 'Tamirat / Onarım', icon: 'Wrench', color: '#DC2626', is_tenant_billable: false, is_recurring: false, sort_order: 17, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'units' },
+  { name: 'Yönetim Giderleri', icon: 'Briefcase', color: '#475569', is_tenant_billable: false, is_recurring: false, sort_order: 18, description: 'Kiracıya yansıtılamaz', default_distribution_key: 'units' },
 ]
 
 /* ── Empty Form ── */
 const EMPTY_EXPENSE = {
   scope: 'building', // 'apartment' | 'building'
   apartment_id: '', building_id: '', category_id: '', amount: '',
-  distribution_key: 'equal',
+  distribution_key: 'units',
+  meter_readings: {}, // { [apartment_id]: number } — sadece kwh / m3 anahtarları için doldurulur
   expense_date: new Date().toISOString().split('T')[0],
   period_month: new Date().getMonth() + 1,
   period_year: new Date().getFullYear(),
@@ -192,7 +193,8 @@ export default function Expenses() {
         *,
         expense_categories(id, name, icon, color, is_tenant_billable),
         apartments(unit_no, floor_no, building_id, buildings(id, name)),
-        buildings!property_expenses_building_id_fkey(id, name)
+        buildings!property_expenses_building_id_fkey(id, name),
+        expense_meter_readings(apartment_id, reading)
       `)
       .order('expense_date', { ascending: false })
     setExpenses(data || [])
@@ -266,6 +268,10 @@ export default function Expenses() {
 
   const openEditExpense = (expense) => {
     const isBuildingScope = expense.apartment_id == null
+    const readings = (expense.expense_meter_readings || []).reduce((acc, r) => {
+      acc[r.apartment_id] = r.reading
+      return acc
+    }, {})
     setEditingExpense(expense)
     setExpenseForm({
       scope: isBuildingScope ? 'building' : 'apartment',
@@ -273,7 +279,8 @@ export default function Expenses() {
       building_id: expense.building_id || expense.apartments?.buildings?.id || '',
       category_id: expense.category_id || '',
       amount: expense.amount || '',
-      distribution_key: expense.distribution_key || 'equal',
+      distribution_key: expense.distribution_key || 'units',
+      meter_readings: readings,
       expense_date: expense.expense_date || '',
       period_month: expense.period_month || '',
       period_year: expense.period_year || '',
@@ -294,7 +301,7 @@ export default function Expenses() {
       user_id: session.user.id,
       category_id: expenseForm.category_id,
       amount: Number(expenseForm.amount),
-      distribution_key: expenseForm.distribution_key || 'equal',
+      distribution_key: expenseForm.distribution_key || 'units',
       expense_date: expenseForm.expense_date,
       period_month: Number(expenseForm.period_month) || null,
       period_year: Number(expenseForm.period_year) || null,
@@ -315,18 +322,39 @@ export default function Expenses() {
       ? { ...base, apartment_id: null, building_id: expenseForm.building_id }
       : { ...base, apartment_id: expenseForm.apartment_id, building_id: null }
 
+    const isConsumption = isConsumptionKey(expenseForm.distribution_key)
+
+    let expenseId = editingExpense?.id
     if (editingExpense) {
       const { error } = await supabase.from('property_expenses').update(record).eq('id', editingExpense.id)
       if (error) { showToast(error.message, 'error'); return }
-      showToast(t('expenses.expenseModal.toasts.updated'), 'success')
-      setShowExpenseModal(false)
-      loadExpenses()
-      return
+    } else {
+      const { data, error } = await supabase.from('property_expenses').insert(record).select('id').single()
+      if (error) { showToast(error.message, 'error'); return }
+      expenseId = data?.id
     }
 
-    const { error } = await supabase.from('property_expenses').insert(record)
-    if (error) { showToast(error.message, 'error'); return }
-    showToast(t('expenses.expenseModal.toasts.added'), 'success')
+    // meter_readings senkronizasyonu — kwh/m3 ise upsert et, değilse mevcutları sil.
+    if (expenseId) {
+      // Önce mevcut tüm reading'leri sil; ardından yeniden insert (transaction yok,
+      // ama tek expense_id altında küçük bir küme — race risk minimal).
+      await supabase.from('expense_meter_readings').delete().eq('expense_id', expenseId)
+      if (isConsumption && isBuilding) {
+        const rows = Object.entries(expenseForm.meter_readings || {})
+          .filter(([, v]) => v !== '' && v != null && Number(v) > 0)
+          .map(([apartment_id, reading]) => ({
+            expense_id: expenseId,
+            apartment_id,
+            reading: Number(reading) || 0,
+          }))
+        if (rows.length > 0) {
+          const { error: rdErr } = await supabase.from('expense_meter_readings').insert(rows)
+          if (rdErr) { showToast(rdErr.message, 'error'); return }
+        }
+      }
+    }
+
+    showToast(t(editingExpense ? 'expenses.expenseModal.toasts.updated' : 'expenses.expenseModal.toasts.added'), 'success')
     setShowExpenseModal(false)
     loadExpenses()
   }
@@ -410,7 +438,7 @@ export default function Expenses() {
       ...prev,
       category_id: catId,
       is_tenant_billed: cat ? cat.is_tenant_billable : false,
-      distribution_key: cat?.default_distribution_key || prev.distribution_key || 'equal'
+      distribution_key: cat?.default_distribution_key || prev.distribution_key || 'units'
     }))
   }
 
@@ -908,7 +936,7 @@ export default function Expenses() {
                                 </span>
                               </div>
                               {group.buildingScope.map((exp, idx) => {
-                                const dkKey = exp.distribution_key || 'equal'
+                                const dkKey = exp.distribution_key || 'units'
                                 const dk = getDistributionKey(dkKey)
                                 const DKIcon = dk.Icon
                                 return (
@@ -1311,7 +1339,7 @@ export default function Expenses() {
                     )}
                   </label>
                   <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+                    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6,
                     background: '#FAFBFC', border: `1.5px solid ${C.border}`,
                     borderRadius: 10, padding: 4
                   }}>
@@ -1342,6 +1370,81 @@ export default function Expenses() {
                   </div>
                 </div>
 
+                {/* Meter readings — yalnızca kwh/m³ + Bina kapsamı için */}
+                {isConsumptionKey(expenseForm.distribution_key) && expenseForm.scope === 'building' && expenseForm.building_id && (() => {
+                  const bldApts = apartments.filter(a => a.building_id === expenseForm.building_id)
+                  if (bldApts.length === 0) return null
+                  const dk = DISTRIBUTION_KEYS[expenseForm.distribution_key]
+                  const total = bldApts.reduce((s, a) => s + (Number(expenseForm.meter_readings?.[a.id]) || 0), 0)
+                  const amount = Number(expenseForm.amount) || 0
+                  return (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={labelStyle}>
+                        {t('expenses.expenseModal.meterReadingsLabel', { unit: dk.unit })}
+                      </label>
+                      <div style={{
+                        background: '#FAFBFC', border: `1.5px solid ${C.border}`,
+                        borderRadius: 10, padding: 12,
+                        display: 'flex', flexDirection: 'column', gap: 8
+                      }}>
+                        {bldApts.map(a => {
+                          const reading = expenseForm.meter_readings?.[a.id] ?? ''
+                          const r = Number(reading) || 0
+                          const share = total > 0 && r > 0 && amount > 0
+                            ? (amount * (r / total))
+                            : null
+                          const label = a.floor_no && a.unit_no
+                            ? `${a.floor_no} · ${a.unit_no}`
+                            : (a.floor_no || a.unit_no || '—')
+                          return (
+                            <div key={a.id} style={{
+                              display: 'grid', gridTemplateColumns: '1fr 110px 90px',
+                              gap: 10, alignItems: 'center'
+                            }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, minWidth: 0,
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {label}
+                              </div>
+                              <input
+                                type="number" min="0" step="0.001" placeholder="0"
+                                value={reading}
+                                onChange={e => setExpenseForm(prev => ({
+                                  ...prev,
+                                  meter_readings: { ...(prev.meter_readings || {}), [a.id]: e.target.value }
+                                }))}
+                                style={{ ...inputStyle, padding: '7px 10px', fontSize: 13 }}
+                              />
+                              <div style={{
+                                fontSize: 12, fontWeight: 600,
+                                color: share != null ? C.teal : C.textFaint,
+                                fontVariantNumeric: 'tabular-nums', textAlign: 'right'
+                              }}>
+                                {share != null ? share.toFixed(2) : '—'}
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div style={{
+                          display: 'grid', gridTemplateColumns: '1fr 110px 90px',
+                          gap: 10, paddingTop: 8, borderTop: `1px dashed ${C.border}`,
+                          fontSize: 12, fontWeight: 700, color: C.textMuted
+                        }}>
+                          <div>{t('expenses.expenseModal.meterTotal', { unit: dk.unit })}</div>
+                          <div style={{ textAlign: 'left' }}>{total.toFixed(2)}</div>
+                          <div style={{ textAlign: 'right', color: C.teal }}>
+                            {amount > 0 ? amount.toFixed(2) : '—'}
+                          </div>
+                        </div>
+                        {total === 0 && (
+                          <div style={{ fontSize: 11, color: C.amber, marginTop: 4 }}>
+                            {t('expenses.expenseModal.meterEmptyHint')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* Amount */}
                 <div>
                   <label style={labelStyle}>{t('expenses.expenseModal.amount')} *</label>
@@ -1364,7 +1467,7 @@ export default function Expenses() {
                         <ChevronRight size={12} />
                         {t('expenses.expenseModal.sharePreview', {
                           count,
-                          keyLabel: t(`distributionKeys.${expenseForm.distribution_key || 'equal'}.label`).toLowerCase()
+                          keyLabel: t(`distributionKeys.${expenseForm.distribution_key || 'units'}.label`).toLowerCase()
                         })}
                       </div>
                     )
@@ -2042,7 +2145,7 @@ export default function Expenses() {
                           ) : (
                             abrechnungData.byCategory.map((cat, i) => {
                               const isAptScope = !cat.isBuildingScope
-                              const dkLabel = t(`distributionKeys.${cat.distKey || 'equal'}.label`)
+                              const dkLabel = t(`distributionKeys.${cat.distKey || 'units'}.label`)
                               const anahtarText = isAptScope
                                 ? t('expenses.abrechnung.billable.apartmentScope')
                                 : `${dkLabel} · ${cat.keyLabel}`
@@ -2102,7 +2205,7 @@ export default function Expenses() {
                             </div>
                           ) : (
                             abrechnungData.byCategory.map((cat, i) => {
-                              const dkLabel = t(`distributionKeys.${cat.distKey || 'equal'}.label`)
+                              const dkLabel = t(`distributionKeys.${cat.distKey || 'units'}.label`)
                               const catKey = `${cat.name}__${i}`
                               const open = expandedAbrechnungCats.has(catKey)
                               const isAptScope = !cat.isBuildingScope

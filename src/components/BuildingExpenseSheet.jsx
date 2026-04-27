@@ -86,7 +86,7 @@ export default function BuildingExpenseSheet({
       categories.forEach(c => {
         init[c.id] = {
           amount: '',
-          distKey: c.default_distribution_key || 'equal',
+          distKey: c.default_distribution_key || 'units',
           isBillable: !!c.is_tenant_billable,
           existingId: null,
         }
@@ -95,7 +95,7 @@ export default function BuildingExpenseSheet({
         if (init[r.category_id]) {
           init[r.category_id] = {
             amount: String(r.amount ?? ''),
-            distKey: r.distribution_key || 'equal',
+            distKey: r.distribution_key || 'units',
             isBillable: !!r.is_tenant_billed,
             existingId: r.id,
           }
@@ -155,7 +155,7 @@ export default function BuildingExpenseSheet({
         period_month: month,
         period_year: year,
         is_tenant_billed: row.isBillable,
-        distribution_key: row.distKey || 'equal',
+        distribution_key: row.distKey || 'units',
         notes: '',
       }
 
@@ -317,7 +317,7 @@ export default function BuildingExpenseSheet({
             </div>
 
             {categories.map(cat => {
-              const row = rows[cat.id] || { amount: '', distKey: 'equal', isBillable: false }
+              const row = rows[cat.id] || { amount: '', distKey: 'units', isBillable: false }
               const keyInfo = getDistributionKey(row.distKey)
               const hasAmount = row.amount !== '' && Number(row.amount) > 0
               return (

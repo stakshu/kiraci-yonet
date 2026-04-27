@@ -509,7 +509,7 @@ function ApartmentBreakdown({ data, t }) {
             </td></tr>
           ) : rows.map((r, i) => {
             const isAptScope = !r.isBuildingScope
-            const dkLabel = t(`distributionKeys.${r.distKey || 'equal'}.label`)
+            const dkLabel = t(`distributionKeys.${r.distKey || 'units'}.label`)
             const keyText = isAptScope
               ? t('invoice.tableApt.apartmentScope')
               : `${dkLabel} · ${r.keyLabel || ''}`
@@ -575,7 +575,7 @@ function BuildingBreakdown({ data, t, aptLabelText }) {
           ) : cats.map((c, i) => (
             <tr key={i}>
               <td style={{ fontWeight: 500 }}>{c.name}</td>
-              <td className="key">{t(`distributionKeys.${c.distKey || 'equal'}.label`)}</td>
+              <td className="key">{t(`distributionKeys.${c.distKey || 'units'}.label`)}</td>
               <td className="num" style={{ fontWeight: 600 }}>{formatMoney(c.total)}</td>
             </tr>
           ))}

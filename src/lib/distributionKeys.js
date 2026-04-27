@@ -1,14 +1,6 @@
-import { Ruler, Users, Home, Divide } from 'lucide-react'
+import { Ruler, Users, Home, Zap, Droplets } from 'lucide-react'
 
 export const DISTRIBUTION_KEYS = {
-  equal: {
-    label: 'Eşit Pay',
-    short: 'Eşit',
-    Icon: Divide,
-    unit: 'daire',
-    chipBg: 'rgba(100,116,139,0.10)',
-    chipFg: '#475569',
-  },
   area: {
     label: 'Konut Alanı (m²)',
     short: 'm²',
@@ -33,10 +25,32 @@ export const DISTRIBUTION_KEYS = {
     chipBg: 'rgba(139,92,246,0.10)',
     chipFg: '#7C3AED',
   },
+  kwh: {
+    label: 'Tüketim (kWh)',
+    short: 'kWh',
+    Icon: Zap,
+    unit: 'kWh',
+    chipBg: 'rgba(217,119,6,0.10)',
+    chipFg: '#D97706',
+    consumptionBased: true,
+  },
+  m3: {
+    label: 'Tüketim (m³)',
+    short: 'm³',
+    Icon: Droplets,
+    unit: 'm³',
+    chipBg: 'rgba(14,165,233,0.10)',
+    chipFg: '#0EA5E9',
+    consumptionBased: true,
+  },
 }
 
-export const DISTRIBUTION_KEY_ORDER = ['equal', 'area', 'persons', 'units']
+export const DISTRIBUTION_KEY_ORDER = ['area', 'persons', 'units', 'kwh', 'm3']
+
+// kwh / m³ için her dairenin sayaç okumasının girilmesi gerekiyor.
+export const CONSUMPTION_KEYS = ['kwh', 'm3']
+export const isConsumptionKey = (k) => CONSUMPTION_KEYS.includes(k)
 
 export function getDistributionKey(k) {
-  return DISTRIBUTION_KEYS[k] || DISTRIBUTION_KEYS.equal
+  return DISTRIBUTION_KEYS[k] || DISTRIBUTION_KEYS.units
 }

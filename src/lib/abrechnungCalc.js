@@ -17,7 +17,10 @@ const fmt2 = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits:
 
 // Bina içindeki bir daireye, bir bina-kapsamlı gider kaleminden düşen pay.
 // keyLabel yalnızca sayısal oran döndürür — dil-nötrdür, UI'da t() ile çerçevelenmez.
-export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt = {} }) {
+//
+// meterReadings: { [apartmentId]: number } — yalnızca kwh / m³ anahtarları için
+// kullanılır; gider kaydının `expense_meter_readings` alt-satırlarından türetilir.
+export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt = {}, meterReadings = null }) {
   const total = nz(totalCost)
   const n = apartments?.length || 0
   if (!apt || n === 0) return { share: 0, keyLabel: '—' }
@@ -46,7 +49,21 @@ export function apartmentShare({ totalCost, key, apt, apartments, tenantsByApt =
     return { share: round2(total / n), keyLabel: `1 / ${n}` }
   }
 
-  // 'equal' ve 'units' aynı sonucu verir (tek birim = bir daire)
+  if (key === 'kwh' || key === 'm3') {
+    const unit = key === 'kwh' ? 'kWh' : 'm³'
+    const r = nz(meterReadings?.[apt.id])
+    const totalR = apartments.reduce((s, x) => s + nz(meterReadings?.[x.id]), 0)
+    if (totalR > 0 && r > 0) {
+      return {
+        share: round2(total * (r / totalR)),
+        keyLabel: `${fmt2(r)} / ${fmt2(totalR)} ${unit}`,
+      }
+    }
+    // Sayaç verisi eksikse eşit fallback — kullanıcı readings'i sonra tamamlayabilir.
+    return { share: round2(total / n), keyLabel: `1 / ${n}` }
+  }
+
+  // 'units' (ve eski 'equal') — eşit pay
   return {
     share: round2(total / n),
     keyLabel: `1 / ${n}`,
@@ -106,7 +123,7 @@ export function computeApartmentRollup({
       e.expense_categories?.name || '',
       e.expense_categories?.icon,
       e.expense_categories?.color,
-      'equal',
+      'units',
       '',
       nz(e.amount),
       nz(e.amount),
@@ -115,13 +132,21 @@ export function computeApartmentRollup({
   })
 
   bldExp.forEach(e => {
-    const distKey = e.distribution_key || 'equal'
+    const distKey = e.distribution_key || 'units'
+    // Tüketim anahtarları için ham okumaları { [aptId]: reading } formuna indirgeriz.
+    const meterReadings = Array.isArray(e.expense_meter_readings)
+      ? e.expense_meter_readings.reduce((acc, r) => {
+          acc[r.apartment_id] = nz(r.reading)
+          return acc
+        }, {})
+      : null
     const { share, keyLabel } = apartmentShare({
       totalCost: nz(e.amount),
       key: distKey,
       apt,
       apartments: buildingApts,
       tenantsByApt,
+      meterReadings,
     })
     const target = e.is_tenant_billed ? billableMap : nonBillableMap
     addRow(

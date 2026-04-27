@@ -874,10 +874,11 @@
     "emptyNone": "Noch keine bezahlten Zahlungen."
   },
   "distributionKeys": {
-    "equal": { "label": "Gleichmäßige Verteilung", "short": "Gleich" },
     "area": { "label": "Wohnfläche (m²)", "short": "m²" },
     "persons": { "label": "Personenzahl", "short": "Personen" },
-    "units": { "label": "Wohneinheiten", "short": "WE" }
+    "units": { "label": "Wohneinheiten", "short": "WE" },
+    "kwh": { "label": "Verbrauch (kWh)", "short": "kWh" },
+    "m3": { "label": "Verbrauch (m³)", "short": "m³" }
   },
   "expenses": {
     "title": "Kostenverwaltung",
@@ -945,6 +946,9 @@
       "amount": "Betrag",
       "amountPlaceholder": "0,00",
       "sharePreview": "Wird auf {{count}} Wohnungen nach {{keyLabel}} verteilt",
+      "meterReadingsLabel": "Zählerstände ({{unit}})",
+      "meterTotal": "Summe ({{unit}})",
+      "meterEmptyHint": "Keine Zählerstände erfasst — Betrag wird gleichmäßig verteilt.",
       "date": "Datum",
       "periodMonth": "Abrechnungsmonat",
       "periodYear": "Abrechnungsjahr",

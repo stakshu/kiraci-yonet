@@ -874,10 +874,11 @@
     "emptyNone": "No paid payments yet."
   },
   "distributionKeys": {
-    "equal": { "label": "Equal share", "short": "Equal" },
     "area": { "label": "Living area (m²)", "short": "m²" },
     "persons": { "label": "Number of persons", "short": "Persons" },
-    "units": { "label": "Number of units", "short": "Units" }
+    "units": { "label": "Number of units", "short": "Units" },
+    "kwh": { "label": "Consumption (kWh)", "short": "kWh" },
+    "m3": { "label": "Consumption (m³)", "short": "m³" }
   },
   "expenses": {
     "title": "Expense management",
@@ -945,6 +946,9 @@
       "amount": "Amount",
       "amountPlaceholder": "0.00",
       "sharePreview": "Will be split across {{count}} apartments by {{keyLabel}}",
+      "meterReadingsLabel": "Meter Readings ({{unit}})",
+      "meterTotal": "Total ({{unit}})",
+      "meterEmptyHint": "No meter readings entered — the amount will fall back to an equal split.",
       "date": "Date",
       "periodMonth": "Period month",
       "periodYear": "Period year",

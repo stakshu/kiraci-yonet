@@ -871,10 +871,11 @@
     "emptyNone": "Henüz ödenmiş ödeme yok."
   },
   "distributionKeys": {
-    "equal": { "label": "Eşit Pay", "short": "Eşit" },
     "area": { "label": "Konut Alanı (m²)", "short": "m²" },
     "persons": { "label": "Kişi Sayısı", "short": "Kişi" },
-    "units": { "label": "Daire Sayısı", "short": "Daire" }
+    "units": { "label": "Daire Sayısı", "short": "Daire" },
+    "kwh": { "label": "Tüketim (kWh)", "short": "kWh" },
+    "m3": { "label": "Tüketim (m³)", "short": "m³" }
   },
   "expenses": {
     "title": "Gider Yönetimi",
@@ -942,6 +943,9 @@
       "amount": "Tutar",
       "amountPlaceholder": "0,00",
       "sharePreview": "{{count}} daireye {{keyLabel}} üzerinden paylaştırılacak",
+      "meterReadingsLabel": "Sayaç Okumaları ({{unit}})",
+      "meterTotal": "Toplam ({{unit}})",
+      "meterEmptyHint": "Tüm dairelerin sayacı boş — bu durumda tutar eşit bölüştürülür.",
       "date": "Tarih",
       "periodMonth": "Dönem Ayı",
       "periodYear": "Dönem Yılı",
