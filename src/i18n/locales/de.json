@@ -229,6 +229,9 @@
       "water": "Wasser",
       "notSet": "Nicht hinterlegt"
     },
+    "maintenanceTooltip": {
+      "openIssues": "{{count}} offene(r) Fall"
+    },
     "aptModal": {
       "titleAdd": "Neue Einheit anlegen",
       "titleEdit": "Einheit bearbeiten",
@@ -1298,7 +1301,7 @@
     },
     "kpi": {
       "open": "Offen",
-      "inProgress": "In Bearbeitung",
+      "totalResolved": "Gesamt erledigt",
       "resolvedThisMonth": "Diesen Monat erledigt",
       "totalCost": "Gesamtkosten"
     },

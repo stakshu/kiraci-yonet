@@ -229,6 +229,9 @@
       "water": "Water",
       "notSet": "Not set"
     },
+    "maintenanceTooltip": {
+      "openIssues": "{{count}} open issue(s)"
+    },
     "aptModal": {
       "titleAdd": "Add new unit",
       "titleEdit": "Edit unit",
@@ -1298,7 +1301,7 @@
     },
     "kpi": {
       "open": "Open",
-      "inProgress": "In Progress",
+      "totalResolved": "Total Resolved",
       "resolvedThisMonth": "Resolved This Month",
       "totalCost": "Total Cost"
     },

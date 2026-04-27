@@ -24,9 +24,11 @@ const C = {
   border: '#E5E7EB', borderLight: '#F1F5F9', card: '#FFFFFF',
 }
 
+// Eski 'in_progress' kayıtları DB'de hâlâ olabilir — UI'da onları "Açık" gibi
+// göster, ama listeden seçtirme. Yeni akış: open → resolved (veya cancelled).
 const STATUS_COLOR = {
   open:        { fg: '#DC2626', bg: '#FEF2F2', border: '#FCA5A5' },
-  in_progress: { fg: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+  in_progress: { fg: '#DC2626', bg: '#FEF2F2', border: '#FCA5A5' },
   resolved:    { fg: '#059669', bg: '#F0FDF4', border: '#A7F3D0' },
   cancelled:   { fg: '#64748B', bg: '#F1F5F9', border: '#CBD5E1' },
 }
@@ -39,14 +41,14 @@ const PRIORITY_COLOR = {
 }
 
 const STATUS_FLOW = {
-  open:        'in_progress',
+  open:        'resolved',
   in_progress: 'resolved',
   resolved:    null,
   cancelled:   null,
 }
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent']
-const STATUSES   = ['open', 'in_progress', 'resolved', 'cancelled']
+const STATUSES   = ['open', 'resolved', 'cancelled']
 
 const EMPTY_FORM = {
   building_id: '',
@@ -237,12 +239,15 @@ export default function MaintenanceIssues() {
   const ymCurrent = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
   const kpi = useMemo(() => {
-    const k = { open: 0, inProgress: 0, resolvedThisMonth: 0, totalCost: 0 }
+    const k = { open: 0, totalResolved: 0, resolvedThisMonth: 0, totalCost: 0 }
     issues.forEach(i => {
-      if (i.status === 'open') k.open++
-      else if (i.status === 'in_progress') k.inProgress++
-      else if (i.status === 'resolved' && (i.resolved_at || '').startsWith(ymCurrent)) k.resolvedThisMonth++
-      if (i.status === 'in_progress' || i.status === 'resolved') k.totalCost += Number(i.cost) || 0
+      // Eski 'in_progress' kayıtları "Açık" sayılıyor.
+      if (i.status === 'open' || i.status === 'in_progress') k.open++
+      else if (i.status === 'resolved') {
+        k.totalResolved++
+        if ((i.resolved_at || '').startsWith(ymCurrent)) k.resolvedThisMonth++
+      }
+      if (i.status === 'resolved') k.totalCost += Number(i.cost) || 0
     })
     return k
   }, [issues, ymCurrent])
@@ -308,8 +313,8 @@ export default function MaintenanceIssues() {
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14,
       }}>
         <KpiCard label={t('maintenance.kpi.open')} value={kpi.open} color={STATUS_COLOR.open.fg} icon={AlertTriangle} bg="#FEF2F2" />
-        <KpiCard label={t('maintenance.kpi.inProgress')} value={kpi.inProgress} color={STATUS_COLOR.in_progress.fg} icon={Clock} bg="#FFFBEB" />
-        <KpiCard label={t('maintenance.kpi.resolvedThisMonth')} value={kpi.resolvedThisMonth} color={STATUS_COLOR.resolved.fg} icon={CheckCircle2} bg="#F0FDF4" />
+        <KpiCard label={t('maintenance.kpi.totalResolved')} value={kpi.totalResolved} color={STATUS_COLOR.resolved.fg} icon={CheckCircle2} bg="#F0FDF4" />
+        <KpiCard label={t('maintenance.kpi.resolvedThisMonth')} value={kpi.resolvedThisMonth} color={STATUS_COLOR.resolved.fg} icon={Clock} bg="#F0FDF4" />
         <KpiCard label={t('maintenance.kpi.totalCost')} value={formatMoney(kpi.totalCost)} color={C.teal} icon={Wrench} bg="#F0FDFA" small />
       </motion.div>
 

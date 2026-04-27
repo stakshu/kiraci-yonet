@@ -9,7 +9,7 @@ import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
-  ArrowLeft, AlertCircle, UserPlus, Home, Zap, Droplets
+  ArrowLeft, AlertCircle, UserPlus, Home, Zap, Droplets, Wrench
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -74,19 +74,27 @@ export default function BuildingDetail() {
   const [inactiveTenants, setInactiveTenants] = useState([])
   const [loadingInactive, setLoadingInactive] = useState(false)
   const [existingTenantId, setExistingTenantId] = useState('')
+  // Açık arızalar — daire satırına kırmızı uyarı için.
+  const [openIssues, setOpenIssues] = useState([])
 
   useEffect(() => { loadData() }, [id])
 
   const loadData = async () => {
     setLoading(true); setError(null)
-    const [bldRes, aptRes, payRes] = await Promise.all([
+    const [bldRes, aptRes, payRes, issuesRes] = await Promise.all([
       supabase.from('buildings').select('*').eq('id', id).maybeSingle(),
       supabase.from('apartments')
         .select('*, tenants(id, full_name, email, lease_start, lease_end, rent)')
         .eq('building_id', id)
         .order('floor_no', { ascending: true })
         .order('unit_no', { ascending: true }),
-      supabase.from('rent_payments').select('id, tenant_id, due_date, status, amount')
+      supabase.from('rent_payments').select('id, tenant_id, due_date, status, amount'),
+      // Eski 'in_progress' kayıtları da açık sayılır (geriye uyum).
+      supabase.from('maintenance_issues')
+        .select('id, apartment_id, title, priority, reported_at, status')
+        .eq('building_id', id)
+        .in('status', ['open', 'in_progress'])
+        .order('reported_at', { ascending: false }),
     ])
     if (bldRes.error) { setError(bldRes.error.message); setLoading(false); return }
     if (!bldRes.data) {
@@ -97,8 +105,20 @@ export default function BuildingDetail() {
     setBuilding(bldRes.data)
     setApartments(aptRes.data || [])
     setPayments(payRes.data || [])
+    setOpenIssues(issuesRes.data || [])
     setLoading(false)
   }
+
+  // Daire başına açık arıza listesi (apartment_id = null olanlar bina-genelidir, kart başlığında değil)
+  const issuesByApt = useMemo(() => {
+    const m = {}
+    openIssues.forEach(i => {
+      if (!i.apartment_id) return
+      if (!m[i.apartment_id]) m[i.apartment_id] = []
+      m[i.apartment_id].push(i)
+    })
+    return m
+  }, [openIssues])
 
   const openBldEdit = () => {
     const u = building.utilities || {}
@@ -638,6 +658,9 @@ export default function BuildingDetail() {
                     {isOccupied ? t('buildingDetail.table.occupied') : t('buildingDetail.table.vacant')}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{label}</div>
+                  {issuesByApt[apt.id]?.length > 0 && (
+                    <MaintenanceBadge issues={issuesByApt[apt.id]} t={t} />
+                  )}
                 </div>
                 <div>
                   {tenant ? (
@@ -1217,6 +1240,86 @@ export default function BuildingDetail() {
                 </div>
               </form>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ─── Daire satırında açık arıza uyarısı + hover info paneli ─── */
+function MaintenanceBadge({ issues, t }) {
+  const [hover, setHover] = useState(false)
+  const PRIORITY_COLOR = {
+    urgent: '#DC2626', high: '#D97706', normal: '#64748B', low: '#94A3B8',
+  }
+  const count = issues.length
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '3px 8px', borderRadius: 6,
+        background: '#FEF2F2', color: '#DC2626',
+        border: '1px solid #FCA5A5',
+        fontSize: 11, fontWeight: 700, cursor: 'help',
+        flexShrink: 0,
+      }}
+    >
+      <Wrench style={{ width: 11, height: 11 }} />
+      <span>{count}</span>
+
+      <AnimatePresence>
+        {hover && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+              minWidth: 280, maxWidth: 360,
+              background: '#0F172A', color: '#fff',
+              borderRadius: 10, padding: '10px 12px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+              fontSize: 12, lineHeight: 1.4,
+              zIndex: 50,
+              cursor: 'default',
+              pointerEvents: 'none',
+            }}
+          >
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: '#FCA5A5',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: 6,
+            }}>
+              {t('buildingDetail.maintenanceTooltip.openIssues', { count })}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {issues.map(issue => (
+                <div key={issue.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    background: PRIORITY_COLOR[issue.priority] || PRIORITY_COLOR.normal,
+                    marginTop: 6,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {issue.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>
+                      {t(`maintenance.priority.${issue.priority}`)}
+                      {issue.reported_at && (
+                        <> · {new Date(issue.reported_at).toLocaleDateString()}</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

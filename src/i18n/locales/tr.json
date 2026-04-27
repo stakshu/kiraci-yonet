@@ -229,6 +229,9 @@
       "water": "Su",
       "notSet": "Girilmedi"
     },
+    "maintenanceTooltip": {
+      "openIssues": "{{count}} açık arıza"
+    },
     "aptModal": {
       "titleAdd": "Yeni Daire Ekle",
       "titleEdit": "Daireyi Düzenle",
@@ -1295,7 +1298,7 @@
     },
     "kpi": {
       "open": "Açık",
-      "inProgress": "Devam Eden",
+      "totalResolved": "Toplam Çözülen",
       "resolvedThisMonth": "Bu Ay Çözülen",
       "totalCost": "Toplam Maliyet"
     },
