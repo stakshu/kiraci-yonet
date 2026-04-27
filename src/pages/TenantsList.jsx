@@ -667,6 +667,8 @@ export default function TenantsList() {
                       <input style={inputStyle} type="date" value={form.lease_end} onChange={e => UF('lease_end', e.target.value)} />
                     </div>
                   </div>
+                  {/* Warmmiete operasyonel: kira ve aidat aylık birleşik ödeme. Yan yana
+                      durmaları mantıken doğru — depozito IBAN'la finansal blokta. */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
                       <label style={labelStyle}>{t('tenantsList.modal.monthlyRent')}</label>
@@ -674,9 +676,9 @@ export default function TenantsList() {
                         value={form.rent} onChange={e => UF('rent', e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>{t('tenantsList.modal.deposit')}</label>
-                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
-                        value={form.deposit} onChange={e => UF('deposit', e.target.value)} />
+                      <label style={labelStyle}>{t('tenantsList.modal.nebenkosten')}</label>
+                      <input style={inputStyle} type="number" min="0" step="0.01" placeholder={t('tenantsList.modal.nebenkostenPh')}
+                        value={form.nebenkosten_vorauszahlung} onChange={e => UF('nebenkosten_vorauszahlung', e.target.value)} />
                     </div>
                   </div>
                   {/* ── Acil Durum Kişisi ── */}
@@ -710,9 +712,9 @@ export default function TenantsList() {
                           value={form.iban} onChange={e => UF('iban', e.target.value)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>{t('tenantsList.modal.nebenkosten')}</label>
-                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder={t('tenantsList.modal.nebenkostenPh')}
-                          value={form.nebenkosten_vorauszahlung} onChange={e => UF('nebenkosten_vorauszahlung', e.target.value)} />
+                        <label style={labelStyle}>{t('tenantsList.modal.deposit')}</label>
+                        <input style={inputStyle} type="number" min="0" step="0.01" placeholder="0"
+                          value={form.deposit} onChange={e => UF('deposit', e.target.value)} />
                       </div>
                     </div>
                   </div>
