@@ -9,7 +9,7 @@ import { getBuildingType, isMultiUnit } from '../lib/buildingTypes'
 import { formatMoney, formatDate as fmtDate } from '../i18n/formatters'
 import {
   Building2, Plus, Pencil, Trash2, X, Check,
-  ArrowLeft, AlertCircle, UserPlus, Home, UserCheck
+  ArrowLeft, AlertCircle, UserPlus, Home
 } from 'lucide-react'
 
 const font = "'Plus Jakarta Sans', system-ui, sans-serif"
@@ -66,7 +66,8 @@ export default function BuildingDetail() {
     lease_start: '', lease_end: '', rent: '', deposit: ''
   })
   const [savingTenant, setSavingTenant] = useState(false)
-  const [tenantMode, setTenantMode] = useState('new') // 'new' | 'existing'
+  // Bu modal yalnızca mevcut (status='inactive') kiracıları daireye atar.
+  // Yeni kiracı oluşturma akışı Kiracılar sayfasında.
   const [inactiveTenants, setInactiveTenants] = useState([])
   const [existingTenantId, setExistingTenantId] = useState('')
 
@@ -209,7 +210,6 @@ export default function BuildingDetail() {
     setTenantAptId(aptId)
     setTenantAptName(aptName)
     setTenantForm({ full_name: '', email: '', phone: '', tc_no: '', lease_start: '', lease_end: '', rent: '', deposit: '' })
-    setTenantMode('new')
     setExistingTenantId('')
     loadInactiveTenants()
     setShowTenantPopup(true)
@@ -237,37 +237,24 @@ export default function BuildingDetail() {
     const leaseStart = tenantForm.lease_start || null
     const leaseEnd = tenantForm.lease_end || null
 
-    let tenantId = null
-
-    if (tenantMode === 'existing') {
-      if (!existingTenantId) { showToast(t('buildingDetail.toasts.selectInactiveRequired'), 'error'); setSavingTenant(false); return }
-      const { error: updErr } = await supabase
-        .from('tenants')
-        .update({
-          apartment_id: tenantAptId,
-          lease_start: leaseStart,
-          lease_end: leaseEnd,
-          rent: rentAmount,
-          deposit: parseFloat(tenantForm.deposit) || 0,
-          status: 'active'
-        })
-        .eq('id', existingTenantId)
-      if (updErr) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: updErr.message }), 'error'); setSavingTenant(false); return }
-      tenantId = existingTenantId
-    } else {
-      const record = {
-        user_id: session.user.id, full_name: tenantForm.full_name.trim(),
-        email: tenantForm.email.trim(), phone: tenantForm.phone.trim(),
-        tc_no: tenantForm.tc_no.trim(), apartment_id: tenantAptId,
-        lease_start: leaseStart, lease_end: leaseEnd,
+    if (!existingTenantId) {
+      showToast(t('buildingDetail.toasts.selectInactiveRequired'), 'error')
+      setSavingTenant(false)
+      return
+    }
+    const { error: updErr } = await supabase
+      .from('tenants')
+      .update({
+        apartment_id: tenantAptId,
+        lease_start: leaseStart,
+        lease_end: leaseEnd,
         rent: rentAmount,
         deposit: parseFloat(tenantForm.deposit) || 0,
         status: 'active'
-      }
-      const result = await supabase.from('tenants').insert(record).select()
-      if (result.error) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: result.error.message }), 'error'); setSavingTenant(false); return }
-      tenantId = result.data?.[0]?.id
-    }
+      })
+      .eq('id', existingTenantId)
+    if (updErr) { showToast(t('buildingDetail.toasts.errorPrefix', { msg: updErr.message }), 'error'); setSavingTenant(false); return }
+    const tenantId = existingTenantId
 
     // Daireyi dolu isaretle
     await supabase.from('apartments').update({ status: 'occupied' }).eq('id', tenantAptId)
@@ -290,7 +277,7 @@ export default function BuildingDetail() {
     }
 
     setSavingTenant(false)
-    showToast(tenantMode === 'existing' ? t('buildingDetail.toasts.tenantAssigned') : t('buildingDetail.toasts.tenantAdded'), 'success')
+    showToast(t('buildingDetail.toasts.tenantAssigned'), 'success')
     setShowTenantPopup(false)
     loadData()
   }
@@ -963,144 +950,60 @@ export default function BuildingDetail() {
               </div>
 
               <form onSubmit={handleTenantSave}>
-                {/* Mode toggle */}
-                <div style={{
-                  padding: '14px 28px 0 28px',
-                  display: 'flex', gap: 6
-                }}>
-                  {[
-                    { key: 'new', label: t('buildingDetail.tenantModal.modeNew'), icon: UserPlus, count: null },
-                    { key: 'existing', label: t('buildingDetail.tenantModal.modeExisting'), icon: UserCheck, count: inactiveTenants.length }
-                  ].map(m => {
-                    const MIcon = m.icon
-                    const active = tenantMode === m.key
-                    return (
-                      <button key={m.key} type="button" onClick={() => setTenantMode(m.key)}
-                        style={{
-                          flex: 1,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                          padding: '10px 14px', borderRadius: 10,
-                          fontSize: 13, fontWeight: active ? 700 : 500,
-                          color: active ? C.teal : C.textMuted,
-                          background: active ? '#F0FDFA' : '#FAFBFC',
-                          border: `1.5px solid ${active ? '#99D8DF' : C.border}`,
-                          cursor: 'pointer', fontFamily: font,
-                          transition: 'all 0.15s'
-                        }}>
-                        <MIcon style={{ width: 14, height: 14 }} />
-                        {m.label}
-                        {m.count !== null && (
-                          <span style={{
-                            fontSize: 11, fontWeight: 700,
-                            background: active ? '#CCE4E8' : '#E2E8F0',
-                            color: active ? C.teal : C.textFaint,
-                            padding: '1px 7px', borderRadius: 6
-                          }}>{m.count}</span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-
                 <div style={{ padding: '20px 28px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {tenantMode === 'existing' ? (
-                    inactiveTenants.length === 0 ? (
+                  {inactiveTenants.length === 0 ? (
+                    <div style={{
+                      padding: '32px 16px', textAlign: 'center',
+                      background: '#FEF3C7', borderRadius: 12, border: '1px solid #FDE68A'
+                    }}>
                       <div style={{
-                        padding: '32px 16px', textAlign: 'center',
-                        background: '#FEF3C7', borderRadius: 12, border: '1px solid #FDE68A'
+                        width: 48, height: 48, borderRadius: 14, background: '#FDE68A',
+                        color: '#D97706', display: 'inline-flex', alignItems: 'center',
+                        justifyContent: 'center', marginBottom: 10
                       }}>
-                        <div style={{
-                          width: 48, height: 48, borderRadius: 14, background: '#FDE68A',
-                          color: '#D97706', display: 'inline-flex', alignItems: 'center',
-                          justifyContent: 'center', marginBottom: 10
-                        }}>
-                          <AlertCircle style={{ width: 22, height: 22 }} />
-                        </div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
-                          {t('buildingDetail.tenantModal.noInactiveTitle')}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#92400E', marginBottom: 12 }}>
-                          {t('buildingDetail.tenantModal.noInactiveSub')}
-                        </div>
-                        <button type="button" onClick={() => setTenantMode('new')}
-                          style={{
-                            padding: '8px 16px', borderRadius: 8,
-                            background: C.teal, color: 'white', border: 'none',
-                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: font
-                          }}>
-                          {t('buildingDetail.tenantModal.createNewCta')}
-                        </button>
+                        <AlertCircle style={{ width: 22, height: 22 }} />
                       </div>
-                    ) : (
-                      <>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.selectInactive')}</label>
-                          <select style={{ ...selectStyle }} required
-                            value={existingTenantId}
-                            onChange={e => selectExistingTenant(e.target.value)}>
-                            <option value="">{t('buildingDetail.tenantModal.selectInactivePh')}</option>
-                            {inactiveTenants.map(ten => (
-                              <option key={ten.id} value={ten.id}>
-                                {ten.full_name}{ten.phone ? ` · ${ten.phone}` : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        {existingTenantId && (
-                          <div style={{
-                            padding: '12px 14px', borderRadius: 10,
-                            background: '#F0FDFA', border: '1px solid #CCE4E8',
-                            display: 'flex', flexDirection: 'column', gap: 4
-                          }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>
-                              {tenantForm.full_name}
-                            </div>
-                            <div style={{ fontSize: 12, color: C.textMuted }}>
-                              {tenantForm.phone || '—'} · {tenantForm.email || '—'}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
+                        {t('buildingDetail.tenantModal.noInactiveTitle')}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#92400E' }}>
+                        {t('buildingDetail.tenantModal.noInactiveRedirect')}
+                      </div>
+                    </div>
                   ) : (
                     <>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.fullName')}</label>
-                          <input style={inputStyle} required placeholder={t('buildingDetail.tenantModal.fullNamePh')}
-                            value={tenantForm.full_name} onChange={e => updateTenantForm('full_name', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.tcNo')}</label>
-                          <input style={inputStyle} placeholder={t('buildingDetail.tenantModal.tcNoPh')}
-                            value={tenantForm.tc_no} onChange={e => updateTenantForm('tc_no', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
+                      <div>
+                        <label style={labelStyle}>{t('buildingDetail.tenantModal.selectInactive')}</label>
+                        <select style={{ ...selectStyle }} required
+                          value={existingTenantId}
+                          onChange={e => selectExistingTenant(e.target.value)}>
+                          <option value="">{t('buildingDetail.tenantModal.selectInactivePh')}</option>
+                          {inactiveTenants.map(ten => (
+                            <option key={ten.id} value={ten.id}>
+                              {ten.full_name}{ten.phone ? ` · ${ten.phone}` : ''}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.phone')}</label>
-                          <input style={inputStyle} placeholder={t('buildingDetail.tenantModal.phonePh')}
-                            value={tenantForm.phone} onChange={e => updateTenantForm('phone', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
+                      {existingTenantId && (
+                        <div style={{
+                          padding: '12px 14px', borderRadius: 10,
+                          background: '#F0FDFA', border: '1px solid #CCE4E8',
+                          display: 'flex', flexDirection: 'column', gap: 4
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>
+                            {tenantForm.full_name}
+                          </div>
+                          <div style={{ fontSize: 12, color: C.textMuted }}>
+                            {tenantForm.phone || '—'} · {tenantForm.email || '—'}
+                          </div>
                         </div>
-                        <div>
-                          <label style={labelStyle}>{t('buildingDetail.tenantModal.email')}</label>
-                          <input style={inputStyle} type="email" placeholder={t('buildingDetail.tenantModal.emailPh')}
-                            value={tenantForm.email} onChange={e => updateTenantForm('email', e.target.value)}
-                            onFocus={e => e.target.style.borderColor = C.teal}
-                            onBlur={e => e.target.style.borderColor = C.border} />
-                        </div>
-                      </div>
+                      )}
                     </>
                   )}
 
-                  {/* Ortak alanlar — hem yeni hem mevcut kiraci icin (inactive liste boş degilse) */}
-                  {!(tenantMode === 'existing' && inactiveTenants.length === 0) && (
+                  {/* Atama alanları yalnızca mevcut kiracı varsa göster */}
+                  {inactiveTenants.length > 0 && (
                     <>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         <div>
@@ -1162,9 +1065,7 @@ export default function BuildingDetail() {
                       boxShadow: '0 4px 14px rgba(2,88,100,0.25)'
                     }}>
                     <Check style={{ width: 15, height: 15 }} />
-                    {savingTenant
-                      ? t('common.saving')
-                      : (tenantMode === 'existing' ? t('buildingDetail.tenantModal.submitAssign') : t('buildingDetail.tenantModal.submitNew'))}
+                    {savingTenant ? t('common.saving') : t('buildingDetail.tenantModal.submitAssign')}
                   </motion.button>
                 </div>
               </form>
