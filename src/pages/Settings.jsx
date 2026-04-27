@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
 import {
@@ -51,10 +51,13 @@ export default function Settings() {
   const [confirmDisable, setConfirmDisable] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  // Password change state
-  const [pwCurrent, setPwCurrent] = useState('')
+  // Password change state — iki adımlı:
+  // 'enter'  : kullanıcı yeni şifre + onay yazıyor → "Devam" → e-posta kod gönder
+  // 'verify' : e-postadaki 6 haneli kodu giriyor → updateUser(password, nonce)
+  const [pwStep, setPwStep] = useState('enter')
   const [pwNew, setPwNew] = useState('')
   const [pwConfirm, setPwConfirm] = useState('')
+  const [pwCode, setPwCode] = useState('')
   const [pwShow, setPwShow] = useState(false)
   const [pwSaving, setPwSaving] = useState(false)
   const [pwError, setPwError] = useState('')
@@ -172,12 +175,12 @@ export default function Settings() {
     } catch { /* clipboard not available */ }
   }
 
-  // ── Password change ──
-  const handlePasswordChange = async (e) => {
+  // ── Password change — adım 1: e-posta kod gönder ──
+  const handleStartChange = async (e) => {
     e?.preventDefault()
     setPwError('')
 
-    if (!pwCurrent || !pwNew || !pwConfirm) {
+    if (!pwNew || !pwConfirm) {
       setPwError(t('settings.password.errors.required'))
       return
     }
@@ -189,51 +192,50 @@ export default function Settings() {
       setPwError(t('settings.password.errors.mismatch'))
       return
     }
-    if (pwCurrent === pwNew) {
-      setPwError(t('settings.password.errors.sameAsOld'))
+
+    setPwSaving(true)
+    // Supabase, kullanıcının e-postasına 6 haneli nonce gönderir.
+    // updateUser sonraki adımda bu nonce'u zorunlu kılarak doğrulamayı tamamlar.
+    const { error } = await supabase.auth.reauthenticate()
+    setPwSaving(false)
+    if (error) {
+      setPwError(error.message)
       return
     }
-    if (!user?.email) {
-      setPwError(t('settings.password.errors.unknown'))
+    setPwStep('verify')
+    setPwCode('')
+  }
+
+  // ── Password change — adım 2: kod + yeni şifre ──
+  const handleVerifyAndChange = async (e) => {
+    e?.preventDefault()
+    setPwError('')
+
+    if (!pwCode || pwCode.length !== 6) {
+      setPwError(t('settings.password.errors.codeRequired'))
       return
     }
 
     setPwSaving(true)
-
-    // 1) Mevcut şifreyi DOĞRULA — ayrı bir Supabase client'ı kurmak BroadcastChannel
-    //    üzerinden ana session'ı tetikleyebiliyor. Onun yerine doğrudan auth REST
-    //    endpoint'ine fetch atıyoruz — hiçbir client, event veya storage devrede değil.
-    //    Sadece "şu e-posta + şifre kombinasyonu geçerli mi?" sorusunu cevaplar.
-    let verifyOk = false
-    try {
-      const resp = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: user.email, password: pwCurrent }),
-      })
-      verifyOk = resp.ok
-    } catch {
-      verifyOk = false
-    }
-
-    if (!verifyOk) {
-      setPwSaving(false)
-      setPwError(t('settings.password.errors.wrongCurrent'))
-      return
-    }
-
-    // 2) Yeni şifreyi yaz — ana client ile, mevcut AAL2 session korunmuş halde.
-    const { error: updErr } = await supabase.auth.updateUser({ password: pwNew })
+    const { error } = await supabase.auth.updateUser({
+      password: pwNew,
+      nonce: pwCode,
+    })
     setPwSaving(false)
-    if (updErr) {
-      setPwError(updErr.message)
+    if (error) {
+      setPwError(error.message || t('settings.password.errors.wrongCode'))
       return
     }
-    setPwCurrent(''); setPwNew(''); setPwConfirm('')
+    setPwNew(''); setPwConfirm(''); setPwCode('')
+    setPwStep('enter')
     showToast(t('settings.password.toasts.changed'), 'success')
+  }
+
+  // İptal — kod giriş ekranından geri dön
+  const cancelVerify = () => {
+    setPwStep('enter')
+    setPwCode('')
+    setPwError('')
   }
 
   return (
@@ -363,82 +365,166 @@ export default function Settings() {
           </h2>
         </div>
 
-        <form onSubmit={handlePasswordChange} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Current */}
-          <PwField
-            label={t('settings.password.current')}
-            value={pwCurrent}
-            onChange={setPwCurrent}
-            show={pwShow}
-            placeholder="••••••••"
-            autoComplete="current-password"
-          />
-          {/* New */}
-          <PwField
-            label={t('settings.password.new')}
-            value={pwNew}
-            onChange={setPwNew}
-            show={pwShow}
-            placeholder={t('settings.password.newPh')}
-            autoComplete="new-password"
-            hint={t('settings.password.hint')}
-          />
-          {/* Confirm */}
-          <PwField
-            label={t('settings.password.confirm')}
-            value={pwConfirm}
-            onChange={setPwConfirm}
-            show={pwShow}
-            placeholder="••••••••"
-            autoComplete="new-password"
-          />
-
-          {/* Show toggle */}
-          <label style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            fontSize: 12, color: C.textMuted, cursor: 'pointer', userSelect: 'none',
-          }}>
-            <input type="checkbox" checked={pwShow}
-              onChange={e => setPwShow(e.target.checked)}
-              style={{ accentColor: C.teal, width: 14, height: 14 }} />
-            {pwShow
-              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><EyeOff size={12} /> {t('settings.password.hide')}</span>
-              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Eye size={12} /> {t('settings.password.show')}</span>}
-          </label>
-
-          {pwError && (
-            <div style={{
-              padding: '10px 12px', borderRadius: 9,
-              background: '#FEF2F2', border: '1px solid #FCA5A5',
-              fontSize: 12.5, color: C.red,
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <AlertTriangle size={14} /> {pwError}
+        {pwStep === 'enter' ? (
+          <form onSubmit={handleStartChange} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.55 }}>
+              {t('settings.password.flowIntro')}
             </div>
-          )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-            <motion.button
-              whileHover={{ scale: pwSaving ? 1 : 1.02 }}
-              whileTap={{ scale: pwSaving ? 1 : 0.98 }}
-              type="submit" disabled={pwSaving}
-              style={{
-                padding: '10px 22px', borderRadius: 9, border: 'none',
-                background: pwSaving
-                  ? '#CBD5E1'
-                  : `linear-gradient(135deg, ${C.teal}, ${C.darkTeal})`,
-                color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: font,
-                cursor: pwSaving ? 'not-allowed' : 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 7,
-                boxShadow: pwSaving ? 'none' : '0 4px 12px rgba(2,88,100,0.25)',
-              }}
-            >
-              {pwSaving
-                ? <><Loader2 size={14} className="animate-spin" /> {t('settings.password.saving')}</>
-                : <><Check size={14} /> {t('settings.password.save')}</>}
-            </motion.button>
-          </div>
-        </form>
+            <PwField
+              label={t('settings.password.new')}
+              value={pwNew}
+              onChange={setPwNew}
+              show={pwShow}
+              placeholder={t('settings.password.newPh')}
+              autoComplete="new-password"
+              hint={t('settings.password.hint')}
+            />
+            <PwField
+              label={t('settings.password.confirm')}
+              value={pwConfirm}
+              onChange={setPwConfirm}
+              show={pwShow}
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
+
+            <label style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontSize: 12, color: C.textMuted, cursor: 'pointer', userSelect: 'none',
+            }}>
+              <input type="checkbox" checked={pwShow}
+                onChange={e => setPwShow(e.target.checked)}
+                style={{ accentColor: C.teal, width: 14, height: 14 }} />
+              {pwShow
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><EyeOff size={12} /> {t('settings.password.hide')}</span>
+                : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Eye size={12} /> {t('settings.password.show')}</span>}
+            </label>
+
+            {pwError && (
+              <div style={{
+                padding: '10px 12px', borderRadius: 9,
+                background: '#FEF2F2', border: '1px solid #FCA5A5',
+                fontSize: 12.5, color: C.red,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <AlertTriangle size={14} /> {pwError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+              <motion.button
+                whileHover={{ scale: pwSaving ? 1 : 1.02 }}
+                whileTap={{ scale: pwSaving ? 1 : 0.98 }}
+                type="submit" disabled={pwSaving}
+                style={{
+                  padding: '10px 22px', borderRadius: 9, border: 'none',
+                  background: pwSaving
+                    ? '#CBD5E1'
+                    : `linear-gradient(135deg, ${C.teal}, ${C.darkTeal})`,
+                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: font,
+                  cursor: pwSaving ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  boxShadow: pwSaving ? 'none' : '0 4px 12px rgba(2,88,100,0.25)',
+                }}
+              >
+                {pwSaving
+                  ? <><Loader2 size={14} className="animate-spin" /> {t('settings.password.sending')}</>
+                  : <>{t('settings.password.continue')}</>}
+              </motion.button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyAndChange} style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{
+              padding: '12px 14px', borderRadius: 10,
+              background: '#F0FDFA', border: '1px solid #99D8DF',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: C.teal, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <ShieldCheck size={15} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.text, lineHeight: 1.45 }}>
+                {t('settings.password.codeSentTo', { email: user?.email || '—' })}
+              </div>
+            </div>
+
+            <div>
+              <label style={{
+                display: 'block', fontSize: 11, fontWeight: 700, color: C.textMuted,
+                textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8,
+              }}>
+                {t('settings.password.codeLabel')}
+              </label>
+              <input
+                type="text" inputMode="numeric" autoComplete="one-time-code"
+                maxLength={6} placeholder="123456"
+                value={pwCode}
+                onChange={e => { setPwCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPwError('') }}
+                autoFocus
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  border: `1.5px solid ${pwError ? '#FCA5A5' : C.border}`,
+                  fontSize: 22, fontWeight: 700,
+                  fontFamily: 'ui-monospace, monospace',
+                  letterSpacing: '0.4em', textAlign: 'center',
+                  outline: 'none', boxSizing: 'border-box',
+                  background: '#FAFBFC',
+                }}
+              />
+              <div style={{ marginTop: 6, fontSize: 11, color: C.textFaint }}>
+                {t('settings.password.codeHint')}
+              </div>
+            </div>
+
+            {pwError && (
+              <div style={{
+                padding: '10px 12px', borderRadius: 9,
+                background: '#FEF2F2', border: '1px solid #FCA5A5',
+                fontSize: 12.5, color: C.red,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <AlertTriangle size={14} /> {pwError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+              <button type="button" onClick={cancelVerify} disabled={pwSaving}
+                style={{
+                  padding: '9px 16px', borderRadius: 9,
+                  border: `1.5px solid ${C.border}`, background: '#fff',
+                  color: C.textMuted, fontSize: 13, fontWeight: 600, fontFamily: font,
+                  cursor: pwSaving ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {t('settings.password.cancelVerify')}
+              </button>
+              <motion.button
+                whileHover={{ scale: pwSaving || pwCode.length !== 6 ? 1 : 1.02 }}
+                whileTap={{ scale: pwSaving || pwCode.length !== 6 ? 1 : 0.98 }}
+                type="submit" disabled={pwSaving || pwCode.length !== 6}
+                style={{
+                  padding: '10px 22px', borderRadius: 9, border: 'none',
+                  background: (pwSaving || pwCode.length !== 6)
+                    ? '#CBD5E1'
+                    : `linear-gradient(135deg, ${C.teal}, ${C.darkTeal})`,
+                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: font,
+                  cursor: (pwSaving || pwCode.length !== 6) ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  boxShadow: (pwSaving || pwCode.length !== 6) ? 'none' : '0 4px 12px rgba(2,88,100,0.25)',
+                }}
+              >
+                {pwSaving
+                  ? <><Loader2 size={14} className="animate-spin" /> {t('settings.password.saving')}</>
+                  : <><Check size={14} /> {t('settings.password.save')}</>}
+              </motion.button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Setup modal */}

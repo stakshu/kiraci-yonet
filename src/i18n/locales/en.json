@@ -1414,22 +1414,27 @@
     },
     "password": {
       "title": "Change Password",
-      "current": "Current Password",
+      "flowIntro": "Set a new password. We'll email you a 6-digit code to confirm the change.",
       "new": "New Password",
       "newPh": "At least 8 characters",
       "confirm": "Confirm New Password",
       "hint": "Use a mix of letters, numbers and symbols for a stronger password.",
       "show": "Show passwords",
       "hide": "Hide passwords",
+      "continue": "Continue",
+      "sending": "Sending code...",
+      "codeSentTo": "Verification code sent to {{email}}. Check your inbox.",
+      "codeLabel": "Verification code",
+      "codeHint": "If it doesn't arrive in a few minutes, check your spam folder.",
       "save": "Change Password",
       "saving": "Saving...",
+      "cancelVerify": "Back",
       "errors": {
-        "required": "All fields are required.",
+        "required": "Fill in the new password and confirmation.",
         "tooShort": "New password must be at least 8 characters.",
         "mismatch": "New passwords do not match.",
-        "sameAsOld": "New password must differ from the old one.",
-        "wrongCurrent": "Current password is incorrect.",
-        "unknown": "Email address missing — refresh your session."
+        "codeRequired": "Enter the 6-digit verification code.",
+        "wrongCode": "Code is wrong or expired."
       },
       "toasts": {
         "changed": "Password changed successfully."

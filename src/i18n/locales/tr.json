@@ -1411,22 +1411,27 @@
     },
     "password": {
       "title": "Şifre Değiştir",
-      "current": "Mevcut Şifre",
+      "flowIntro": "Yeni şifreni belirle. Doğrulamak için e-postana 6 haneli bir kod göndereceğiz.",
       "new": "Yeni Şifre",
       "newPh": "En az 8 karakter",
       "confirm": "Yeni Şifre (Tekrar)",
       "hint": "Güçlü şifre için harf + rakam + sembol karışımı kullanın.",
       "show": "Şifreleri göster",
       "hide": "Şifreleri gizle",
+      "continue": "Devam",
+      "sending": "Kod Gönderiliyor...",
+      "codeSentTo": "Doğrulama kodu {{email}} adresine gönderildi. E-postanı kontrol et.",
+      "codeLabel": "Doğrulama Kodu",
+      "codeHint": "Birkaç dakika içinde gelmezse spam klasörüne bak.",
       "save": "Şifreyi Değiştir",
       "saving": "Kaydediliyor...",
+      "cancelVerify": "Geri",
       "errors": {
-        "required": "Tüm alanlar doldurulmalı.",
+        "required": "Yeni şifre ve onayı doldurulmalı.",
         "tooShort": "Yeni şifre en az 8 karakter olmalı.",
         "mismatch": "Yeni şifreler eşleşmiyor.",
-        "sameAsOld": "Yeni şifre, eskisiyle aynı olamaz.",
-        "wrongCurrent": "Mevcut şifre hatalı.",
-        "unknown": "E-posta adresi bulunamadı, oturumu yenileyin."
+        "codeRequired": "6 haneli doğrulama kodunu gir.",
+        "wrongCode": "Kod yanlış veya süresi dolmuş."
       },
       "toasts": {
         "changed": "Şifre başarıyla değiştirildi."
