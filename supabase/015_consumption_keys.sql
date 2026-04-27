@@ -33,6 +33,14 @@ alter table public.expense_categories
   add constraint expense_categories_dist_key_check
   check (default_distribution_key in ('area', 'persons', 'units', 'kwh', 'm3'));
 
+-- 2a) Column default'larını da güncelle: insert sırasında alan gönderilmezse
+-- artık 'units' devreye girer, 'equal' yerine. Yeni constraint ihlal edilmez.
+alter table public.property_expenses
+  alter column distribution_key set default 'units';
+
+alter table public.expense_categories
+  alter column default_distribution_key set default 'units';
+
 -- 3) expense_meter_readings — her property_expenses satırı için daire başına
 --    sayaç değeri (kwh veya m³). Tek tablo, distribution_key her ikisinde aynı.
 create table if not exists public.expense_meter_readings (
